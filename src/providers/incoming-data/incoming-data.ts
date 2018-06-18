@@ -28,6 +28,30 @@ export class IncomingDataProvider {
   }
 
   public redir(data: string, activePage?: string): boolean {
+    //  Handling of a bitpay invoice url
+    if (/https:\/\/(www.)?(test.)?bitpay.com\/invoice\?id=\w+/.exec(data)) {
+      const testStr: string = data.indexOf('test.bitpay.com') > -1 ? 'test.' : '';
+      this.logger.debug('Handling bitpay invoice');
+      const invoiceId: string = data.replace(/https:\/\/(www.)?(test.)?bitpay.com\/invoice\?id=/, '');
+
+      //  TODO: Update to support BTC or BCH
+      const payProUrl: string = `bitcoincash:?r=https://${ testStr }bitpay.com/i/${ invoiceId }`;
+      const coin: string = 'bch';
+
+      //  Copypasta from below
+      data = decodeURIComponent(payProUrl.replace(/bitcoin(cash)?:\?r=/, ''));
+      this.payproProvider
+        .getPayProDetails(data, coin)
+        .then(details => {
+          this.handlePayPro(details, coin);
+        })
+        .catch(err => {
+          this.popupProvider.ionicAlert(this.translate.instant('Error'), err);
+        });
+
+      return true;
+    }
+
     // data extensions for Payment Protocol with non-backwards-compatible request
     if (/^bitcoin(cash)?:\?r=[\w+]/.exec(data)) {
       this.logger.debug(
