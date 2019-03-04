@@ -32,6 +32,7 @@ import {
 export class ImportWalletPage {
   private derivationPathByDefault: string;
   private derivationPathForTestnet: string;
+  private derivationPathForRegtest: string;
   private reader: FileReader;
   private defaults;
   private errors;
@@ -86,6 +87,7 @@ export class ImportWalletPage {
     this.selectedTab = 'words';
     this.derivationPathByDefault = this.derivationPathHelperProvider.default;
     this.derivationPathForTestnet = this.derivationPathHelperProvider.defaultTestnet;
+    this.derivationPathForRegtest = this.derivationPathHelperProvider.defaultRegtest;
     this.showAdvOpts = false;
     this.formFile = null;
 
@@ -97,6 +99,7 @@ export class ImportWalletPage {
       filePassword: [null],
       derivationPath: [this.derivationPathByDefault, Validators.required],
       testnetEnabled: [false],
+      regtestEnabled: [false],
       bwsURL: [this.defaults.bws.url],
       coin: [null, Validators.required],
       importVault: [false]
@@ -204,16 +207,28 @@ export class ImportWalletPage {
     }
 
     const isTestnet = info.network == 'testnet' ? true : false;
+    const isRegtest = info.network == 'regtest' ? true : false;
     this.importForm.controls['testnetEnabled'].setValue(isTestnet);
+    this.importForm.controls['regtestEnabled'].setValue(isRegtest);
     this.importForm.controls['derivationPath'].setValue(info.derivationPath);
     this.importForm.controls['words'].setValue(info.data);
     this.importForm.controls['coin'].setValue(info.coin);
   }
 
   public setDerivationPath(): void {
-    const path = this.importForm.value.testnetEnabled
-      ? this.derivationPathForTestnet
-      : this.derivationPathByDefault;
+    let path: string = '';
+    switch (path) {
+      case this.importForm.value.testnetEnabled:
+        path = this.derivationPathForTestnet;
+        break;
+      case this.importForm.value.regtestEnabled:
+        path = this.derivationPathForRegtest;
+        break;
+      default:
+        path = this.derivationPathByDefault;
+        break;
+    }
+
     this.importForm.controls['derivationPath'].setValue(path);
   }
 

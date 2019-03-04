@@ -4,10 +4,12 @@ import { Injectable } from '@angular/core';
 export class DerivationPathHelperProvider {
   public default: string;
   public defaultTestnet: string;
+  public defaultRegtest: string;
 
   public constructor() {
     this.default = "m/44'/0'/0'";
     this.defaultTestnet = "m/44'/1'/0'";
+    this.defaultRegtest = "m/44'/2'/0'";
   }
 
   public getDerivationStrategy(path: string): string {
@@ -38,6 +40,12 @@ export class DerivationPathHelperProvider {
         break;
       case "1'":
         networkName = 'testnet';
+        break;
+      case "2'":
+        networkName = 'regtest';
+        break;
+      default:
+        networkName = 'livenet';
         break;
     }
     return networkName;

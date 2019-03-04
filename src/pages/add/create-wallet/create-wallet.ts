@@ -45,6 +45,7 @@ export class CreateWalletPage implements OnInit {
   private tc: number;
   private derivationPathByDefault: string;
   private derivationPathForTestnet: string;
+  private derivationPathForRegtest: string;
 
   public copayers: number[];
   public signatures: number[];
@@ -85,6 +86,7 @@ export class CreateWalletPage implements OnInit {
     this.copayers = _.range(2, this.defaults.limits.totalCopayers + 1);
     this.derivationPathByDefault = this.derivationPathHelperProvider.default;
     this.derivationPathForTestnet = this.derivationPathHelperProvider.defaultTestnet;
+    this.derivationPathForRegtest = this.derivationPathHelperProvider.defaultRegtest;
     this.showAdvOpts = false;
 
     this.createForm = this.fb.group({
@@ -97,6 +99,7 @@ export class CreateWalletPage implements OnInit {
       recoveryPhrase: [null],
       derivationPath: [this.derivationPathByDefault],
       testnetEnabled: [false],
+      regtestEnabled: [false],
       singleAddress: [false],
       coin: [null, Validators.required],
       addToVault: [false]
@@ -154,6 +157,8 @@ export class CreateWalletPage implements OnInit {
     this.createForm.controls['selectedSeed'].setValue(seed); // new or set
     if (this.createForm.controls['testnet'])
       this.createForm.controls['testnet'].setValue(false);
+    if (this.createForm.controls['regtest'])
+      this.createForm.controls['regtest'].setValue(false);
     this.createForm.controls['derivationPath'].setValue(
       this.derivationPathByDefault
     );
@@ -161,13 +166,35 @@ export class CreateWalletPage implements OnInit {
   }
 
   public setDerivationPath(): void {
-    const path: string = this.createForm.value.testnet
-      ? this.derivationPathForTestnet
-      : this.derivationPathByDefault;
+    let path: string = '';
+    switch (path) {
+      case this.createForm.value.testnetEnabled:
+        path = this.derivationPathForTestnet;
+        break;
+      case this.createForm.value.regtestEnabled:
+        path = this.derivationPathForRegtest;
+        break;
+      default:
+        path = this.derivationPathByDefault;
+        break;
+    }
     this.createForm.controls['derivationPath'].setValue(path);
   }
 
   public setOptsAndCreate(): void {
+    let networkName: string = '';
+    let isNetwork: boolean = true;
+    switch (isNetwork) {
+      case this.createForm.value.testnetEnabled:
+        networkName = 'testnet';
+        break;
+      case this.createForm.value.regtestEnabled:
+        networkName = 'regtest';
+        break;
+      default:
+        networkName = 'livenet';
+        break;
+    }
     const opts: Partial<WalletOptions> = {
       name: this.createForm.value.walletName,
       m: this.createForm.value.requiredCopayers,
@@ -176,7 +203,7 @@ export class CreateWalletPage implements OnInit {
         this.createForm.value.totalCopayers > 1
           ? this.createForm.value.myName
           : null,
-      networkName: this.createForm.value.testnetEnabled ? 'testnet' : 'livenet',
+      networkName,
       bwsurl: this.createForm.value.bwsURL,
       singleAddress: this.createForm.value.singleAddress,
       coin: this.createForm.value.coin
