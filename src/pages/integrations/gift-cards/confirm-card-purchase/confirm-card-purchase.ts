@@ -1,7 +1,6 @@
 import { Component } from '@angular/core';
 import { TranslateService } from '@ngx-translate/core';
 import {
-  App,
   Events,
   ModalController,
   NavController,
@@ -72,7 +71,6 @@ export class ConfirmCardPurchasePage extends ConfirmPage {
 
   constructor(
     actionSheetProvider: ActionSheetProvider,
-    app: App,
     bwcErrorProvider: BwcErrorProvider,
     bwcProvider: BwcProvider,
     configProvider: ConfigProvider,
@@ -101,7 +99,6 @@ export class ConfirmCardPurchasePage extends ConfirmPage {
   ) {
     super(
       actionSheetProvider,
-      app,
       bwcErrorProvider,
       bwcProvider,
       configProvider,
@@ -495,6 +492,7 @@ export class ConfirmCardPurchasePage extends ConfirmPage {
     await this.giftCardProvider.saveCard(this.tx.giftData, {
       remove: true
     });
+    await this.walletProvider.removeTx(this.wallet, this.tx);
     const errorMessage = err && err.message;
     const canceledErrors = ['FINGERPRINT_CANCELLED', 'PASSWORD_CANCELLED'];
     if (canceledErrors.indexOf(errorMessage) !== -1) {

@@ -86,8 +86,12 @@ export class CopayApp {
     JoinWalletPage,
     PaperWalletPage,
     ShapeshiftPage,
+<<<<<<< HEAD
     WalletDetailsPage,
     SelectCurrencyPage
+=======
+    WalletDetailsPage
+>>>>>>> 9efcccf060fc65c9698e26fd8d203df8b709b2c3
   };
 
   constructor(

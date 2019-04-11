@@ -1,12 +1,15 @@
 import { Component } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { TranslateService } from '@ngx-translate/core';
-import { App, Events, NavController, NavParams } from 'ionic-angular';
+import { Events, NavController, NavParams } from 'ionic-angular';
 import { Logger } from '../../../providers/logger/logger';
 
 // Pages
 import { ScanPage } from '../../scan/scan';
+<<<<<<< HEAD
 import { TabsPage } from '../../tabs/tabs';
+=======
+>>>>>>> 9efcccf060fc65c9698e26fd8d203df8b709b2c3
 
 // Providers
 import { ActionSheetProvider } from '../../../providers/action-sheet/action-sheet';
@@ -49,9 +52,12 @@ export class ImportWalletPage {
   public okText: string;
   public cancelText: string;
   public coin: string;
+<<<<<<< HEAD
+=======
+  public createLabel: string;
+>>>>>>> 9efcccf060fc65c9698e26fd8d203df8b709b2c3
 
   constructor(
-    private app: App,
     private navCtrl: NavController,
     private navParams: NavParams,
     private form: FormBuilder,
@@ -102,6 +108,13 @@ export class ImportWalletPage {
     });
     this.importForm.controls['coin'].setValue(this.coin);
     this.events.subscribe('Local/BackupScan', this.updateWordsHandler);
+<<<<<<< HEAD
+=======
+    this.createLabel =
+      this.coin === 'btc'
+        ? this.translate.instant('BTC Wallet')
+        : this.translate.instant('BCH Wallet');
+>>>>>>> 9efcccf060fc65c9698e26fd8d203df8b709b2c3
 
     this.persistenceProvider.getVault().then(vault => {
       if (vault) this.importForm.controls['importVault'].disable();
@@ -263,6 +276,7 @@ export class ImportWalletPage {
       this.profileProvider.setBackupFlag(wallet.credentials.walletId);
       this.pushNotificationsProvider.updateSubscription(wallet);
     });
+<<<<<<< HEAD
 
     if (this.importForm.value.importVault) {
       // using setRoot(TabsPage) as workaround when comming from scanner
@@ -276,6 +290,9 @@ export class ImportWalletPage {
           this.events.publish('OpenWallet', wallets[0]);
         });
     }
+=======
+    this.navCtrl.popToRoot();
+>>>>>>> 9efcccf060fc65c9698e26fd8d203df8b709b2c3
   }
 
   private importExtendedPrivateKey(xPrivKey, opts) {
@@ -392,6 +409,7 @@ export class ImportWalletPage {
 
     opts.networkName = this.derivationPathHelperProvider.getNetworkName(
       derivationPath
+<<<<<<< HEAD
     );
     opts.derivationStrategy = this.derivationPathHelperProvider.getDerivationStrategy(
       derivationPath
@@ -402,6 +420,18 @@ export class ImportWalletPage {
 
     opts.passphrase = this.importForm.value.passphrase || null;
 
+=======
+    );
+    opts.derivationStrategy = this.derivationPathHelperProvider.getDerivationStrategy(
+      derivationPath
+    );
+    opts.account = this.derivationPathHelperProvider.getAccount(derivationPath);
+
+    opts.coin = this.importForm.value.coin;
+
+    opts.passphrase = this.importForm.value.passphrase || null;
+
+>>>>>>> 9efcccf060fc65c9698e26fd8d203df8b709b2c3
     if (
       !opts.networkName ||
       !opts.derivationStrategy ||
@@ -462,7 +492,8 @@ export class ImportWalletPage {
         const opts: Partial<WalletOptions> = {};
         opts.bwsurl = this.importForm.value.bwsURL;
         opts.coin = this.importForm.value.coin;
-        this.importBlob(this.reader.result, opts);
+        const reader: string = this.reader.result.toString();
+        this.importBlob(reader, opts);
       }
     };
   }

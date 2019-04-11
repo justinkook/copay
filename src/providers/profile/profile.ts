@@ -228,7 +228,7 @@ export class ProfileProvider {
       this.logger.debug('Wallet completed');
       this.updateCredentials(JSON.parse(wallet.export()));
       this.events.publish('Local/WalletListChange');
-      this.events.publish('Local/WalletUpdate', {walletId: wallet.id});
+      this.events.publish('Local/WalletUpdate', { walletId: wallet.id });
     });
 
     wallet.initialize(
@@ -1484,15 +1484,15 @@ export class ProfileProvider {
 
     if (opts.hasFunds) {
       ret = _.filter(ret, w => {
-        if (!w.status) return undefined;
-        return w.status.availableBalanceSat > 0;
+        if (!w.cachedStatus) return undefined;
+        return w.cachedStatus.availableBalanceSat > 0;
       });
     }
 
     if (opts.minAmount) {
       ret = _.filter(ret, w => {
-        if (!w.status) return undefined;
-        return w.status.availableBalanceSat > opts.minAmount;
+        if (!w.cachedStatus) return undefined;
+        return w.cachedStatus.availableBalanceSat > opts.minAmount;
       });
     }
 

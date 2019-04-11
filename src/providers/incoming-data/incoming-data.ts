@@ -70,7 +70,7 @@ export class IncomingDataProvider {
     return !!this.bwcProvider.getBitcore().URI.isValid(data);
   }
 
-  private isValidBitcoinCashUri(data: string): boolean {
+  public isValidBitcoinCashUri(data: string): boolean {
     data = this.sanitizeUri(data);
     return !!this.bwcProvider.getBitcoreCash().URI.isValid(data);
   }

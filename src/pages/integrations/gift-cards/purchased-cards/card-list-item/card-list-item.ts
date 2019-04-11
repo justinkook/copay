@@ -43,7 +43,11 @@ import {
           </ion-note>
           <ion-note
             class="card-list-item__note ellipsis"
+<<<<<<< HEAD
             *ngIf="cardConfig.supportedAmounts"
+=======
+            *ngIf="cardConfig.supportedAmounts && type === 'catalog'"
+>>>>>>> 9efcccf060fc65c9698e26fd8d203df8b709b2c3
           >
             <span
               *ngFor="

@@ -88,7 +88,7 @@ msgstr ""
 msgid "Add Contact"
 msgstr ""
 
-msgid "Add Memo"
+msgid "Add Recipient"
 msgstr ""
 
 msgid "Add Recipient"
@@ -152,9 +152,10 @@ msgstr ""
 msgid "Allow camera access"
 msgstr ""
 
-msgid "Almost done! Let's review."
+msgid "Alternative currency"
 msgstr ""
 
+<<<<<<< HEAD:i18n/template.pot
 msgid "Alternative currency"
 msgstr ""
 
@@ -166,9 +167,22 @@ msgstr ""
 msgid ""
 "Amazon.com Gift Cards never expire and can be redeemed towards millions of "
 "items at www.amazon.com."
+=======
+msgid ""
+"Amazon.co.jp Gift Cards never expire and can be redeemed towards millions "
+"of items at www.amazon.co.jp."
+msgstr ""
+
+msgid ""
+"Amazon.com Gift Cards never expire and can be redeemed towards millions of "
+"items at www.amazon.com."
 msgstr ""
 
 msgid "Amount"
+>>>>>>> 9efcccf060fc65c9698e26fd8d203df8b709b2c3:i18n/template.pot
+msgstr ""
+
+msgid "Amount Too Low To Spend"
 msgstr ""
 
 msgid "Amount Too Low To Spend"
@@ -177,9 +191,12 @@ msgstr ""
 msgid "Amount below minimum allowed"
 msgstr ""
 
+<<<<<<< HEAD:i18n/template.pot
 msgid "Amount too big"
 msgstr ""
 
+=======
+>>>>>>> 9efcccf060fc65c9698e26fd8d203df8b709b2c3:i18n/template.pot
 msgid "Amount:"
 msgstr ""
 
@@ -218,9 +235,6 @@ msgstr ""
 msgid "Are you sure you want to remove this transaction?"
 msgstr ""
 
-msgid "Are you sure you want to skip it?"
-msgstr ""
-
 msgid "Are you sure?"
 msgstr ""
 
@@ -233,12 +247,27 @@ msgstr ""
 msgid "Awaiting payment to confirm"
 msgstr ""
 
+<<<<<<< HEAD:i18n/template.pot
 msgid "Back up all your wallets before using this function"
 msgstr ""
 
 msgid "Back up your wallet before using this function"
 msgstr ""
 
+=======
+msgid "BCH Wallet"
+msgstr ""
+
+msgid "BTC Wallet"
+msgstr ""
+
+msgid "Back up all your wallets before using this function"
+msgstr ""
+
+msgid "Back up your wallet before using this function"
+msgstr ""
+
+>>>>>>> 9efcccf060fc65c9698e26fd8d203df8b709b2c3:i18n/template.pot
 msgid "Backup"
 msgstr ""
 
@@ -265,6 +294,7 @@ msgstr ""
 msgid ""
 "Because you are sending the maximum amount contained in this wallet, the "
 "{coinName} miner fee ({fee} {coin}) will be deducted from the total. {msg}"
+<<<<<<< HEAD:i18n/template.pot
 msgstr ""
 
 msgid ""
@@ -280,12 +310,46 @@ msgid "BitPay Card URI"
 msgstr ""
 
 msgid "BitPay does not receive and does not control miner fees."
+=======
+>>>>>>> 9efcccf060fc65c9698e26fd8d203df8b709b2c3:i18n/template.pot
+msgstr ""
+
+msgid ""
+"Before retrieving your wallet address, it's recommended that you first "
+"write down your recovery phrase and store it securely so that your wallet "
+"can be recovered in the case your device was lost or stolen."
+msgstr ""
+
+<<<<<<< HEAD:i18n/template.pot
+msgid "Bitcoin Cash Address"
+msgstr ""
+
+msgid "Bitcoin Cash URI"
+msgstr ""
+
+msgid "Bitcoin Cash Wallets"
+=======
+msgid "Below Minimum Amount"
+>>>>>>> 9efcccf060fc65c9698e26fd8d203df8b709b2c3:i18n/template.pot
+msgstr ""
+
+msgid "BitPay Card URI"
+msgstr ""
+
+<<<<<<< HEAD:i18n/template.pot
+msgid "Bitcoin URI"
+msgstr ""
+
+msgid "Bitcoin Wallets"
+=======
+msgid "BitPay does not receive and does not control miner fees."
 msgstr ""
 
 msgid "Bitcoin Address"
 msgstr ""
 
 msgid "Bitcoin Cash Address"
+>>>>>>> 9efcccf060fc65c9698e26fd8d203df8b709b2c3:i18n/template.pot
 msgstr ""
 
 msgid "Bitcoin Cash URI"
@@ -300,21 +364,15 @@ msgstr ""
 msgid "Bitcoin URI"
 msgstr ""
 
+<<<<<<< HEAD:i18n/template.pot
+=======
 msgid "Bitcoin Wallets"
-msgstr ""
-
-msgid "Bitcoin is a currency."
-msgstr ""
-
-msgid "Bitcoin is different - it cannot be safely held with a bank or web service."
-msgstr ""
-
-msgid "Bitcoin is secure, digital money."
 msgstr ""
 
 msgid "Bitcoin miner fee:"
 msgstr ""
 
+>>>>>>> 9efcccf060fc65c9698e26fd8d203df8b709b2c3:i18n/template.pot
 msgid "Bitcoin network fee policy"
 msgstr ""
 
@@ -362,10 +420,10 @@ msgstr ""
 msgid "Canceling Gift Card..."
 msgstr ""
 
-msgid "Cannot create wallet"
+msgid "Cannot join the same wallet more that once"
 msgstr ""
 
-msgid "Cannot join the same wallet more that once"
+msgid "Card Archived"
 msgstr ""
 
 msgid "Card Archived"
@@ -596,6 +654,7 @@ msgstr ""
 msgid "Could not update wallet"
 msgstr ""
 
+<<<<<<< HEAD:i18n/template.pot
 msgid "Create BCH Wallet"
 msgstr ""
 
@@ -606,6 +665,12 @@ msgid "Create a new wallet"
 msgstr ""
 
 msgid "Create a new wallet to start using this app."
+=======
+msgid "Create"
+msgstr ""
+
+msgid "Create a Wallet"
+>>>>>>> 9efcccf060fc65c9698e26fd8d203df8b709b2c3:i18n/template.pot
 msgstr ""
 
 msgid "Created"
@@ -677,10 +742,13 @@ msgstr ""
 msgid "Disabled"
 msgstr ""
 
-msgid "Do it later"
+msgid "Do not include private key"
 msgstr ""
 
-msgid "Do not include private key"
+msgid "Do this later?"
+msgstr ""
+
+msgid "Do you want to verify your account now?"
 msgstr ""
 
 msgid "Do this later"
@@ -760,11 +828,19 @@ msgid "Enter a password to encrypt your wallet"
 msgstr ""
 
 msgid "Enter a transaction memo"
+<<<<<<< HEAD:i18n/template.pot
 msgstr ""
 
 msgid "Enter bitcoin address"
 msgstr ""
 
+=======
+msgstr ""
+
+msgid "Enter bitcoin address"
+msgstr ""
+
+>>>>>>> 9efcccf060fc65c9698e26fd8d203df8b709b2c3:i18n/template.pot
 msgid "Enter custom fee in sat/byte"
 msgstr ""
 
@@ -933,6 +1009,12 @@ msgid "Funds will be transferred to"
 msgstr ""
 
 msgid "GOT IT"
+<<<<<<< HEAD:i18n/template.pot
+=======
+msgstr ""
+
+msgid "Generate New Address"
+>>>>>>> 9efcccf060fc65c9698e26fd8d203df8b709b2c3:i18n/template.pot
 msgstr ""
 
 msgid "Generating .csv file..."
@@ -988,23 +1070,35 @@ msgstr ""
 msgid "Go back"
 msgstr ""
 
-msgid "Got it"
+msgid ""
+"Have you redeemed all of your {brand} Gift Cards? Archived gift cards will "
+"still be accessible in settings."
 msgstr ""
 
+<<<<<<< HEAD:i18n/template.pot
 msgid ""
 "Have you redeemed all of your {brand} Gift Cards? Archived gift cards will "
 "still be accessible in settings."
 msgstr ""
 
 msgid "Have you redeemed the entire balance of this gift card?"
+=======
+msgid "Have you redeemed the entire balance of this gift card?"
+msgstr ""
+
+msgid "Having problems with a ShapeShift?"
+>>>>>>> 9efcccf060fc65c9698e26fd8d203df8b709b2c3:i18n/template.pot
 msgstr ""
 
 msgid "Having problems with a ShapeShift?"
 msgstr ""
 
+<<<<<<< HEAD:i18n/template.pot
 msgid "Help & support"
 msgstr ""
 
+=======
+>>>>>>> 9efcccf060fc65c9698e26fd8d203df8b709b2c3:i18n/template.pot
 msgid "Help and support information is available at the website."
 msgstr ""
 
@@ -1074,11 +1168,12 @@ msgid "If enabled, wallets will also try to spend unconfirmed funds."
 msgstr ""
 
 msgid ""
-"If this device is replaced or this app is deleted, neither you nor BitPay "
-"can recover your funds without a backup."
+"If you have funds stored on a website then you should move them into a "
+"secure wallet... like this one!"
 msgstr ""
 
 msgid ""
+<<<<<<< HEAD:i18n/template.pot
 "If you have funds stored on a website then you should move them into a "
 "secure wallet... like this one!"
 msgstr ""
@@ -1115,6 +1210,34 @@ msgstr ""
 msgid "In order to verify your wallet recovery phrase, please type your password."
 msgstr ""
 
+=======
+"If you need immediate help with a problem you are having, then get help by "
+"contacting our support team."
+msgstr ""
+
+msgid ""
+"If you need to send to \"old\" addresses (like the one you just pasted), "
+"and you are SURE those are BCH addresses, you can \"translate\" them using "
+"the BCH Translator tool and paste the corresponding address in CashAddr "
+"format for that \"old\" address."
+msgstr ""
+
+msgid "Import"
+msgstr ""
+
+msgid "Import Wallet"
+msgstr ""
+
+msgid "Import Words"
+msgstr ""
+
+msgid "Importing Wallet..."
+msgstr ""
+
+msgid "In order to verify your wallet recovery phrase, please type your password."
+msgstr ""
+
+>>>>>>> 9efcccf060fc65c9698e26fd8d203df8b709b2c3:i18n/template.pot
 msgid "Incomplete"
 msgstr ""
 
@@ -1184,16 +1307,17 @@ msgid ""
 "Please review and try again."
 msgstr ""
 
+<<<<<<< HEAD:i18n/template.pot
+msgid "Join Shared Wallet"
+=======
+msgid "Join"
+>>>>>>> 9efcccf060fc65c9698e26fd8d203df8b709b2c3:i18n/template.pot
+msgstr ""
+
 msgid "Join Shared Wallet"
 msgstr ""
 
-msgid "Join wallet"
-msgstr ""
-
 msgid "Joining Wallet..."
-msgstr ""
-
-msgid "Just scan the code to pay."
 msgstr ""
 
 msgid "Key already associated with an existing wallet"
@@ -1241,12 +1365,15 @@ msgid "Locktime in effect. Please wait to remove this spend proposal"
 msgstr ""
 
 msgid "Low Fee"
+<<<<<<< HEAD:i18n/template.pot
 msgstr ""
 
 msgid "Low amount inputs"
+=======
+>>>>>>> 9efcccf060fc65c9698e26fd8d203df8b709b2c3:i18n/template.pot
 msgstr ""
 
-msgid "Makes sense"
+msgid "Low amount inputs"
 msgstr ""
 
 msgid "Maximum amount allowed is {{max}}"
@@ -1336,6 +1463,7 @@ msgid "New Proposal"
 msgstr ""
 
 msgid "New copayer"
+<<<<<<< HEAD:i18n/template.pot
 msgstr ""
 
 msgid "New payment proposal"
@@ -1348,15 +1476,27 @@ msgid "New {appName} desktop platform"
 msgstr ""
 
 msgid "Next"
+=======
 msgstr ""
 
+msgid "New payment proposal"
+>>>>>>> 9efcccf060fc65c9698e26fd8d203df8b709b2c3:i18n/template.pot
+msgstr ""
+
+msgid "New payment received"
+msgstr ""
+
+msgid "Next"
+msgstr ""
+
+<<<<<<< HEAD:i18n/template.pot
+msgid "No Private Key"
+=======
 msgid "No"
+>>>>>>> 9efcccf060fc65c9698e26fd8d203df8b709b2c3:i18n/template.pot
 msgstr ""
 
 msgid "No Private Key"
-msgstr ""
-
-msgid "No backup, no bitcoin."
 msgstr ""
 
 msgid "No contacts yet"
@@ -1396,20 +1536,38 @@ msgid "No wallets with funds"
 msgstr ""
 
 msgid "Normal"
+<<<<<<< HEAD:i18n/template.pot
+=======
 msgstr ""
 
 msgid "Not authorized"
 msgstr ""
 
 msgid "Not enough funds"
+>>>>>>> 9efcccf060fc65c9698e26fd8d203df8b709b2c3:i18n/template.pot
 msgstr ""
 
 msgid "Not enough funds for fee"
 msgstr ""
 
-msgid "Not even BitPay can access it."
+<<<<<<< HEAD:i18n/template.pot
+msgid "Not enough funds"
 msgstr ""
 
+msgid "Not enough funds for fee"
+=======
+msgid ""
+"Not including the private key allows to check the wallet balance, "
+"transaction history, and create spend proposals from the export. However, "
+"does not allow to approve (sign) proposals, so funds will not be accessible "
+"from the export."
+>>>>>>> 9efcccf060fc65c9698e26fd8d203df8b709b2c3:i18n/template.pot
+msgstr ""
+
+msgid "Not right now"
+msgstr ""
+
+<<<<<<< HEAD:i18n/template.pot
 msgid ""
 "Not including the private key allows to check the wallet balance, "
 "transaction history, and create spend proposals from the export. However, "
@@ -1420,6 +1578,8 @@ msgstr ""
 msgid "Not right now"
 msgstr ""
 
+=======
+>>>>>>> 9efcccf060fc65c9698e26fd8d203df8b709b2c3:i18n/template.pot
 msgid "Not set"
 msgstr ""
 
@@ -1446,6 +1606,12 @@ msgstr ""
 msgid "Notify me when transactions are confirmed"
 msgstr ""
 
+<<<<<<< HEAD:i18n/template.pot
+=======
+msgid "Now it's time for you to create wallets to store your funds into."
+msgstr ""
+
+>>>>>>> 9efcccf060fc65c9698e26fd8d203df8b709b2c3:i18n/template.pot
 msgid "OK"
 msgstr ""
 
@@ -1458,10 +1624,13 @@ msgstr ""
 msgid "On"
 msgstr ""
 
-msgid "On this screen you can see all your wallets, accounts, and assets."
+msgid "Only redeemable on Mercado Livre (Brazil)"
 msgstr ""
 
-msgid "Only redeemable on Mercado Livre (Brazil)"
+msgid "Only redeemable on www.amazon.co.jp (Japan website)"
+msgstr ""
+
+msgid "Only redeemable on www.amazon.com (USA website)"
 msgstr ""
 
 msgid "Only redeemable on www.amazon.co.jp (Japan website)"
@@ -1598,10 +1767,20 @@ msgstr ""
 msgid "Please enter your PIN"
 msgstr ""
 
+<<<<<<< HEAD:i18n/template.pot
 msgid "Please upgrade the app to perform this action"
 msgstr ""
 
 msgid "Please wait..."
+=======
+msgid "Please review"
+msgstr ""
+
+msgid "Please upgrade the app to perform this action"
+>>>>>>> 9efcccf060fc65c9698e26fd8d203df8b709b2c3:i18n/template.pot
+msgstr ""
+
+msgid "Please, enter the amount"
 msgstr ""
 
 msgid "Please, enter the amount"
@@ -1625,6 +1804,18 @@ msgstr ""
 msgid "Previous"
 msgstr ""
 
+<<<<<<< HEAD:i18n/template.pot
+=======
+msgid "Print"
+msgstr ""
+
+msgid "Print Card"
+msgstr ""
+
+msgid "Printed Gift Card Required"
+msgstr ""
+
+>>>>>>> 9efcccf060fc65c9698e26fd8d203df8b709b2c3:i18n/template.pot
 msgid "Priority"
 msgstr ""
 
@@ -1673,9 +1864,12 @@ msgid "QR Code"
 msgstr ""
 
 msgid "Quick and easy setup"
+<<<<<<< HEAD:i18n/template.pot
 msgstr ""
 
 msgid "Quick review!"
+=======
+>>>>>>> 9efcccf060fc65c9698e26fd8d203df8b709b2c3:i18n/template.pot
 msgstr ""
 
 msgid "Random"
@@ -1751,11 +1945,19 @@ msgid "Remove"
 msgstr ""
 
 msgid "Repeat the password"
+<<<<<<< HEAD:i18n/template.pot
 msgstr ""
 
 msgid "Report an Issue"
 msgstr ""
 
+=======
+msgstr ""
+
+msgid "Report an Issue"
+msgstr ""
+
+>>>>>>> 9efcccf060fc65c9698e26fd8d203df8b709b2c3:i18n/template.pot
 msgid "Report an issue"
 msgstr ""
 
@@ -1784,18 +1986,21 @@ msgid "Required number of signatures"
 msgstr ""
 
 msgid "Requires invitation to join"
+<<<<<<< HEAD:i18n/template.pot
 msgstr ""
 
 msgid "Requires multiple devices (most secure)"
 msgstr ""
 
 msgid "Restore from backup"
+=======
+>>>>>>> 9efcccf060fc65c9698e26fd8d203df8b709b2c3:i18n/template.pot
+msgstr ""
+
+msgid "Requires multiple devices (most secure)"
 msgstr ""
 
 msgid "Retrieving inputs information..."
-msgstr ""
-
-msgid "Retry"
 msgstr ""
 
 msgid "Retry camera"
@@ -1985,20 +2190,30 @@ msgid "Show in Home"
 msgstr ""
 
 msgid "Sign Up for ShapeShift"
+<<<<<<< HEAD:i18n/template.pot
 msgstr ""
 
 msgid "Sign selected proposals"
 msgstr ""
 
 msgid "Signatures rejected by server"
+=======
+>>>>>>> 9efcccf060fc65c9698e26fd8d203df8b709b2c3:i18n/template.pot
 msgstr ""
 
-msgid "Signing transaction..."
+msgid "Sign selected proposals"
 msgstr ""
 
+<<<<<<< HEAD:i18n/template.pot
 msgid ""
 "Since only you control your money, you’ll need to save your recovery phrase "
 "in case this app is deleted."
+=======
+msgid "Signatures rejected by server"
+msgstr ""
+
+msgid "Signing transaction..."
+>>>>>>> 9efcccf060fc65c9698e26fd8d203df8b709b2c3:i18n/template.pot
 msgstr ""
 
 msgid "Single address"
@@ -2017,6 +2232,9 @@ msgid "Slide to pay"
 msgstr ""
 
 msgid "Slide to send"
+msgstr ""
+
+msgid "Something goes wrong..."
 msgstr ""
 
 msgid "Specify Recovery Phrase"
@@ -2058,12 +2276,13 @@ msgstr ""
 msgid "THIS ACTION CANNOT BE REVERSED"
 msgstr ""
 
-msgid "Take control of your money, get started with bitcoin."
-msgstr ""
-
 msgid "Tap and hold to show"
 msgstr ""
 
+msgid "Tap each word in the correct order."
+msgstr ""
+
+<<<<<<< HEAD:i18n/template.pot
 msgid "Tap each word in the correct order."
 msgstr ""
 
@@ -2079,6 +2298,20 @@ msgstr ""
 msgid "Terms of Use"
 msgstr ""
 
+=======
+msgid "Tap to recreate"
+msgstr ""
+
+msgid "Tap to retry"
+msgstr ""
+
+msgid "Temporarily Unavailable"
+msgstr ""
+
+msgid "Terms of Use"
+msgstr ""
+
+>>>>>>> 9efcccf060fc65c9698e26fd8d203df8b709b2c3:i18n/template.pot
 msgid "Testnet Wallet"
 msgstr ""
 
@@ -2117,9 +2350,6 @@ msgid ""
 "process before continue."
 msgstr ""
 
-msgid "The exchange rate changes with the market."
-msgstr ""
-
 msgid ""
 "The higher the fee, the greater the incentive a miner has to include that "
 "transaction in a block. Current fees are determined based on network load "
@@ -2132,6 +2362,17 @@ msgid ""
 "person or entity with whom you are sharing this information."
 msgstr ""
 
+<<<<<<< HEAD:i18n/template.pot
+=======
+msgid "The invoice is no longer receiving payments."
+msgstr ""
+
+msgid ""
+"The key on the response is not trusted for transactions on the 'test' "
+"network"
+msgstr ""
+
+>>>>>>> 9efcccf060fc65c9698e26fd8d203df8b709b2c3:i18n/template.pot
 msgid "The password of the recovery phrase (if set)"
 msgstr ""
 
@@ -2210,12 +2451,35 @@ msgid ""
 msgstr ""
 
 msgid "This app is not available for your device."
-msgstr ""
-
-msgid "This app stores your bitcoin with cutting-edge security."
+<<<<<<< HEAD:i18n/template.pot
+=======
 msgstr ""
 
 msgid "This bitcoin payment request has expired."
+>>>>>>> 9efcccf060fc65c9698e26fd8d203df8b709b2c3:i18n/template.pot
+msgstr ""
+
+msgid ""
+"This field is only for users who, in previous versions (it's not supported "
+"anymore), set a password to protect their recovery phrase. This field is "
+"not for your encrypt password."
+msgstr ""
+
+msgid "This field only accepts addresses supported by {appName} Wallet"
+msgstr ""
+
+msgid "This information is available at the website."
+msgstr ""
+
+msgid "This invoice does not accept unconfirmed inputs."
+msgstr ""
+
+msgid "This invoice is not longer accepting payments"
+msgstr ""
+
+msgid ""
+"This password cannot be recovered. If this password is lost, funds can only "
+"be recovered by reimporting your 12-word recovery phrase."
 msgstr ""
 
 msgid ""
@@ -2461,12 +2725,18 @@ msgstr ""
 msgid "View all addresses"
 msgstr ""
 
+msgid "View complete Terms of Use"
+msgstr ""
+
 msgid "View on blockchain"
 msgstr ""
 
+<<<<<<< HEAD:i18n/template.pot
+=======
 msgid "Visit ShapeShift.io"
 msgstr ""
 
+>>>>>>> 9efcccf060fc65c9698e26fd8d203df8b709b2c3:i18n/template.pot
 msgid ""
 "WARNING: Key derivation is not working on this device/wallet. Actions "
 "cannot be performed on this wallet."
@@ -2564,7 +2834,7 @@ msgstr ""
 msgid "Warning: this transaction has unconfirmed inputs"
 msgstr ""
 
-msgid "Watch Out!"
+msgid "We appreciate your review"
 msgstr ""
 
 msgid "We appreciate your review"
@@ -2612,6 +2882,12 @@ msgstr ""
 msgid "Why does this require authentication?"
 msgstr ""
 
+<<<<<<< HEAD:i18n/template.pot
+=======
+msgid "Why is my transaction unconfirmed?"
+msgstr ""
+
+>>>>>>> 9efcccf060fc65c9698e26fd8d203df8b709b2c3:i18n/template.pot
 msgid "Why?"
 msgstr ""
 
@@ -2624,11 +2900,19 @@ msgid ""
 msgstr ""
 
 msgid "Would you like to protect this wallet with a password?"
+<<<<<<< HEAD:i18n/template.pot
 msgstr ""
 
 msgid "Write Down Recovery Phrase"
 msgstr ""
 
+=======
+msgstr ""
+
+msgid "Write Down Recovery Phrase"
+msgstr ""
+
+>>>>>>> 9efcccf060fc65c9698e26fd8d203df8b709b2c3:i18n/template.pot
 msgid "Write a Review"
 msgstr ""
 
@@ -2647,9 +2931,12 @@ msgstr ""
 msgid "Yes"
 msgstr ""
 
-msgid "Yes, skip"
+msgid ""
+"You are trying to send ({amount} {coin}) more than what your wallet "
+"contains. Please enter a lower amount or send max."
 msgstr ""
 
+<<<<<<< HEAD:i18n/template.pot
 msgid "You are ready!"
 msgstr ""
 
@@ -2661,6 +2948,8 @@ msgstr ""
 msgid "You can back up your wallet later from your wallet settings."
 msgstr ""
 
+=======
+>>>>>>> 9efcccf060fc65c9698e26fd8d203df8b709b2c3:i18n/template.pot
 msgid ""
 "You can continue to view your archived cards here if you need to access "
 "them."
@@ -2679,6 +2968,7 @@ msgid ""
 "by visiting our project on GitHub."
 msgstr ""
 
+<<<<<<< HEAD:i18n/template.pot
 msgid "You can spend bitcoin at millions of websites and stores worldwide."
 msgstr ""
 
@@ -2686,14 +2976,20 @@ msgid "You can still export it from \"Export Wallet\" option."
 msgstr ""
 
 msgid "You can trade it for other currencies like US Dollars, Euros, or Pounds."
+=======
+msgid "You can still export it from \"Export Wallet\" option."
+>>>>>>> 9efcccf060fc65c9698e26fd8d203df8b709b2c3:i18n/template.pot
 msgstr ""
 
 msgid ""
 "You can use your Mercado Livre gift cards on your Mercado Pago account for "
 "everyday expenses like utilities and metro rides."
+<<<<<<< HEAD:i18n/template.pot
 msgstr ""
 
 msgid "You control your bitcoin."
+=======
+>>>>>>> 9efcccf060fc65c9698e26fd8d203df8b709b2c3:i18n/template.pot
 msgstr ""
 
 msgid "You could sign the transaction later in your wallet details"
@@ -2725,6 +3021,7 @@ msgstr ""
 msgid ""
 "Your recovery phrase is composed of 12 randomly selected words. Please "
 "carefully write down each word in the order they appear."
+<<<<<<< HEAD:i18n/template.pot
 msgstr ""
 
 msgid "Your recovery phrase is verified"
@@ -2738,9 +3035,21 @@ msgid ""
 msgstr ""
 
 msgid "Your wallet is backed up!"
+=======
+>>>>>>> 9efcccf060fc65c9698e26fd8d203df8b709b2c3:i18n/template.pot
 msgstr ""
 
-msgid "Your wallet is never saved to cloud storage or standard device backups."
+msgid "Your recovery phrase is verified"
+msgstr ""
+
+msgid ""
+"Your wallet address is similar to a bank account number. You can add funds "
+"to your wallet by withdrawing funds you may have stored on an exchange to "
+"your wallet address. Or other {coinName} users can send you money by "
+"scanning your QR code."
+msgstr ""
+
+msgid "Your wallet is backed up!"
 msgstr ""
 
 msgid ""
@@ -2767,12 +3076,22 @@ msgid "me"
 msgstr ""
 
 msgid "of total amount"
+<<<<<<< HEAD:i18n/template.pot
+=======
 msgstr ""
 
 msgid "preparing..."
+>>>>>>> 9efcccf060fc65c9698e26fd8d203df8b709b2c3:i18n/template.pot
 msgstr ""
 
 msgid "{appName} BCH wallets use the CashAddr format by default"
+msgstr ""
+
+<<<<<<< HEAD:i18n/template.pot
+msgid "{appName} BCH wallets use the CashAddr format by default"
+=======
+msgid "{displayName} requires you to present a printed gift card at redemption."
+>>>>>>> 9efcccf060fc65c9698e26fd8d203df8b709b2c3:i18n/template.pot
 msgstr ""
 
 msgid ""

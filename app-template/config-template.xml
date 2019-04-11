@@ -27,6 +27,10 @@
     <preference name="KeyboardResize" value="true" />
     <preference name="HideKeyboardFormAccessoryBar" value="false"/>
     <preference name="KeyboardResizeMode" value="ionic" />
+<<<<<<< HEAD
+=======
+    <preference name="KeyboardDisplayRequiresUserAction" value="false" />
+>>>>>>> 9efcccf060fc65c9698e26fd8d203df8b709b2c3
 
     <preference name="BackupWebStorage" value="none"/>
     <preference name="Orientation" value="default" />
@@ -89,9 +93,12 @@
     </plugin>
     <plugin name="cordova-plugin-fcm" spec="https://github.com/cmgustavo/cordova-plugin-fcm.git#v4.1" />
 
+<<<<<<< HEAD
     <!-- Keyboard input focus fix -->
     <plugin name="cordova-plugin-wkwebview-inputfocusfix" spec="https://github.com/cmgustavo/cordova-plugin-wkwebview-inputfocusfix.git#3a4e7908331ae110d6fc269c6c6f11b5e756e3f7" />
 
+=======
+>>>>>>> 9efcccf060fc65c9698e26fd8d203df8b709b2c3
     <plugin name="cordova-plugin-wkwebview-engine" spec="1.1.4" />
 
     <!-- Platform Specific Settings -->
