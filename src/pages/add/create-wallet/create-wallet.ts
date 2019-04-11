@@ -101,13 +101,8 @@ export class CreateWalletPage implements OnInit {
     this.createForm.controls['coin'].setValue(this.coin);
     this.createLabel =
       this.coin === 'btc'
-<<<<<<< HEAD
         ? this.translate.instant('Create BTC Wallet')
         : this.translate.instant('Create BCH Wallet');
-=======
-        ? this.translate.instant('BTC Wallet')
-        : this.translate.instant('BCH Wallet');
->>>>>>> 9efcccf060fc65c9698e26fd8d203df8b709b2c3
 
     this.setTotalCopayers(this.tc);
     this.updateRCSelect(this.tc);
@@ -249,16 +244,8 @@ export class CreateWalletPage implements OnInit {
         this.pushNotificationsProvider.updateSubscription(wallet);
         this.setBackupFlagIfNeeded(wallet.credentials.walletId);
         this.setFingerprintIfNeeded(wallet.credentials.walletId);
-<<<<<<< HEAD
         this.navCtrl.popToRoot();
         this.events.publish('OpenWallet', wallet);
-=======
-        this.navCtrl.popToRoot().then(() => {
-          setTimeout(() => {
-            this.events.publish('OpenWallet', wallet);
-          }, 1000);
-        });
->>>>>>> 9efcccf060fc65c9698e26fd8d203df8b709b2c3
       })
       .catch(err => {
         this.onGoingProcessProvider.clear();

@@ -1,18 +1,11 @@
 import { Component } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { TranslateService } from '@ngx-translate/core';
-<<<<<<< HEAD
 import { App, Events, NavController, NavParams } from 'ionic-angular';
 
 // Pages
 import { ScanPage } from '../../scan/scan';
 import { TabsPage } from '../../tabs/tabs';
-=======
-import { Events, NavController, NavParams } from 'ionic-angular';
-
-// Pages
-import { ScanPage } from '../../scan/scan';
->>>>>>> 9efcccf060fc65c9698e26fd8d203df8b709b2c3
 
 // Providers
 import { ActionSheetProvider } from '../../../providers/action-sheet/action-sheet';
@@ -49,10 +42,7 @@ export class JoinWalletPage {
   private coin: Coin;
 
   constructor(
-<<<<<<< HEAD
     private app: App,
-=======
->>>>>>> 9efcccf060fc65c9698e26fd8d203df8b709b2c3
     private bwcProvider: BwcProvider,
     private configProvider: ConfigProvider,
     private form: FormBuilder,
@@ -248,20 +238,12 @@ export class JoinWalletPage {
         this.onGoingProcessProvider.clear();
         this.walletProvider.updateRemotePreferences(wallet);
         this.pushNotificationsProvider.updateSubscription(wallet);
-<<<<<<< HEAD
         this.app
           .getRootNavs()[0]
           .setRoot(TabsPage)
           .then(() => {
             this.events.publish('OpenWallet', wallet);
           });
-=======
-        this.navCtrl.popToRoot().then(() => {
-          setTimeout(() => {
-            this.events.publish('OpenWallet', wallet);
-          }, 1000);
-        });
->>>>>>> 9efcccf060fc65c9698e26fd8d203df8b709b2c3
       })
       .catch(err => {
         this.onGoingProcessProvider.clear();

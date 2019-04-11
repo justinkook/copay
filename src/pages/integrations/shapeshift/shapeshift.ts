@@ -1,10 +1,7 @@
 import { Component } from '@angular/core';
 import { TranslateService } from '@ngx-translate/core';
 import {
-<<<<<<< HEAD
   App,
-=======
->>>>>>> 9efcccf060fc65c9698e26fd8d203df8b709b2c3
   Events,
   ModalController,
   NavController,
@@ -111,11 +108,7 @@ export class ShapeshiftPage {
                 )
                 .then(() => {
                   this.shapeshiftProvider.logout(this.accessToken);
-<<<<<<< HEAD
                   this.app.getRootNavs()[0].setRoot(TabsPage);
-=======
-                  this.navCtrl.popToRoot();
->>>>>>> 9efcccf060fc65c9698e26fd8d203df8b709b2c3
                 });
             }
           }
@@ -228,11 +221,7 @@ export class ShapeshiftPage {
     this.externalLinkProvider
       .open(url, optIn, title, message, okText, cancelText)
       .then(() => {
-<<<<<<< HEAD
         this.app.getRootNavs()[0].setRoot(TabsPage);
-=======
-        this.navCtrl.popToRoot();
->>>>>>> 9efcccf060fc65c9698e26fd8d203df8b709b2c3
       });
   }
 
