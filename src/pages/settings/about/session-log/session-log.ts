@@ -1,16 +1,17 @@
-import { Component, Inject } from '@angular/core';
-import { DOCUMENT } from '@angular/platform-browser';
+import { Component } from '@angular/core';
 import { TranslateService } from '@ngx-translate/core';
-import { ActionSheetController, ToastController } from 'ionic-angular';
+import { ActionSheetController } from 'ionic-angular';
 
 // native
 import { SocialSharing } from '@ionic-native/social-sharing';
 
 // providers
+import { ActionSheetProvider } from '../../../../providers/action-sheet/action-sheet';
+import { AppProvider } from '../../../../providers/app/app';
 import { ConfigProvider } from '../../../../providers/config/config';
+import { DownloadProvider } from '../../../../providers/download/download';
 import { Logger } from '../../../../providers/logger/logger';
 import { PlatformProvider } from '../../../../providers/platform/platform';
-import { PopupProvider } from '../../../../providers/popup/popup';
 
 import * as _ from 'lodash';
 
@@ -20,7 +21,6 @@ import * as _ from 'lodash';
 })
 export class SessionLogPage {
   private config;
-  private dom: Document;
 
   public logOptions;
   public filteredLogs;
@@ -28,29 +28,28 @@ export class SessionLogPage {
   public isCordova: boolean;
 
   constructor(
-    @Inject(DOCUMENT) dom: Document,
     private configProvider: ConfigProvider,
     private logger: Logger,
     private socialSharing: SocialSharing,
     private actionSheetCtrl: ActionSheetController,
-    private toastCtrl: ToastController,
     private platformProvider: PlatformProvider,
     private translate: TranslateService,
-    private popupProvider: PopupProvider
+    private actionSheetProvider: ActionSheetProvider,
+    private downloadProvider: DownloadProvider,
+    private appProvider: AppProvider
   ) {
-    this.dom = dom;
     this.config = this.configProvider.get();
     this.isCordova = this.platformProvider.isCordova;
-    let logLevels = this.logger.getLevels();
+    const logLevels = this.logger.getLevels();
     this.logOptions = _.keyBy(logLevels, 'weight');
   }
 
   ionViewDidLoad() {
-    this.logger.info('ionViewDidLoad SessionLogPage');
+    this.logger.info('Loaded: SessionLogPage');
   }
 
   ionViewWillEnter() {
-    let selectedLevel = _.has(this.config, 'log.weight')
+    const selectedLevel = _.has(this.config, 'log.weight')
       ? this.logger.getWeight(this.config.log.weight)
       : this.logger.getDefaultWeight();
     this.filterValue = selectedLevel.weight;
@@ -59,12 +58,12 @@ export class SessionLogPage {
   }
 
   private filterLogs(weight: number): void {
-    this.filteredLogs = this.logger.get(weight);
+    this.filteredLogs = _.sortBy(this.logger.get(weight), 'timestamp');
   }
 
   public setOptionSelected(weight: number): void {
     this.filterLogs(weight);
-    let opts = {
+    const opts = {
       log: {
         weight
       }
@@ -72,86 +71,112 @@ export class SessionLogPage {
     this.configProvider.set(opts);
   }
 
-  public prepareLogs() {
-    let log =
-      'Copay Session Logs\n Be careful, this could contain sensitive private data\n\n';
+  private prepareSessionLogs() {
+    let log: string =
+      'Session Logs.\nBe careful, this could contain sensitive private data\n\n';
     log += '\n\n';
-    log += this.logger
-      .get()
-      .map(v => {
-        return '[' + v.timestamp + '][' + v.level + ']' + v.msg;
-      })
-      .join('\n');
 
+    const weight = 4; // share complete logs
+    const logs = _.sortBy(this.logger.get(weight), 'timestamp');
+
+    Object.keys(logs).forEach(key => {
+      log +=
+        '[' +
+        logs[key].timestamp +
+        '][' +
+        logs[key].level +
+        ']' +
+        logs[key].msg +
+        '\n';
+    });
     return log;
   }
 
-  private copyToClipboard() {
-    let textarea = this.dom.createElement('textarea');
-    this.dom.body.appendChild(textarea);
-    textarea.value = this.prepareLogs();
-    textarea.select();
-    this.dom.execCommand('copy');
-    let message = this.translate.instant('Copied to clipboard');
-    let showSuccess = this.toastCtrl.create({
-      message,
-      duration: 1000
-    });
-    showSuccess.present();
-  }
-
   private sendLogs(): void {
-    let body = this.prepareLogs();
-
-    this.socialSharing.shareViaEmail(
-      body,
-      'Copay Logs',
-      null, // TO: must be null or an array
-      null, // CC: must be null or an array
-      null, // BCC: must be null or an array
-      null // FILES: can be null, a string, or an array
+    const logs = this.prepareSessionLogs();
+    const now = new Date().toISOString();
+    const subject: string = this.appProvider.info.nameCase + '-logs ' + now;
+    const message = this.translate.instant(
+      'Session Logs. Be careful, this could contain sensitive private data'
     );
+
+    const blob = new Blob([logs], { type: 'text/txt' });
+
+    const reader = new FileReader();
+    reader.onload = event => {
+      const attachment = (event as any).target.result; // <-- data url
+
+      // Check if sharing via email is supported
+      this.socialSharing
+        .canShareViaEmail()
+        .then(() => {
+          this.logger.info('sharing via email is possible');
+          this.socialSharing
+            .shareViaEmail(
+              message,
+              subject,
+              null, // TO: must be null or an array
+              null, // CC: must be null or an array
+              null, // BCC: must be null or an array
+              attachment // FILES: can be null, a string, or an array
+            )
+            .then(data => {
+              this.logger.info('Email created successfully: ', data);
+            })
+            .catch(err => {
+              this.logger.error('socialSharing Error: ', err);
+            });
+        })
+        .catch(() => {
+          this.logger.warn('sharing via email is not possible');
+          this.socialSharing
+            .share(
+              message,
+              subject,
+              attachment // FILES: can be null, a string, or an array
+            )
+            .catch(err => {
+              this.logger.error('socialSharing Error: ', err);
+            });
+        });
+    };
+
+    reader.readAsDataURL(blob);
   }
 
   public showOptionsMenu(): void {
-    let copyText = this.translate.instant('Copy to clipboard');
-    let emailText = this.translate.instant('Send by email');
-    let button = [];
+    const downloadText = this.translate.instant('Download logs');
+    const emailText = this.translate.instant('Send logs by email');
+    const button = [];
 
-    if (this.isCordova) {
-      button = [
-        {
-          text: emailText,
-          handler: () => {
-            this.showWarningModal();
-          }
-        }
-      ];
-    } else {
-      button = [
-        {
-          text: copyText,
-          handler: () => {
-            this.showWarningModal();
-          }
-        }
-      ];
-    }
+    button.push({
+      text: this.isCordova ? emailText : downloadText,
+      handler: () => {
+        this.showWarningModal();
+      }
+    });
 
-    let actionSheet = this.actionSheetCtrl.create({
+    const actionSheet = this.actionSheetCtrl.create({
       title: '',
       buttons: button
     });
     actionSheet.present();
   }
 
-  private showWarningModal() {
-    const sessionLogWarningModal = this.popupProvider.createMiniModal(
+  private showWarningModal(): void {
+    const infoSheet = this.actionSheetProvider.createInfoSheet(
       'sensitive-info'
     );
-    sessionLogWarningModal.present();
-    sessionLogWarningModal.onDidDismiss(response => {
-      if (response) this.isCordova ? this.sendLogs() : this.copyToClipboard();
+    infoSheet.present();
+    infoSheet.onDidDismiss(option => {
+      if (option) this.isCordova ? this.sendLogs() : this.download();
     });
+  }
+
+  public download(): void {
+    const logs = this.prepareSessionLogs();
+    const now = new Date().toISOString();
+    const filename = this.appProvider.info.nameCase + '-logs ' + now + '.txt';
+    this.downloadProvider.download(logs, filename);
   }
 }

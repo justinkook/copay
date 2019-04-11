@@ -1,10 +1,5 @@
 import { Component, ViewChild } from '@angular/core';
-import {
-  Events,
-  ModalController,
-  NavController,
-  NavParams
-} from 'ionic-angular';
+import { ModalController, NavController, NavParams } from 'ionic-angular';
 import * as _ from 'lodash';
 import { Logger } from '../../../../providers/logger/logger';
 
@@ -13,6 +8,7 @@ import { FinishModalPage } from '../../../finish/finish';
 import { CoinbasePage } from '../coinbase';
 
 // providers
+import { ActionSheetProvider } from '../../../../providers/action-sheet/action-sheet';
 import { AppProvider } from '../../../../providers/app/app';
 import { BwcErrorProvider } from '../../../../providers/bwc-error/bwc-error';
 import { CoinbaseProvider } from '../../../../providers/coinbase/coinbase';
@@ -30,7 +26,8 @@ import { WalletProvider } from '../../../../providers/wallet/wallet';
   templateUrl: 'sell-coinbase.html'
 })
 export class SellCoinbasePage {
-  @ViewChild('slideButton') slideButton;
+  @ViewChild('slideButton')
+  slideButton;
 
   private coin: string;
   private amount: string;
@@ -49,16 +46,17 @@ export class SellCoinbasePage {
   public isFiat: boolean;
   public priceSensitivity;
   public isOpenSelector: boolean;
+  public hideSlideButton: boolean;
 
   // Platform info
   public isCordova: boolean;
 
   constructor(
+    private actionSheetProvider: ActionSheetProvider,
     private appProvider: AppProvider,
     private bwcErrorProvider: BwcErrorProvider,
     private coinbaseProvider: CoinbaseProvider,
     private configProvider: ConfigProvider,
-    private events: Events,
     private logger: Logger,
     private popupProvider: PopupProvider,
     private navCtrl: NavController,
@@ -71,20 +69,21 @@ export class SellCoinbasePage {
     private modalCtrl: ModalController,
     private platformProvider: PlatformProvider
   ) {
-    this.coin = 'btc';
-    this.isFiat = this.navParams.data.currency != 'BTC' ? true : false;
-    this.amount = this.navParams.data.amount;
-    this.currency = this.navParams.data.currency;
+    this.isFiat = true;
+    this.coin = this.navParams.data.coin; // BTC
+    this.amount = this.navParams.data.amount; // USD
+    this.currency = this.navParams.data.currency; // USD
     this.priceSensitivity = this.coinbaseProvider.priceSensitivity;
     this.selectedPriceSensitivity = {
       data: this.coinbaseProvider.selectedPriceSensitivity
     };
     this.network = this.coinbaseProvider.getNetwork();
     this.isCordova = this.platformProvider.isCordova;
+    this.hideSlideButton = false;
   }
 
   ionViewDidLoad() {
-    this.logger.info('ionViewDidLoad SellCoinbasePage');
+    this.logger.info('Loaded: SellCoinbasePage');
   }
 
   ionViewWillLeave() {
@@ -110,6 +109,7 @@ export class SellCoinbasePage {
   }
 
   private showErrorAndBack(err): void {
+    this.hideSlideButton = false;
     if (this.isCordova) this.slideButton.isConfirmed(false);
     this.logger.error(err);
     err = err.errors ? err.errors[0].message : err;
@@ -119,6 +119,7 @@ export class SellCoinbasePage {
   }
 
   private showError(err): void {
+    this.hideSlideButton = false;
     if (this.isCordova) this.slideButton.isConfirmed(false);
     this.logger.error(err);
     err = err.errors ? err.errors[0].message : err;
@@ -175,12 +176,18 @@ export class SellCoinbasePage {
         let pm;
         for (let i = 0; i < p.data.length; i++) {
           pm = p.data[i];
-          if (pm.allow_buy) {
-            this.paymentMethods.push(pm);
-          }
-          if (pm.allow_buy && pm.primary_buy) {
-            hasPrimary = true;
-            this.selectedPaymentMethodId = pm.id;
+          // Only USD for US bank accounts (or fiat account in USD)
+          if (
+            pm.currency == 'USD' &&
+            (pm.type == 'fiat_account' || pm.type == 'ach_bank_account')
+          ) {
+            if (pm.allow_sell) {
+              this.paymentMethods.push(pm);
+            }
+            if (pm.allow_sell && pm.primary_sell) {
+              hasPrimary = true;
+              this.selectedPaymentMethodId = pm.id;
+            }
           }
         }
         if (_.isEmpty(this.paymentMethods)) {
@@ -194,7 +201,6 @@ export class SellCoinbasePage {
             .ionicConfirm(null, msg, okText, cancelText)
             .then(res => {
               if (res) this.externalLinkProvider.open(url);
-              this.navCtrl.remove(3, 1);
               this.navCtrl.pop();
             });
           return;
@@ -231,7 +237,7 @@ export class SellCoinbasePage {
           this.coinbaseProvider.getAvailableCurrency(),
           (err, sell) => {
             if (err) {
-              this.logger.debug(this.coinbaseProvider.getErrorsAsString(err));
+              this.logger.error(this.coinbaseProvider.getErrorsAsString(err));
               this.checkTransaction(count, txp);
               return;
             }
@@ -242,7 +248,7 @@ export class SellCoinbasePage {
               accountId,
               (err, ctxs) => {
                 if (err) {
-                  this.logger.debug(
+                  this.logger.error(
                     this.coinbaseProvider.getErrorsAsString(err)
                   );
                   this.checkTransaction(count, txp);
@@ -259,7 +265,7 @@ export class SellCoinbasePage {
                     ctx.from &&
                     ctx.amount.amount == amountBTC
                   ) {
-                    this.logger.warn('Transaction found!', ctx);
+                    this.logger.debug('Transaction found!', ctx);
                     txFound = true;
                     this.logger.debug('Saving transaction to process later...');
                     ctx.payment_method = this.selectedPaymentMethodId;
@@ -280,7 +286,7 @@ export class SellCoinbasePage {
                         this.onGoingProcessProvider.clear();
                         this.openFinishModal();
                         if (err)
-                          this.logger.debug(
+                          this.logger.error(
                             this.coinbaseProvider.getErrorsAsString(err)
                           );
                       }
@@ -360,6 +366,7 @@ export class SellCoinbasePage {
           return;
         }
 
+        this.hideSlideButton = true;
         this.onGoingProcessProvider.set('sellingBitcoin');
         this.coinbaseProvider.init((err, res) => {
           if (err) {
@@ -440,15 +447,17 @@ export class SellCoinbasePage {
   public showWallets(): void {
     this.isOpenSelector = true;
     let id = this.wallet ? this.wallet.credentials.walletId : null;
-    this.events.publish(
-      'showWalletsSelectorEvent',
-      this.wallets,
-      id,
-      'Sell from'
+    const params = {
+      wallets: this.wallets,
+      selectedWalletId: id,
+      title: 'Sell from'
+    };
+    const walletSelector = this.actionSheetProvider.createWalletSelector(
+      params
     );
-    this.events.subscribe('selectWalletEvent', wallet => {
+    walletSelector.present();
+    walletSelector.onDidDismiss(wallet => {
       if (!_.isEmpty(wallet)) this.onWalletSelect(wallet);
-      this.events.unsubscribe('selectWalletEvent');
       this.isOpenSelector = false;
     });
   }
@@ -479,7 +488,6 @@ export class SellCoinbasePage {
     modal.present();
     modal.onDidDismiss(async () => {
       await this.navCtrl.popToRoot({ animate: false });
-      await this.navCtrl.parent.select(0);
       await this.navCtrl.push(
         CoinbasePage,
         { coin: 'btc' },

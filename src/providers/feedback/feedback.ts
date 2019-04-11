@@ -48,7 +48,7 @@ export class FeedbackProvider {
             return resolve();
           },
           err => {
-            this.logger.info('ERROR: Feedback sent anyway.');
+            this.logger.warn('ERROR: Feedback sent anyway.');
             return reject(err);
           }
         );
@@ -81,7 +81,7 @@ export class FeedbackProvider {
 
     let current = formatTagNumber(currentVersion);
     let saved = formatTagNumber(savedVersion);
-    if (saved.major == current.major && saved.minor == current.minor) {
+    if (saved.major == current.major) {
       return true;
     }
 

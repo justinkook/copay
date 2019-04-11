@@ -11,11 +11,7 @@ const templates = {
   'config-template.xml': '/',
   'ionic.config-template.json': '/',
   'manifest.ionic-template.json': 'src/',
-  'build-desktop.js': 'desktop/',
-  '.desktop': 'desktop/',
-  'setup-win.iss': 'desktop/',
-  'build-macos.sh': 'desktop/',
-  'build-linux.js': 'desktop/'
+  'afterPack-template.js': 'electron/'
 };
 
 const jsonHeader = `{
@@ -59,6 +55,8 @@ Object.keys(templates).forEach(function(k) {
     k = 'ionic.config.json';
   } else if (k === 'manifest.ionic-template.json') {
     k = 'manifest.json';
+  } else if (k === 'afterPack-template.js') {
+    k = 'afterPack.js';
   }
 
   if (!fs.existsSync('../' + targetDir)) {
@@ -127,6 +125,9 @@ fs.copySync(configDir + '/google-services.json', '../google-services.json');
 copyDir(configDir + '/img', '../src/assets/img/app');
 copyDir(configDir + '/sass', '../src/theme', true);
 
+// Copy AppX Assets for Windows
+copyDir(`../resources/${config.name}/windows/appx`, '../build/appx', true);
+
 console.log(`Applying distribution-specific configuration to package.json...`);
 const package = require('../package.json');
 
@@ -134,12 +135,28 @@ package.name = config.packageName;
 package.description = config.description;
 package.version = config.version;
 package.title = config.userVisibleName;
-package.window.title = `${config.userVisibleName} – ${config.purposeLine}`;
 package.homepage = config.url;
 package.repository.url = config.gitHubRepoUrl;
 package.bugs.url = config.gitHubRepoBugs;
 package.cordova.plugins['cordova-plugin-customurlscheme'].SECOND_URL_SCHEME =
   config.packageName;
+package.build.appId = config.packageNameIdDesktop;
+package.build.productName = config.userVisibleName;
+package.build.mas.entitlements =
+  './' + config.packageName + '-entitlements.mas.plist';
+package.build.mas.provisioningProfile =
+  './' + config.packageName + '-embedded.provisionprofile';
+package.build.appx.identityName = config.WindowsStoreIdentityName;
+package.build.appx.applicationId = config.WindowsApplicationId;
+package.build.appx.displayName = config.WindowsStoreDisplayName;
+package.build.protocols.schemes = [
+  'bitcoin',
+  'bitcoincash',
+  'bchtest',
+  config.name
+];
+package.build.mac.icon = `resources/${config.name}/mac/app.icns`;
+package.build.win.icon = `resources/${config.name}/windows/icon.ico`;
 
 const stringifiedNpmStyle = JSON.stringify(package, null, 2) + '\n';
 fs.writeFileSync('../package.json', stringifiedNpmStyle);

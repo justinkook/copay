@@ -19,6 +19,7 @@ export class AllAddressesPage {
   public withBalance;
   public coin: string;
   public isCordova: boolean;
+  public walletColor: string;
 
   private allAddresses;
   private walletName: string;
@@ -33,6 +34,7 @@ export class AllAddressesPage {
     private platformProvider: PlatformProvider
   ) {
     this.walletName = this.navParams.data.walletName;
+    this.walletColor = this.navParams.data.walletColor;
     this.noBalance = this.navParams.data.noBalance;
     this.withBalance = this.navParams.data.withBalance;
     this.coin = this.navParams.data.coin;
@@ -45,9 +47,9 @@ export class AllAddressesPage {
   }
 
   private formatDate(ts: number) {
-    var dateObj = new Date(ts * 1000);
+    const dateObj = new Date(ts * 1000);
     if (!dateObj) {
-      this.logger.debug('Error formating a date');
+      this.logger.warn('Error formating a date');
       return 'DateError';
     }
     if (!dateObj.toJSON()) {
@@ -60,7 +62,7 @@ export class AllAddressesPage {
     this.onGoingProcessProvider.set('sendingByEmail');
     setTimeout(() => {
       this.onGoingProcessProvider.clear();
-      let appName = this.appProvider.info.nameCase;
+      const appName = this.appProvider.info.nameCase;
 
       let body: string =
         appName +
@@ -81,14 +83,35 @@ export class AllAddressesPage {
         })
         .join('\n');
 
-      this.socialSharing.shareViaEmail(
-        body,
-        appName + ' Addresses',
-        null, // TO: must be null or an array
-        null, // CC: must be null or an array
-        null, // BCC: must be null or an array
-        null // FILES: can be null, a string, or an array
-      );
+      const subject = appName + ' Addresses';
+
+      // Check if sharing via email is supported
+      this.socialSharing
+        .canShareViaEmail()
+        .then(() => {
+          this.logger.info('sharing via email is possible');
+          this.socialSharing
+            .shareViaEmail(
+              body,
+              subject,
+              null, // TO: must be null or an array
+              null, // CC: must be null or an array
+              null, // BCC: must be null or an array
+              null // FILES: can be null, a string, or an array
+            )
+            .then(data => {
+              this.logger.info('Email created successfully: ', data);
+            })
+            .catch(err => {
+              this.logger.error('socialSharing Error: ', err);
+            });
+        })
+        .catch(() => {
+          this.logger.warn('sharing via email is not possible');
+          this.socialSharing.share(body, subject).catch(err => {
+            this.logger.error('socialSharing Error: ', err);
+          });
+        });
     });
   }
 }

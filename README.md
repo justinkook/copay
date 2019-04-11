@@ -1,4 +1,4 @@
-<img src="https://raw.githubusercontent.com/bitpay/copay/master/resources/copay/android/icon/drawable-xxxhdpi-icon.png" alt="Copay" width="79">
+<img src="https://raw.githubusercontent.com/bitpay/copay/master/resources/copay/windows/icon/Wide310x150Logo.scale-100.png" alt="Copay">
 
 [![CircleCI](https://img.shields.io/circleci/project/github/bitpay/copay/master.svg)](https://circleci.com/gh/bitpay/copay/)
 [![Codecov](https://img.shields.io/codecov/c/github/bitpay/copay.svg)](https://codecov.io/gh/bitpay/copay/)
@@ -8,10 +8,13 @@ Copay is a secure bitcoin wallet platform for both desktop and mobile devices. C
 
 Binary versions of Copay are available for download at [Copay.io](https://copay.io/#download). Copay Binaries are signed with the key `copay@bitpay.com` – See the section [`How to Verify Copay Signatures`](https://github.com/bitpay/copay#how-to-verify-copay-signatures) for details.
 
+This project was created by BitPay Inc, and it is maintained by BitPay and hundreds of contributors. There is a BitPay branded version of Copay at mobile phone stores, BitPay Wallet, which features integration with the BitPay Visa Debit Card, as its main difference.
+
 For a list of frequently asked questions please visit the [Copay FAQ](https://github.com/bitpay/copay/wiki/COPAY---FAQ).
 
 ## Main Features
 
+- Bitcoin and Bitcoin Cash coin support
 - Multiple wallet creation and management in-app
 - Intuitive, multisignature security for personal or shared wallets
 - Easy spending proposal flow for shared wallets and group payments
@@ -86,16 +89,16 @@ npm run prepare:copay
 npm run start:ios
 ```
 
-<!-- ### Desktop (Linux, macOS, and Windows)
+### Desktop (Linux, macOS, and Windows)
 
-The desktop version of Copay currently uses NW.js, an app runtime based on Chromium. To get started, first install NW.js on your system from [the NW.js website](https://nwjs.io/).
+The desktop version of Copay currently uses Electron. To get started, first install Electron on your system from [the Electron website](https://electronjs.org/).
 
-When NW.js is installed, run the `start:desktop` package script.
+When Electron is installed, run the `start:desktop` package script.
 
 ```sh
 npm run apply:copay
 npm run start:desktop
-``` -->
+```
 
 ## Build Copay App Bundles
 
@@ -107,6 +110,7 @@ The `final` commands build the production version of the app, and bundle it with
 
 ```sh
 npm run clean-all
+npm install
 npm run apply:copay
 npm run prepare:copay
 npm run final:android
@@ -116,18 +120,38 @@ npm run final:android
 
 ```sh
 npm run clean-all
+npm install
 npm run apply:copay
 npm run prepare:copay
 npm run final:ios
 ```
 
-<!-- ### Desktop (Linux, macOS, and Windows)
+### Push Notifications
+
+Push notification doesn't work on iOS 12 due to an update of Xcode and plugin `cordova-plugin-fcm`.
+
+A current workaround is to comment out the line to prevent the removal of the file during the debug build (line 56 in platforms/ios/cordova/lib/copy-www-build-step.js).
+
+[Source](https://github.com/phonegap/phonegap-plugin-push/issues/2518)
+
+### Desktop (Linux, macOS, and Windows)
 
 ```sh
 npm run clean-all
+npm install
 npm run apply:copay
 npm run final:desktop
-``` -->
+```
+
+## Desktop Data Path
+
+Per-user application data directory for Copay or BitPay distribution.
+
+```sh
+"~/Library/Containers/com.bitpay.copay.desktop2/Data/.copay"
+# or
+"~/Library/Containers/com.bitpay.wallet.desktop/Data/.bitpay"
+```
 
 ## Configuration
 
@@ -187,6 +211,8 @@ Since version 1.5, Copay uses the root `m/48'` for hardware multisignature walle
 ## Bitcore Wallet Service
 
 Copay depends on [Bitcore Wallet Service](https://github.com/bitpay/bitcore-wallet-service) (BWS) for blockchain information, networking and Copayer synchronization. A BWS instance can be setup and operational within minutes or you can use a public instance like `https://bws.bitpay.com`. Switching between BWS instances is very simple and can be done with a click from within Copay. BWS also allows Copay to interoperate with other wallets like [Bitcore Wallet CLI](https://github.com/bitpay/bitcore-wallet).
+
+Please note that Copay v5.3.0 and above use CSP to restrict network access. To use a custom BWS see [CSP announcement](https://github.com/bitpay/copay/blob/master/CSP.md).
 
 ## Translations
 
@@ -290,6 +316,20 @@ review the [guidelines for contributing](CONTRIBUTING.md).
 - [Bug reports](CONTRIBUTING.md#bugs)
 - [Feature requests](CONTRIBUTING.md#features)
 - [Pull requests](CONTRIBUTING.md#pull-requests)
+
+## Current Active Developers GPG keys ID
+
+- 15EDAD8D9F2EB1AF @cmgustavo
+
+- FC283098DA862864 @gabrielbazan7
+
+- DD6D7EAADE12280D @Gamboster
+
+- D87947CC8A32D91C @msalcala11
+
+- 612C9C4DDAC47B61 @rastajpa
+
+- F8FC1D9B1B46486D @matiu
 
 ## Support
 

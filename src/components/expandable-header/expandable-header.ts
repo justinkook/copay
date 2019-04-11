@@ -30,39 +30,55 @@ export class ExpandableHeaderComponent {
   @ContentChild(ExpandableHeaderFooterComponent)
   footerContent: ExpandableHeaderFooterComponent;
 
-  @Input('scrollArea') scrollArea: Content;
+  /**
+   * The instance of ion-content to which the expandable header
+   * will react based on user scrolling.
+   */
+  @Input('scrollArea')
+  scrollArea: Content;
 
+  /**
+   * Determines how quickly the content fades out on scroll. The
+   * greater the value, the quicker the fade.
+   */
+  @Input()
+  fadeFactor: number = 2.5;
+
+  @Input()
+  disableFade: boolean = false;
+
+  /**
+   * The height of the entire component based on its' content.
+   */
   headerHeight: number;
-  setTransformTo2dTimeout: NodeJS.Timer;
 
   constructor(public element: ElementRef, public renderer: Renderer) {}
 
   ngOnInit() {
-    this.scrollArea.ionScroll.subscribe(event => {
-      event.domWrite(() => {
-        this.applyTransforms(event.scrollTop);
-      });
-    });
+    if (this.disableFade) {
+      return;
+    }
+    this.scrollArea.ionScroll.subscribe(event =>
+      event.domWrite(() => this.handleDomWrite(event.scrollTop))
+    );
   }
 
   ngAfterViewInit() {
     this.headerHeight = this.element.nativeElement.offsetHeight;
   }
 
-  applyTransforms(scrollTop: number): void {
-    clearTimeout(this.setTransformTo2dTimeout);
+  handleDomWrite(scrollTop: number) {
+    const newHeaderHeight = this.getNewHeaderHeight(scrollTop);
+    newHeaderHeight > 0 && this.applyTransforms(scrollTop, newHeaderHeight);
+  }
 
-    const transformations = this.computeTransformations(scrollTop);
+  applyTransforms(scrollTop: number, newHeaderHeight: number): void {
+    const transformations = this.computeTransformations(
+      scrollTop,
+      newHeaderHeight
+    );
     this.transformPrimaryContent(transformations, true);
     this.transformFooterContent(transformations);
-
-    this.setTransformTo2dTimeout = setTimeout(() => {
-      // Using 3d transforms allows us to achieve great performance. However, on iOS devices, switching to a
-      // different app and then returning back to this app causes any 3d transformed elements to dissapear
-      // initially for some reason. Scrolling again causes them to reappear. However, we can ensure the
-      // elements remain visible at all times by switching to 2d transforms once the user stops scrolling.
-      this.transformPrimaryContent(transformations, false);
-    }, 1000);
   }
 
   getNewHeaderHeight(scrollTop: number): number {
@@ -70,9 +86,8 @@ export class ExpandableHeaderComponent {
     return newHeaderHeight < 0 ? 0 : newHeaderHeight;
   }
 
-  computeTransformations(scrollTop: number): number[] {
-    const newHeaderHeight = this.getNewHeaderHeight(scrollTop);
-    const opacity = this.getScaleValue(newHeaderHeight, 2.5);
+  computeTransformations(scrollTop: number, newHeaderHeight: number): number[] {
+    const opacity = this.getScaleValue(newHeaderHeight, this.fadeFactor);
     const scale = this.getScaleValue(newHeaderHeight, 0.5);
     const translateY = scrollTop > 0 ? scrollTop / 1.5 : 0;
     return [opacity, scale, translateY];

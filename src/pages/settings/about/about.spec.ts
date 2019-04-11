@@ -20,12 +20,10 @@ describe('AboutPage', () => {
   });
   describe('Lifecycle Hooks', () => {
     describe('ionViewDidLoad', () => {
-      it('should log debug info', () => {
-        spyOn(instance.logger, 'debug');
+      it('should log info', () => {
+        spyOn(instance.logger, 'info');
         instance.ionViewDidLoad();
-        expect(instance.logger.debug).toHaveBeenCalledWith(
-          'ionViewDidLoad AboutPage'
-        );
+        expect(instance.logger.info).toHaveBeenCalledWith('Loaded: AboutPage');
       });
       it('should set correct commit hash and version', () => {
         instance.appProvider.info.commitHash = 'testHash';

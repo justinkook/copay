@@ -64,16 +64,6 @@ describe('ConfirmPage', () => {
     });
   });
   describe('Methods', () => {
-    describe('setNoWallet', () => {
-      it('should set wallet to null and set the appropriate message', () => {
-        const msg = 'No wallets available';
-        const error = 'Bad error';
-        instance.setNoWallet(msg, error);
-        expect(instance.wallet).toBe(null);
-        expect(instance.noWalletMessage).toBe(msg);
-        expect(instance.criticalError).toBe(error);
-      });
-    });
     describe('chooseFeeLevel', () => {
       it('should display a fee modal', () => {
         const modal = {
@@ -99,34 +89,22 @@ describe('ConfirmPage', () => {
           coin: 'BTC',
           credentials: {
             m: 1
+          },
+          isPrivKeyEncrypted: () => {
+            return false;
           }
         };
         instance.setWallet(wallet);
       });
     });
-    describe('showWallets', () => {
-      it('should subscribe to the wallet selected event', () => {
-        const subscribeSpy = spyOn(instance.events, 'subscribe');
-        instance.showWallets();
-        expect(subscribeSpy).toHaveBeenCalled();
-      });
-    });
-    describe('onSelectWalletEvent', () => {
-      it('should unsubscribe from the wallet selected event', () => {
-        const unsubscribeSpy = spyOn(instance.events, 'unsubscribe');
-        instance.onSelectWalletEvent({});
-        expect(unsubscribeSpy).toHaveBeenCalled();
-      });
-    });
     describe('confirmTx', () => {
       it('should display a confirm popup', () => {
-        const tx = {};
         const txp = { coin: 'BTC' };
         const wallet = {};
         spyOn(instance.txFormatProvider, 'formatToUSD').and.returnValue(
           Promise.resolve('100.50')
         );
-        instance.confirmTx(tx, txp, wallet);
+        instance.confirmTx(txp, wallet);
       });
     });
     describe('approve', () => {
@@ -147,11 +125,11 @@ describe('ConfirmPage', () => {
         await instance.approve(tx, wallet);
         expect(publishSpy).toHaveBeenCalled();
       });
-      it('should display a popup if the payment has expired', () => {
+      it('should display info sheet if the payment has expired', () => {
         instance.paymentExpired = true;
-        const popupSpy = spyOn(instance.popupProvider, 'ionicAlert');
+        const infoSheetSpy = spyOn(instance, 'showErrorInfoSheet');
         instance.approve(tx, wallet);
-        expect(popupSpy).toHaveBeenCalled();
+        expect(infoSheetSpy).toHaveBeenCalled();
       });
       it('should handle errors', async () => {
         spyOn(instance, 'getTxp').and.returnValue(Promise.reject('bad error'));
@@ -169,13 +147,13 @@ describe('ConfirmPage', () => {
         await instance.onlyPublish();
         expect(modalSpy).toHaveBeenCalled();
       });
-      it('should set send error on failure', async () => {
+      it('should show error info sheet on failure', async () => {
         spyOn(instance.walletProvider, 'onlyPublish').and.returnValue(
           Promise.reject('error')
         );
-        const setErrorSpy = spyOn(instance, 'setSendError');
+        const showErrorInfoSheetSpy = spyOn(instance, 'showErrorInfoSheet');
         await instance.onlyPublish();
-        expect(setErrorSpy).toHaveBeenCalled();
+        expect(showErrorInfoSheetSpy).toHaveBeenCalled();
       });
     });
   });

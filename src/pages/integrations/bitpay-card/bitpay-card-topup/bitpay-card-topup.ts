@@ -1,11 +1,6 @@
 import { Component, ViewChild } from '@angular/core';
 import { TranslateService } from '@ngx-translate/core';
-import {
-  Events,
-  ModalController,
-  NavController,
-  NavParams
-} from 'ionic-angular';
+import { ModalController, NavController, NavParams } from 'ionic-angular';
 import * as _ from 'lodash';
 import { Logger } from '../../../../providers/logger/logger';
 
@@ -14,6 +9,7 @@ import { FinishModalPage } from '../../../finish/finish';
 import { BitPayCardPage } from '../bitpay-card';
 
 // Provider
+import { ActionSheetProvider } from '../../../../providers/action-sheet/action-sheet';
 import { BitPayCardProvider } from '../../../../providers/bitpay-card/bitpay-card';
 import { BitPayProvider } from '../../../../providers/bitpay/bitpay';
 import { BwcErrorProvider } from '../../../../providers/bwc-error/bwc-error';
@@ -39,7 +35,8 @@ const FEE_TOO_HIGH_LIMIT_PER = 15;
   templateUrl: 'bitpay-card-topup.html'
 })
 export class BitPayCardTopUpPage {
-  @ViewChild('slideButton') slideButton;
+  @ViewChild('slideButton')
+  slideButton;
 
   public cardId;
   public useSendMax: boolean;
@@ -64,14 +61,15 @@ export class BitPayCardTopUpPage {
   private configWallet;
 
   public isOpenSelector: boolean;
+  public hideSlideButton: boolean;
 
   constructor(
+    private actionSheetProvider: ActionSheetProvider,
     private bitPayCardProvider: BitPayCardProvider,
     private bitPayProvider: BitPayProvider,
     private bwcErrorProvider: BwcErrorProvider,
     private bwcProvider: BwcProvider,
     private configProvider: ConfigProvider,
-    private events: Events,
     private externalLinkProvider: ExternalLinkProvider,
     private logger: Logger,
     private modalCtrl: ModalController,
@@ -90,10 +88,11 @@ export class BitPayCardTopUpPage {
     this.configWallet = this.configProvider.get().wallet;
     this.isCordova = this.platformProvider.isCordova;
     this.bitcoreCash = this.bwcProvider.getBitcoreCash();
+    this.hideSlideButton = false;
   }
 
   ionViewDidLoad() {
-    this.logger.info('ionViewDidLoad BitPayCardTopUpPage');
+    this.logger.info('Loaded: BitPayCardTopUpPage');
   }
 
   ionViewWillLeave() {
@@ -166,6 +165,7 @@ export class BitPayCardTopUpPage {
   }
 
   private showErrorAndBack(title: string, msg) {
+    this.hideSlideButton = false;
     if (this.isCordova) this.slideButton.isConfirmed(false);
     title = title ? title : this.translate.instant('Error');
     this.logger.error(msg);
@@ -177,6 +177,7 @@ export class BitPayCardTopUpPage {
 
   private showError(title: string, msg): Promise<any> {
     return new Promise(resolve => {
+      this.hideSlideButton = false;
       if (this.isCordova) this.slideButton.isConfirmed(false);
       title = title || this.translate.instant('Error');
       this.logger.error(msg);
@@ -447,8 +448,10 @@ export class BitPayCardTopUpPage {
     let per = (fee / (amount + fee)) * 100;
 
     if (per > FEE_TOO_HIGH_LIMIT_PER) {
-      const feeWarningModal = this.popupProvider.createMiniModal('fee-warning');
-      feeWarningModal.present();
+      const minerFeeInfoSheet = this.actionSheetProvider.createInfoSheet(
+        'miner-fee'
+      );
+      minerFeeInfoSheet.present();
     }
   }
 
@@ -524,7 +527,6 @@ export class BitPayCardTopUpPage {
       );
       return;
     }
-
     let title = this.translate.instant('Confirm');
     let message = 'Load ' + this.amountUnitStr;
     let okText = this.translate.instant('OK');
@@ -537,6 +539,7 @@ export class BitPayCardTopUpPage {
           return;
         }
 
+        this.hideSlideButton = true;
         this.onGoingProcessProvider.set('topup');
         this.publishAndSign(this.wallet, this.createdTx)
           .then(() => {
@@ -582,10 +585,17 @@ export class BitPayCardTopUpPage {
   public showWallets(): void {
     this.isOpenSelector = true;
     let id = this.wallet ? this.wallet.credentials.walletId : null;
-    this.events.publish('showWalletsSelectorEvent', this.wallets, id, 'From');
-    this.events.subscribe('selectWalletEvent', wallet => {
+    const params = {
+      wallets: this.wallets,
+      selectedWalletId: id,
+      title: 'From'
+    };
+    const walletSelector = this.actionSheetProvider.createWalletSelector(
+      params
+    );
+    walletSelector.present();
+    walletSelector.onDidDismiss(wallet => {
       if (!_.isEmpty(wallet)) this.onWalletSelect(wallet);
-      this.events.unsubscribe('selectWalletEvent');
       this.isOpenSelector = false;
     });
   }
@@ -604,7 +614,6 @@ export class BitPayCardTopUpPage {
     modal.present();
     modal.onDidDismiss(async () => {
       await this.navCtrl.popToRoot({ animate: false });
-      await this.navCtrl.parent.select(0);
       await this.navCtrl.push(
         BitPayCardPage,
         { id: this.cardId },
@@ -613,7 +622,33 @@ export class BitPayCardTopUpPage {
     });
   }
 
-  public openExternalLink(url: string) {
-    this.externalLinkProvider.open(url);
+  public openExternalLink(urlKey: string) {
+    let url: string;
+    let title: string;
+    switch (urlKey) {
+      case 'networkCost':
+        url =
+          'https://support.bitpay.com/hc/en-us/articles/115002990803-Why-Am-I-Being-Charged-an-Additional-Network-Cost-on-My-BitPay-Invoice-';
+        title = this.translate.instant('Network Cost');
+        break;
+      case 'minerFee':
+        url =
+          'https://support.bitpay.com/hc/en-us/articles/115003393863-What-are-bitcoin-miner-fees-Why-are-miner-fees-so-high-';
+        title = this.translate.instant('Miner Fee');
+        break;
+    }
+    let message = this.translate.instant(
+      'This information is available at the website.'
+    );
+    let okText = this.translate.instant('Open');
+    let cancelText = this.translate.instant('Go Back');
+    this.externalLinkProvider.open(
+      url,
+      true,
+      title,
+      message,
+      okText,
+      cancelText
+    );
   }
 }

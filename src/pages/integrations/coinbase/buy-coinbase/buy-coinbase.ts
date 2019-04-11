@@ -1,14 +1,10 @@
 import { Component, ViewChild } from '@angular/core';
-import {
-  Events,
-  ModalController,
-  NavController,
-  NavParams
-} from 'ionic-angular';
+import { ModalController, NavController, NavParams } from 'ionic-angular';
 import * as _ from 'lodash';
 import { Logger } from '../../../../providers/logger/logger';
 
 // providers
+import { ActionSheetProvider } from '../../../../providers/action-sheet/action-sheet';
 import { CoinbaseProvider } from '../../../../providers/coinbase/coinbase';
 import { ExternalLinkProvider } from '../../../../providers/external-link/external-link';
 import { OnGoingProcessProvider } from '../../../../providers/on-going-process/on-going-process';
@@ -27,7 +23,8 @@ import { CoinbasePage } from '../coinbase';
   templateUrl: 'buy-coinbase.html'
 })
 export class BuyCoinbasePage {
-  @ViewChild('slideButton') slideButton;
+  @ViewChild('slideButton')
+  slideButton;
 
   private amount: string;
   private currency: string;
@@ -43,16 +40,17 @@ export class BuyCoinbasePage {
   public network: string;
   public isFiat: boolean;
   public isOpenSelector: boolean;
+  public hideSlideButton: boolean;
 
   // Platform info
   public isCordova: boolean;
 
   constructor(
+    private actionSheetProvider: ActionSheetProvider,
     private coinbaseProvider: CoinbaseProvider,
     private logger: Logger,
     private popupProvider: PopupProvider,
     private navCtrl: NavController,
-    private events: Events,
     private externalLinkProvider: ExternalLinkProvider,
     private onGoingProcessProvider: OnGoingProcessProvider,
     private navParams: NavParams,
@@ -62,16 +60,17 @@ export class BuyCoinbasePage {
     private modalCtrl: ModalController,
     private platformProvider: PlatformProvider
   ) {
-    this.coin = 'btc';
-    this.isFiat = this.navParams.data.currency != 'BTC' ? true : false;
-    this.amount = this.navParams.data.amount;
-    this.currency = this.navParams.data.currency;
+    this.isFiat = true;
+    this.coin = this.navParams.data.coin; // BTC
+    this.amount = this.navParams.data.amount; // USD
+    this.currency = this.navParams.data.currency; // USD
     this.network = this.coinbaseProvider.getNetwork();
     this.isCordova = this.platformProvider.isCordova;
+    this.hideSlideButton = false;
   }
 
   ionViewDidLoad() {
-    this.logger.info('ionViewDidLoad BuyCoinbasePage');
+    this.logger.info('Loaded: BuyCoinbasePage');
   }
 
   ionViewWillLeave() {
@@ -95,6 +94,7 @@ export class BuyCoinbasePage {
   }
 
   private showErrorAndBack(err): void {
+    this.hideSlideButton = false;
     if (this.isCordova) this.slideButton.isConfirmed(false);
     this.logger.error(err);
     err = err.errors ? err.errors[0].message : err;
@@ -104,6 +104,7 @@ export class BuyCoinbasePage {
   }
 
   private showError(err): void {
+    this.hideSlideButton = false;
     if (this.isCordova) this.slideButton.isConfirmed(false);
     this.logger.error(err);
     err = err.errors ? err.errors[0].message : err;
@@ -142,12 +143,18 @@ export class BuyCoinbasePage {
         let pm;
         for (let i = 0; i < p.data.length; i++) {
           pm = p.data[i];
-          if (pm.allow_buy) {
-            this.paymentMethods.push(pm);
-          }
-          if (pm.allow_buy && pm.primary_buy) {
-            hasPrimary = true;
-            this.selectedPaymentMethodId = pm.id;
+          // Only USD for US bank accounts (or fiat account in USD)
+          if (
+            pm.currency == 'USD' &&
+            (pm.type == 'fiat_account' || pm.type == 'ach_bank_account')
+          ) {
+            if (pm.allow_buy) {
+              this.paymentMethods.push(pm);
+            }
+            if (pm.allow_buy && pm.primary_buy) {
+              hasPrimary = true;
+              this.selectedPaymentMethodId = pm.id;
+            }
           }
         }
         if (_.isEmpty(this.paymentMethods)) {
@@ -161,7 +168,6 @@ export class BuyCoinbasePage {
             .ionicConfirm(null, msg, okText, cancelText)
             .then(res => {
               if (res) this.externalLinkProvider.open(url);
-              this.navCtrl.remove(3, 1);
               this.navCtrl.pop();
             });
           return;
@@ -216,6 +222,7 @@ export class BuyCoinbasePage {
           return;
         }
 
+        this.hideSlideButton = true;
         this.onGoingProcessProvider.set('buyingBitcoin');
         this.coinbaseProvider.init((err, res) => {
           if (err) {
@@ -284,7 +291,7 @@ export class BuyCoinbasePage {
               {},
               err => {
                 this.onGoingProcessProvider.clear();
-                if (err) this.logger.debug(err);
+                if (err) this.logger.warn(err);
                 this.openFinishModal();
               }
             );
@@ -323,15 +330,17 @@ export class BuyCoinbasePage {
   public showWallets(): void {
     this.isOpenSelector = true;
     let id = this.wallet ? this.wallet.credentials.walletId : null;
-    this.events.publish(
-      'showWalletsSelectorEvent',
-      this.wallets,
-      id,
-      'Receive in'
+    const params = {
+      wallets: this.wallets,
+      selectedWalletId: id,
+      title: 'Receive in'
+    };
+    const walletSelector = this.actionSheetProvider.createWalletSelector(
+      params
     );
-    this.events.subscribe('selectWalletEvent', wallet => {
+    walletSelector.present();
+    walletSelector.onDidDismiss(wallet => {
       if (!_.isEmpty(wallet)) this.onWalletSelect(wallet);
-      this.events.unsubscribe('selectWalletEvent');
       this.isOpenSelector = false;
     });
   }
@@ -344,7 +353,10 @@ export class BuyCoinbasePage {
       this.currency
     );
 
-    // Buy always in BTC
+    // ** Buy always in BTC **
+    // It 's needed for calculate the fee to send
+    // purchased bitcoin from Coinbase to Copay in a
+    // single transaction
     this.amount = (parsedAmount.amountSat / 100000000).toFixed(8);
     this.currency = 'BTC';
 
@@ -372,7 +384,6 @@ export class BuyCoinbasePage {
     modal.present();
     modal.onDidDismiss(async () => {
       await this.navCtrl.popToRoot({ animate: false });
-      await this.navCtrl.parent.select(0);
       await this.navCtrl.push(
         CoinbasePage,
         { coin: 'btc' },

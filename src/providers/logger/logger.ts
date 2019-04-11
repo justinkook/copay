@@ -1,6 +1,5 @@
 /* tslint:disable:no-console */
 import { Injectable, isDevMode } from '@angular/core';
-
 import * as _ from 'lodash';
 
 @Injectable()
@@ -12,10 +11,10 @@ export class Logger {
   constructor() {
     this.logs = [];
     this.levels = [
-      { level: 'error', weight: 1, label: 'Error' },
-      { level: 'warn', weight: 2, label: 'Warning' },
-      { level: 'info', weight: 3, label: 'Info', default: true },
-      { level: 'debug', weight: 4, label: 'Debug' }
+      { level: 'error', weight: 1, label: 'Error', def: false },
+      { level: 'warn', weight: 2, label: 'Warning', def: false },
+      { level: 'info', weight: 3, label: 'Info', def: true },
+      { level: 'debug', weight: 4, label: 'Debug', def: false }
     ];
 
     // Create an array of level weights for performant filtering.
@@ -25,36 +24,44 @@ export class Logger {
     }
   }
 
-  public error(message?, ...optionalParams): void {
-    let msg =
-      '[error] ' + (_.isString(message) ? message : JSON.stringify(message));
-    console.log(msg, ...optionalParams);
-    let args = this.processingArgs(arguments);
-    this.add('error', args);
+  private getMessage(message): string {
+    const isUndefined = _.isUndefined(message);
+    const isNull = _.isNull(message);
+    const isError = _.isError(message);
+    const isObject = _.isObject(message);
+    if (isUndefined) return 'undefined';
+    else if (isNull) return 'null';
+    else if (isError) return message.message;
+    else if (isObject) return JSON.stringify(message);
+    else return message;
   }
 
-  public debug(message?, ...optionalParams): void {
-    let msg =
-      '[debug] ' + (_.isString(message) ? message : JSON.stringify(message));
-    if (isDevMode()) console.log(msg, ...optionalParams);
-    let args = this.processingArgs(arguments);
-    this.add('debug', args);
+  public error(_message?, ..._optionalParams): void {
+    const type = 'error';
+    const args = this.processingArgs(arguments);
+    this.log(`[${type}] ${args}`);
+    this.add(type, args);
   }
 
-  public info(message?, ...optionalParams): void {
-    let msg =
-      '[info] ' + (_.isString(message) ? message : JSON.stringify(message));
-    if (isDevMode()) console.log(msg, ...optionalParams);
-    let args = this.processingArgs(arguments);
-    this.add('info', args);
+  public debug(_message?, ..._optionalParams): void {
+    const type = 'debug';
+    const args = this.processingArgs(arguments);
+    if (isDevMode()) this.log(`[${type}] ${args}`);
+    this.add(type, args);
   }
 
-  public warn(message?, ...optionalParams): void {
-    let msg =
-      '[warn] ' + (_.isString(message) ? message : JSON.stringify(message));
-    if (isDevMode()) console.log(msg, ...optionalParams);
-    let args = this.processingArgs(arguments);
-    this.add('warn', args);
+  public info(_message?, ..._optionalParams): void {
+    const type = 'info';
+    const args = this.processingArgs(arguments);
+    if (isDevMode()) this.log(`[${type}] ${args}`);
+    this.add(type, args);
+  }
+
+  public warn(_message?, ..._optionalParams): void {
+    const type = 'warn';
+    const args = this.processingArgs(arguments);
+    if (isDevMode()) this.log(`[${type}] ${args}`);
+    this.add(type, args);
   }
 
   public getLevels() {
@@ -69,18 +76,19 @@ export class Logger {
 
   public getDefaultWeight() {
     return _.find(this.levels, l => {
-      return l.default;
+      return l.def;
     });
   }
 
-  public add(level, msg) {
+  public add(level, msg): void {
     msg = msg.replace('/xpriv.*/', '[...]');
     msg = msg.replace('/walletPrivKey.*/', 'walletPrivKey:[...]');
-    this.logs.push({
+    const newLog = {
       timestamp: new Date().toISOString(),
       level,
       msg
-    });
+    };
+    this.logs.push(newLog);
   }
 
   /**
@@ -98,20 +106,20 @@ export class Logger {
   }
 
   public processingArgs(argsValues) {
-    var args = Array.prototype.slice.call(argsValues);
+    let args = Array.prototype.slice.call(argsValues);
     args = args.map(v => {
       try {
-        if (typeof v == 'undefined') v = 'undefined';
-        if (!v) v = 'null';
-        if (typeof v == 'object') {
-          v = v.message ? v.message : JSON.stringify(v);
-        }
+        v = this.getMessage(v);
       } catch (e) {
         console.log('Error at log decorator:', e);
-        v = 'undefined';
+        v = 'Unknown message';
       }
       return v;
     });
     return args.join(' ');
+  }
+
+  public log(msg: string, ...optionalParams) {
+    console.log(msg, ...optionalParams);
   }
 }

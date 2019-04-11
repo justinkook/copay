@@ -1,15 +1,17 @@
 import { async, ComponentFixture, TestBed } from '@angular/core/testing';
-
-import { TestUtils } from '../../../../test';
-
 import { ModalMock } from 'ionic-mocks';
-import { PopupProvider } from '../../../../providers/popup/popup';
+import { TestUtils } from '../../../../test';
 import { SessionLogPage } from './session-log';
+
+// Providers
+import { ActionSheetProvider } from '../../../../providers/action-sheet/action-sheet';
+import { PersistenceProvider } from '../../../../providers/persistence/persistence';
 
 describe('SessionLogPage', () => {
   let fixture: ComponentFixture<SessionLogPage>;
   let instance;
   let testBed: typeof TestBed;
+  let persistenceProvider: PersistenceProvider;
 
   beforeEach(async(() => {
     TestUtils.configurePageTestingModule([SessionLogPage]).then(testEnv => {
@@ -17,6 +19,9 @@ describe('SessionLogPage', () => {
       instance = testEnv.instance;
       testBed = testEnv.testBed;
       fixture.detectChanges();
+
+      persistenceProvider = testBed.get(PersistenceProvider);
+      persistenceProvider.load();
     });
   }));
   afterEach(() => {
@@ -78,7 +83,7 @@ describe('SessionLogPage', () => {
         spyOn(instance.logger, 'info');
         instance.ionViewDidLoad();
         expect(instance.logger.info).toHaveBeenCalledWith(
-          'ionViewDidLoad SessionLogPage'
+          'Loaded: SessionLogPage'
         );
       });
     });
@@ -90,8 +95,8 @@ describe('SessionLogPage', () => {
           weight: 10
         });
         instance.filterLogs(21);
-        expect(instance.filteredLogs).toEqual({ weight: 10 });
         expect(instance.logger.get).toHaveBeenCalledWith(21);
+        expect(instance.filteredLogs).toEqual([10]);
       });
     });
     describe('#setOptionSelected', () => {
@@ -115,37 +120,34 @@ describe('SessionLogPage', () => {
         expect(instance.configProvider.set).toHaveBeenCalledWith(opts);
       });
     });
-    describe('#prepareLogs', () => {
-      it('should return correct log', () => {
-        spyOn(instance.logger, 'get').and.returnValue([
-          {
+    describe('#prepareSessionLogs', () => {
+      it('should prepare the correct logs of the session', () => {
+        spyOn(instance.logger, 'get').and.returnValue({
+          '01/07/2008': {
             level: 1,
             msg: 'msg',
             timestamp: '01/07/2008'
           }
-        ]);
-        const log = instance.prepareLogs();
+        });
 
-        expect(log).toEqual(
-          'Copay Session Logs\n Be careful, this could contain sensitive private data\n\n\n\n[01/07/2008][1]msg'
+        const logs = instance.prepareSessionLogs();
+        expect(logs).toEqual(
+          'Session Logs.\nBe careful, this could contain sensitive private data\n\n\n\n[01/07/2008][1]msg\n'
         );
       });
     });
     describe('#sendLogs', () => {
       it('should send logs', () => {
-        spyOn(instance, 'prepareLogs').and.returnValue('logs');
+        const promise = Promise.resolve(
+          'Session Logs.\nBe careful, this could contain sensitive private data\n\n\n\n[01/07/2008][1]msg\n'
+        );
+
+        spyOn(instance, 'prepareSessionLogs').and.returnValue(promise);
         spyOn(instance.socialSharing, 'shareViaEmail');
 
         instance.sendLogs();
 
-        expect(instance.socialSharing.shareViaEmail).toHaveBeenCalledWith(
-          'logs',
-          'Copay Logs',
-          null,
-          null,
-          null,
-          null
-        );
+        expect(instance.prepareSessionLogs).toHaveBeenCalled();
       });
     });
     describe('#showOptionsMenu', () => {
@@ -157,9 +159,11 @@ describe('SessionLogPage', () => {
     });
     describe('#showWarningModal', () => {
       it('should create warning modal', () => {
-        const popupProvider: PopupProvider = testBed.get(PopupProvider);
+        const actionSheetProvider: ActionSheetProvider = testBed.get(
+          ActionSheetProvider
+        );
         const modal = ModalMock.instance();
-        spyOn(popupProvider, 'createMiniModal').and.returnValue(modal);
+        spyOn(actionSheetProvider, 'createInfoSheet').and.returnValue(modal);
         instance.showWarningModal();
         expect(modal.present).toHaveBeenCalled();
         expect(modal.onDidDismiss).toHaveBeenCalled();

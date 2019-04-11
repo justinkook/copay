@@ -3,6 +3,9 @@ import { NavController, NavParams } from 'ionic-angular';
 import { Logger } from '../../../../../../providers/logger/logger';
 
 // providers
+import { TranslateService } from '@ngx-translate/core';
+import { ActionSheetProvider } from '../../../../../../providers/action-sheet/action-sheet';
+import { BwcErrorProvider } from '../../../../../../providers/bwc-error/bwc-error';
 import { ProfileProvider } from '../../../../../../providers/profile/profile';
 import { WalletProvider } from '../../../../../../providers/wallet/wallet';
 
@@ -20,11 +23,14 @@ export class WalletExtendedPrivateKeyPage {
     private walletProvider: WalletProvider,
     private logger: Logger,
     private navParams: NavParams,
-    private navCtrl: NavController
+    private navCtrl: NavController,
+    private actionSheetProvider: ActionSheetProvider,
+    private translate: TranslateService,
+    private bwcErrorProvider: BwcErrorProvider
   ) {}
 
   ionViewDidLoad() {
-    this.logger.info('ionViewDidLoad WalletExtendedPrivateKeyPage');
+    this.logger.info('Loaded: WalletExtendedPrivateKeyPage');
   }
 
   ionViewWillEnter() {
@@ -40,8 +46,28 @@ export class WalletExtendedPrivateKeyPage {
         this.credentialsEncrypted = false;
       })
       .catch(err => {
-        this.logger.error('Could not get keys: ', err);
+        if (
+          err &&
+          err.message != 'FINGERPRINT_CANCELLED' &&
+          err.message != 'PASSWORD_CANCELLED'
+        ) {
+          let title = this.translate.instant('Could not decrypt wallet');
+          this.showErrorInfoSheet(this.bwcErrorProvider.msg(err), title);
+        }
         this.navCtrl.pop();
       });
+  }
+
+  private showErrorInfoSheet(
+    err: Error | string,
+    infoSheetTitle: string
+  ): void {
+    if (!err) return;
+    this.logger.error('Could not get keys:', err);
+    const errorInfoSheet = this.actionSheetProvider.createInfoSheet(
+      'default-error',
+      { msg: err, title: infoSheetTitle }
+    );
+    errorInfoSheet.present();
   }
 }

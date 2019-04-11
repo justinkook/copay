@@ -8,12 +8,14 @@ import { Logger } from '../../../providers/logger/logger';
 })
 export class WalletBalancePage {
   public status;
+  public color: string;
 
   constructor(private logger: Logger, private navParams: NavParams) {
     this.status = this.navParams.data.status;
+    this.color = this.navParams.data.color;
   }
 
   ionViewDidLoad() {
-    this.logger.info('ionViewDidLoad WalletBalancePage');
+    this.logger.info('Loaded:  WalletBalancePage');
   }
 }

@@ -6,6 +6,7 @@ import { Logger } from '../../providers/logger/logger';
 import * as _ from 'lodash';
 
 // providers
+import { ActionSheetProvider } from '../../providers/action-sheet/action-sheet';
 import { AppProvider } from '../../providers/app/app';
 import { BitPayCardProvider } from '../../providers/bitpay-card/bitpay-card';
 import { ConfigProvider } from '../../providers/config/config';
@@ -15,15 +16,14 @@ import { LanguageProvider } from '../../providers/language/language';
 import { PlatformProvider } from '../../providers/platform/platform';
 import { ProfileProvider } from '../../providers/profile/profile';
 import { TouchIdProvider } from '../../providers/touchid/touchid';
+import { WalletProvider } from '../../providers/wallet/wallet';
 
 // pages
-import { FeedbackCompletePage } from '../feedback/feedback-complete/feedback-complete';
-import { SendFeedbackPage } from '../feedback/send-feedback/send-feedback';
-import { AmazonSettingsPage } from '../integrations/amazon/amazon-settings/amazon-settings';
+import { BackupKeyPage } from '../backup/backup-key/backup-key';
+import { BitPayCardIntroPage } from '../integrations/bitpay-card/bitpay-card-intro/bitpay-card-intro';
 import { BitPaySettingsPage } from '../integrations/bitpay-card/bitpay-settings/bitpay-settings';
 import { CoinbaseSettingsPage } from '../integrations/coinbase/coinbase-settings/coinbase-settings';
-import { GlideraSettingsPage } from '../integrations/glidera/glidera-settings/glidera-settings';
-import { MercadoLibreSettingsPage } from '../integrations/mercado-libre/mercado-libre-settings/mercado-libre-settings';
+import { GiftCardsSettingsPage } from '../integrations/gift-cards/gift-cards-settings/gift-cards-settings';
 import { ShapeshiftSettingsPage } from '../integrations/shapeshift/shapeshift-settings/shapeshift-settings';
 import { PinModalPage } from '../pin/pin-modal/pin-modal';
 import { AboutPage } from './about/about';
@@ -34,6 +34,8 @@ import { FeePolicyPage } from './fee-policy/fee-policy';
 import { LanguagePage } from './language/language';
 import { LockPage } from './lock/lock';
 import { NotificationsPage } from './notifications/notifications';
+import { SharePage } from './share/share';
+import { VaultDeletePage } from './vault-delete/vault-delete';
 import { WalletSettingsPage } from './wallet-settings/wallet-settings';
 
 @Component({
@@ -53,6 +55,13 @@ export class SettingsPage {
   public integrationServices = [];
   public bitpayCardItems = [];
   public showBitPayCard: boolean = false;
+  public vault;
+  public encryptEnabled: boolean;
+  public touchIdAvailable: boolean;
+  public touchIdEnabled: boolean;
+  public touchIdPrevValue: boolean;
+
+  private vaultWallets;
 
   constructor(
     private navCtrl: NavController,
@@ -67,7 +76,10 @@ export class SettingsPage {
     private platformProvider: PlatformProvider,
     private translate: TranslateService,
     private modalCtrl: ModalController,
-    private touchid: TouchIdProvider
+    private touchid: TouchIdProvider,
+    private walletProvider: WalletProvider,
+    private actionSheetProvider: ActionSheetProvider,
+    private touchIdProvider: TouchIdProvider
   ) {
     this.appName = this.app.info.nameCase;
     this.walletsBch = [];
@@ -76,7 +88,7 @@ export class SettingsPage {
   }
 
   ionViewDidLoad() {
-    this.logger.info('ionViewDidLoad SettingsPage');
+    this.logger.info('Loaded: SettingsPage');
   }
 
   ionViewWillEnter() {
@@ -98,11 +110,84 @@ export class SettingsPage {
       this.config && this.config.lock && this.config.lock.method
         ? this.config.lock.method.toLowerCase()
         : null;
+    this.vault = this.profileProvider.getVault();
+    this.vaultWallets = this.profileProvider.getVaultWallets();
+    this.encryptEnabled = this.walletProvider.isEncrypted(this.vaultWallets[0]);
+    this.touchIdEnabled = this.config.touchIdFor
+      ? this.config.touchIdFor[this.vaultWallets[0].credentials.walletId]
+      : null;
+    this.touchIdPrevValue = this.touchIdEnabled;
+    this.touchIdProvider.isAvailable().then((isAvailable: boolean) => {
+      this.touchIdAvailable = isAvailable;
+    });
+  }
+
+  public touchIdChange(): void {
+    if (this.touchIdPrevValue == this.touchIdEnabled) return;
+    const newStatus = this.touchIdEnabled;
+    this.walletProvider
+      .setTouchId(this.vaultWallets, newStatus)
+      .then(() => {
+        this.touchIdPrevValue = this.touchIdEnabled;
+        this.logger.debug('Touch Id status changed: ' + newStatus);
+      })
+      .catch(err => {
+        this.logger.error('Error with fingerprint:', err);
+        this.touchIdEnabled = this.touchIdPrevValue;
+      });
+  }
+
+  public encryptChange(): void {
+    const val = this.encryptEnabled;
+
+    if (val && !this.walletProvider.isEncrypted(this.vaultWallets[0])) {
+      this.logger.debug('Encrypting private key for vault: ', this.vault.name);
+      this.walletProvider
+        .encrypt(this.vaultWallets)
+        .then(() => {
+          this.vaultWallets.forEach(wallet => {
+            this.profileProvider.updateCredentials(JSON.parse(wallet.export()));
+          });
+          this.logger.debug('Vault wallets encrypted');
+        })
+        .catch(err => {
+          this.encryptEnabled = false;
+          const title = this.translate.instant('Could not encrypt wallet');
+          this.showErrorInfoSheet(err, title);
+        });
+    } else if (!val && this.walletProvider.isEncrypted(this.vaultWallets[0])) {
+      this.walletProvider
+        .decrypt(this.vaultWallets)
+        .then(() => {
+          this.vaultWallets.forEach(wallet => {
+            this.profileProvider.updateCredentials(JSON.parse(wallet.export()));
+          });
+          this.logger.debug('Vault wallets decrypted');
+        })
+        .catch(err => {
+          this.encryptEnabled = true;
+          const title = 'Could not decrypt vault wallets';
+          this.showErrorInfoSheet(err, title);
+        });
+    }
+  }
+
+  private showErrorInfoSheet(
+    err: Error | string,
+    infoSheetTitle: string
+  ): void {
+    if (!err) return;
+    this.logger.warn('Could not encrypt/decrypt vault wallets:', err);
+    const errorInfoSheet = this.actionSheetProvider.createInfoSheet(
+      'default-error',
+      { msg: err, title: infoSheetTitle }
+    );
+    errorInfoSheet.present();
   }
 
   ionViewDidEnter() {
     // Show integrations
-    let integrations = this.homeIntegrationsProvider.get();
+    const integrations = this.homeIntegrationsProvider.get();
 
     // Hide BitPay if linked
     setTimeout(() => {
@@ -137,9 +222,16 @@ export class SettingsPage {
     this.navCtrl.push(AboutPage);
   }
 
+  public openBackupSettings(): void {
+    const vaultWallet = this.profileProvider.getWallet(this.vault.walletIds[0]);
+    this.navCtrl.push(BackupKeyPage, {
+      walletId: vaultWallet.credentials.walletId
+    });
+  }
+
   public openLockPage(): void {
-    let config = this.configProvider.get();
-    let lockMethod =
+    const config = this.configProvider.get();
+    const lockMethod =
       config && config.lock && config.lock.method
         ? config.lock.method.toLowerCase()
         : null;
@@ -164,12 +256,8 @@ export class SettingsPage {
     this.navCtrl.push(WalletSettingsPage, { walletId });
   }
 
-  public openSendFeedbackPage(): void {
-    this.navCtrl.push(SendFeedbackPage);
-  }
-
-  public openFeedbackCompletePage(): void {
-    this.navCtrl.push(FeedbackCompletePage, { fromSettings: true });
+  public openSharePage(): void {
+    this.navCtrl.push(SharePage);
   }
 
   public openSettingIntegration(name: string): void {
@@ -177,20 +265,14 @@ export class SettingsPage {
       case 'coinbase':
         this.navCtrl.push(CoinbaseSettingsPage);
         break;
-      case 'glidera':
-        this.navCtrl.push(GlideraSettingsPage);
-        break;
       case 'debitcard':
         this.navCtrl.push(BitPaySettingsPage);
         break;
-      case 'amazon':
-        this.navCtrl.push(AmazonSettingsPage);
-        break;
-      case 'mercadolibre':
-        this.navCtrl.push(MercadoLibreSettingsPage);
-        break;
       case 'shapeshift':
         this.navCtrl.push(ShapeshiftSettingsPage);
+        break;
+      case 'giftcards':
+        this.navCtrl.push(GiftCardsSettingsPage);
         break;
     }
   }
@@ -199,18 +281,26 @@ export class SettingsPage {
     this.navCtrl.push(BitPaySettingsPage, { id });
   }
 
+  public openGiftCardsSettings() {
+    this.navCtrl.push(GiftCardsSettingsPage);
+  }
+
+  public openDeleteVault(): void {
+    this.navCtrl.push(VaultDeletePage);
+  }
+
   public openHelpExternalLink(): void {
-    let url =
+    const url =
       this.appName == 'Copay'
         ? 'https://github.com/bitpay/copay/issues'
         : 'https://help.bitpay.com/bitpay-app';
-    let optIn = true;
-    let title = null;
-    let message = this.translate.instant(
+    const optIn = true;
+    const title = null;
+    const message = this.translate.instant(
       'Help and support information is available at the website.'
     );
-    let okText = this.translate.instant('Open');
-    let cancelText = this.translate.instant('Go Back');
+    const okText = this.translate.instant('Open');
+    const cancelText = this.translate.instant('Go Back');
     this.externalLinkProvider.open(
       url,
       optIn,
@@ -219,6 +309,10 @@ export class SettingsPage {
       okText,
       cancelText
     );
+  }
+
+  public addBitpayCard() {
+    this.navCtrl.push(BitPayCardIntroPage);
   }
 
   private openPinModal(action): void {
@@ -237,5 +331,23 @@ export class SettingsPage {
     this.touchid.check().then(() => {
       this.navCtrl.push(LockPage);
     });
+  }
+
+  public openSupportEncryptPassword(): void {
+    const url =
+      'https://support.bitpay.com/hc/en-us/articles/360000244506-What-Does-a-Spending-Password-Do-';
+    const optIn = true;
+    const title = null;
+    const message = this.translate.instant('Read more in our support page');
+    const okText = this.translate.instant('Open');
+    const cancelText = this.translate.instant('Go Back');
+    this.externalLinkProvider.open(
+      url,
+      optIn,
+      title,
+      message,
+      okText,
+      cancelText
+    );
   }
 }

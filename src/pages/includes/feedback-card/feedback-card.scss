@@ -1,4 +1,13 @@
 page-feedback-card {
+  .feedback-header {
+    padding: 0rem;
+    .row {
+      justify-content: flex-end;
+      button {
+        font-size: 12px;
+      }
+    }
+  }
   .icon-svg {
     display: flex;
     justify-content: center;
@@ -13,9 +22,26 @@ page-feedback-card {
   }
   .button-standard {
     margin-bottom: 12px;
-    margin-top: 0px;
+    margin-top: 10px;
   }
-  .row {
-    padding: 2.2rem 0 2.2rem 0;
+  .icons-row {
+    padding-top: 2.2rem;
+  }
+  ion-card-content {
+    text-align: center;
+    .title {
+      font-weight: 500;
+      font-size: 2rem;
+      color: color($colors, grey);
+    }
+    .subtitle {
+      padding: 10px;
+    }
+  }
+  .opacity-low {
+    opacity: 0.42;
+  }
+  .icon-svg > img {
+    height: 44px;
   }
 }

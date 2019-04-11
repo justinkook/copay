@@ -5,7 +5,7 @@
 </ion-header>
 
 <ion-content>
-  <ion-list radio-group [(ngModel)]="currentLanguage">
+  <ion-list radio-group [(ngModel)]="currentLanguage" class="settings-list">
     <ion-item *ngFor="let language of languages">
       <ion-label>
         {{ language.name }}

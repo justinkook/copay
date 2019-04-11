@@ -1,12 +1,9 @@
 import { Component, ViewChild } from '@angular/core';
 import { StatusBar } from '@ionic-native/status-bar';
 import { Vibration } from '@ionic-native/vibration';
-import {
-  NavController,
-  NavParams,
-  Platform,
-  ViewController
-} from 'ionic-angular';
+import { NavParams, Platform, ViewController } from 'ionic-angular';
+
+import { Subscription } from 'rxjs';
 
 import { Animate } from '../../../directives/animate/animate';
 import { ConfigProvider } from '../../../providers/config/config';
@@ -20,7 +17,11 @@ import { PersistenceProvider } from '../../../providers/persistence/persistence'
 export class PinModalPage {
   private ATTEMPT_LIMIT: number;
   private ATTEMPT_LOCK_OUT_TIME: number;
-  private countDown;
+  private countDown: NodeJS.Timer;
+  private lockReleaseTimeout: NodeJS.Timer;
+  private onPauseSubscription: Subscription;
+  private onResumeSubscription: Subscription;
+
   public currentAttempts: number;
   public currentPin: string;
   public firstPinEntered: string;
@@ -31,13 +32,13 @@ export class PinModalPage {
   public incorrect: boolean;
   public unregister;
 
-  @ViewChild(Animate) pinCode: Animate;
+  @ViewChild(Animate)
+  pinCode: Animate;
 
   constructor(
     private configProvider: ConfigProvider,
     private logger: Logger,
     private platform: Platform,
-    private navCtrl: NavController,
     private navParams: NavParams,
     private persistenceProvider: PersistenceProvider,
     private statusBar: StatusBar,
@@ -45,7 +46,7 @@ export class PinModalPage {
     private viewCtrl: ViewController
   ) {
     this.ATTEMPT_LIMIT = 3;
-    this.ATTEMPT_LOCK_OUT_TIME = 5 * 60;
+    this.ATTEMPT_LOCK_OUT_TIME = 2 * 60;
     this.currentAttempts = 0;
     this.currentPin = '';
     this.firstPinEntered = '';
@@ -60,13 +61,7 @@ export class PinModalPage {
     this.action = this.navParams.get('action');
 
     if (this.action === 'checkPin' || this.action === 'lockSetUp') {
-      this.persistenceProvider.getLockStatus().then((isLocked: string) => {
-        if (!isLocked) return;
-        if (this.action === 'checkPin') {
-          this.showLockTimer();
-          this.setLockRelease();
-        }
-      });
+      this.checkIfLocked();
     }
   }
 
@@ -82,13 +77,44 @@ export class PinModalPage {
     }
   }
 
+  ionViewDidLoad() {
+    this.onPauseSubscription = this.platform.pause.subscribe(() => {
+      clearInterval(this.countDown);
+      clearTimeout(this.lockReleaseTimeout);
+      this.expires = this.disableButtons = null;
+      this.currentPin = this.firstPinEntered = '';
+    });
+    this.onResumeSubscription = this.platform.resume.subscribe(() => {
+      this.disableButtons = true;
+      this.checkIfLocked();
+    });
+  }
+
+  ngOnDestroy() {
+    this.onPauseSubscription.unsubscribe();
+    this.onResumeSubscription.unsubscribe();
+  }
+
+  private checkIfLocked(): void {
+    this.persistenceProvider.getLockStatus().then((isLocked: string) => {
+      if (!isLocked) {
+        this.disableButtons = null;
+        return;
+      }
+
+      if (this.action === 'checkPin') {
+        this.showLockTimer();
+        this.setLockRelease();
+      }
+    });
+  }
+
   public close(cancelClicked?: boolean): void {
     if (this.countDown) {
       clearInterval(this.countDown);
     }
     this.unregister();
-    if (this.action === 'lockSetUp') this.viewCtrl.dismiss(cancelClicked);
-    else this.navCtrl.pop({ animate: true });
+    this.viewCtrl.dismiss(cancelClicked);
   }
 
   public newEntry(value: string): void {
@@ -133,33 +159,31 @@ export class PinModalPage {
       this.persistenceProvider.setLockStatus('locked');
       this.showLockTimer();
       this.setLockRelease();
+    } else {
+      this.disableButtons = null;
     }
   }
 
-  private showLockTimer() {
+  private showLockTimer(): void {
     this.disableButtons = true;
-    let bannedUntil =
+    const bannedUntil =
       Math.floor(Date.now() / 1000) + this.ATTEMPT_LOCK_OUT_TIME;
     this.countDown = setInterval(() => {
-      let now = Math.floor(Date.now() / 1000);
-      let totalSecs = bannedUntil - now;
-      let m = Math.floor(totalSecs / 60);
-      let s = totalSecs % 60;
+      const now = Math.floor(Date.now() / 1000);
+      const totalSecs = bannedUntil - now;
+      const m = Math.floor(totalSecs / 60);
+      const s = totalSecs % 60;
       this.expires = ('0' + m).slice(-2) + ':' + ('0' + s).slice(-2);
     }, 1000);
   }
 
-  private setLockRelease() {
-    setTimeout(() => {
+  private setLockRelease(): void {
+    this.lockReleaseTimeout = setTimeout(() => {
       clearInterval(this.countDown);
-      this.unlock();
+      this.expires = this.disableButtons = null;
+      this.currentPin = this.firstPinEntered = '';
+      this.persistenceProvider.removeLockStatus();
     }, this.ATTEMPT_LOCK_OUT_TIME * 1000);
-  }
-
-  private unlock() {
-    this.expires = this.disableButtons = null;
-    this.currentPin = this.firstPinEntered = '';
-    this.persistenceProvider.removeLockStatus();
   }
 
   public delete(): void {
@@ -169,18 +193,19 @@ export class PinModalPage {
 
   private isComplete(): boolean {
     if (this.currentPin.length < 4) return false;
-    else return true;
+    if (this.action != 'pinSetUp') this.disableButtons = true;
+    return true;
   }
 
   public save(): void {
-    let lock = { method: 'pin', value: this.currentPin, bannedUntil: null };
+    const lock = { method: 'pin', value: this.currentPin, bannedUntil: null };
     this.configProvider.set({ lock });
     this.close();
   }
 
   private checkIfCorrect(): void {
-    let config = this.configProvider.get();
-    let pinValue = config.lock && config.lock.value;
+    const config = this.configProvider.get();
+    const pinValue = config.lock && config.lock.value;
     if (pinValue == this.currentPin) {
       if (this.action === 'checkPin' || this.action === 'lockSetUp') {
         this.close();
@@ -192,7 +217,7 @@ export class PinModalPage {
     }
   }
 
-  public shakeCode() {
+  public shakeCode(): void {
     this.pinCode.animate('shake');
     this.vibration.vibrate(100);
   }

@@ -1,4 +1,17 @@
+import { ActionCardComponent } from './action-card/action-card';
+import { ACTION_SHEET_COMPONENTS } from './action-sheets';
+import { AmountPickerComponent } from './amount-picker/amount-picker';
+import { ClipboardCardPage } from './clipboard-card/clipboard-card';
 import { EXPANDABLE_HEADER_COMPONENTS } from './expandable-header/expandable-header';
-import { MINI_MODAL_COMPONENTS } from './mini-modal/mini-modal';
+import { LabelTip } from './label-tip/label-tip';
+import { SearchBarComponent } from './search-bar/search-bar';
 
-export const COMPONENTS = [MINI_MODAL_COMPONENTS, EXPANDABLE_HEADER_COMPONENTS];
+export const COMPONENTS = [
+  ActionCardComponent,
+  ACTION_SHEET_COMPONENTS,
+  AmountPickerComponent,
+  EXPANDABLE_HEADER_COMPONENTS,
+  LabelTip,
+  ClipboardCardPage,
+  SearchBarComponent
+];

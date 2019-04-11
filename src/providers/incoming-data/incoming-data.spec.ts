@@ -2,19 +2,19 @@ import { fakeAsync, tick } from '@angular/core/testing';
 import { Events } from 'ionic-angular';
 import { AppProvider, PopupProvider } from '..';
 import { TestUtils } from '../../test';
+import { ActionSheetProvider } from '../action-sheet/action-sheet';
 import { BwcProvider } from '../bwc/bwc';
 import { Logger } from '../logger/logger';
-import { PayproProvider } from '../paypro/paypro';
 import { IncomingDataProvider } from './incoming-data';
 
 describe('Provider: Incoming Data Provider', () => {
   let incomingDataProvider: IncomingDataProvider;
-  let payproProvider: PayproProvider;
   let bwcProvider: BwcProvider;
   let logger: Logger;
   let events: Events;
   let loggerSpy;
   let eventsSpy;
+  let actionSheetSpy;
 
   class AppProviderMock {
     public info = {};
@@ -39,12 +39,18 @@ describe('Provider: Incoming Data Provider', () => {
       { provide: PopupProvider, useClass: PopupProviderMock }
     ]);
     incomingDataProvider = testBed.get(IncomingDataProvider);
-    payproProvider = testBed.get(PayproProvider);
     bwcProvider = testBed.get(BwcProvider);
     logger = testBed.get(Logger);
     events = testBed.get(Events);
     loggerSpy = spyOn(logger, 'debug');
     eventsSpy = spyOn(events, 'publish');
+    actionSheetSpy = spyOn(
+      testBed.get(ActionSheetProvider),
+      'createIncomingDataMenu'
+    ).and.returnValue({
+      present() {},
+      onDidDismiss() {}
+    });
   });
 
   describe('Function: SCANNER Redir', () => {
@@ -56,35 +62,36 @@ describe('Provider: Incoming Data Provider', () => {
         'Jason was here'
       ];
       data.forEach(element => {
-        expect(incomingDataProvider.redir(element, 'ScanPage')).toBe(true);
-        expect(loggerSpy).toHaveBeenCalledWith('Handling plain text');
-        expect(eventsSpy).toHaveBeenCalledWith('showIncomingDataMenuEvent', {
-          data: element,
-          type: 'text'
+        expect(
+          incomingDataProvider.redir(element, { activePage: 'ScanPage' })
+        ).toBe(true);
+        expect(loggerSpy).toHaveBeenCalledWith('Incoming-data: Plain text');
+        expect(actionSheetSpy).toHaveBeenCalledWith({
+          data: {
+            type: 'text',
+            data: element
+          }
         });
       });
     });
-    it(
-      'Should handle Plain URL',
-      fakeAsync(() => {
-        spyOn(payproProvider, 'getPayProDetails').and.returnValue(
-          Promise.reject(true)
-        );
-        let data = [
-          'http://bitpay.com/', // non-SSL URL Handling
-          'https://bitpay.com/' // SSL URL Handling
-        ];
-        data.forEach(element => {
-          expect(incomingDataProvider.redir(element, 'ScanPage')).toBe(true);
-          expect(loggerSpy).toHaveBeenCalledWith('Handling Plain URL');
-          tick();
-          expect(eventsSpy).toHaveBeenCalledWith('showIncomingDataMenuEvent', {
-            data: element,
-            type: 'url'
-          });
+    it('Should handle Plain URL', () => {
+      let data = [
+        'http://bitpay.com/', // non-SSL URL Handling
+        'https://bitpay.com/' // SSL URL Handling
+      ];
+      data.forEach(element => {
+        expect(
+          incomingDataProvider.redir(element, { activePage: 'ScanPage' })
+        ).toBe(true);
+        expect(loggerSpy).toHaveBeenCalledWith('Incoming-data: Plain URL');
+        expect(actionSheetSpy).toHaveBeenCalledWith({
+          data: {
+            type: 'url',
+            data: element
+          }
         });
-      })
-    );
+      });
+    });
     it('Should handle Join Wallet', () => {
       let data =
         'copay:RTpopkn5KBnkxuT7x4ummDKx3Lu1LvbntddBC4ssDgaqP7DkojT8ccxaFQEXY4f3huFyMewhHZLbtc';
@@ -94,8 +101,12 @@ describe('Provider: Incoming Data Provider', () => {
         params: stateParams
       };
 
-      expect(incomingDataProvider.redir(data, 'ScanPage')).toBe(true);
-      expect(loggerSpy).toHaveBeenCalledWith('Handling Join Wallet');
+      expect(incomingDataProvider.redir(data, { activePage: 'ScanPage' })).toBe(
+        true
+      );
+      expect(loggerSpy).toHaveBeenCalledWith(
+        'Incoming-data (redirect): Code to join to a wallet'
+      );
       expect(eventsSpy).toHaveBeenCalledWith('IncomingDataRedir', nextView);
     });
     it('Should handle Old Join Wallet', () => {
@@ -107,8 +118,12 @@ describe('Provider: Incoming Data Provider', () => {
         params: stateParams
       };
 
-      expect(incomingDataProvider.redir(data, 'ScanPage')).toBe(true);
-      expect(loggerSpy).toHaveBeenCalledWith('Handling Old Join Wallet');
+      expect(incomingDataProvider.redir(data, { activePage: 'ScanPage' })).toBe(
+        true
+      );
+      expect(loggerSpy).toHaveBeenCalledWith(
+        'Incoming-data (redirect): Code to join to a wallet'
+      );
       expect(eventsSpy).toHaveBeenCalledWith('IncomingDataRedir', nextView);
     });
     it('Should handle QR Code Export feature', () => {
@@ -123,9 +138,11 @@ describe('Provider: Incoming Data Provider', () => {
           name: 'ImportWalletPage',
           params: stateParams
         };
-        expect(incomingDataProvider.redir(element, 'ScanPage')).toBe(true);
+        expect(
+          incomingDataProvider.redir(element, { activePage: 'ScanPage' })
+        ).toBe(true);
         expect(loggerSpy).toHaveBeenCalledWith(
-          'Handling QR Code Export feature'
+          'Incoming-data (redirect): QR code export feature'
         );
         expect(eventsSpy).toHaveBeenCalledWith('IncomingDataRedir', nextView);
       });
@@ -136,9 +153,11 @@ describe('Provider: Incoming Data Provider', () => {
         'bitcoincash:?r=https://bitpay.com/i/Rtz1RwWA7kdRRU3Wyo4YDY'
       ];
       data.forEach(element => {
-        expect(incomingDataProvider.redir(element, 'ScanPage')).toBe(true);
+        expect(
+          incomingDataProvider.redir(element, { activePage: 'ScanPage' })
+        ).toBe(true);
         expect(loggerSpy).toHaveBeenCalledWith(
-          'Handling Payment Protocol with non-backwards-compatible request'
+          'Incoming-data: Payment Protocol with non-backwards-compatible request'
         );
       });
     });
@@ -148,14 +167,18 @@ describe('Provider: Incoming Data Provider', () => {
         'CcnxtMfvBHGTwoKGPSuezEuYNpGPJH6tjN'
       ];
       data.forEach(element => {
-        expect(incomingDataProvider.redir(element, 'ScanPage')).toBe(true);
+        expect(
+          incomingDataProvider.redir(element, { activePage: 'ScanPage' })
+        ).toBe(true);
         expect(loggerSpy).toHaveBeenCalledWith(
-          'Handling Bitcoin Cash Plain Address'
+          'Incoming-data: Bitcoin Cash plain address'
         );
-        expect(eventsSpy).toHaveBeenCalledWith('showIncomingDataMenuEvent', {
-          data: element,
-          type: 'bitcoinAddress',
-          coin: 'bch'
+        expect(actionSheetSpy).toHaveBeenCalledWith({
+          data: {
+            data: element,
+            type: 'bitcoinAddress',
+            coin: 'bch'
+          }
         });
       });
     });
@@ -182,8 +205,46 @@ describe('Provider: Incoming Data Provider', () => {
           name: 'AmountPage',
           params: stateParams
         };
-        expect(incomingDataProvider.redir(element, 'ScanPage')).toBe(true);
-        expect(loggerSpy).toHaveBeenCalledWith('Handling Bitcoin Cash URI');
+        expect(
+          incomingDataProvider.redir(element, { activePage: 'ScanPage' })
+        ).toBe(true);
+        expect(loggerSpy).toHaveBeenCalledWith(
+          'Incoming-data: Bitcoin Cash URI'
+        );
+        expect(eventsSpy).toHaveBeenCalledWith('IncomingDataRedir', nextView);
+      });
+    });
+    it('Should handle Bitcoin cash Copay/BitPay format and CashAddr format URI with amount', () => {
+      let data = [
+        'BITCOINCASH:QZCY06MXSK7HW0RU4KZWTRKXDS6VF8Y34VRM5SF9Z7?amount=1.00000000'
+      ];
+
+      data.forEach(element => {
+        let parsed = bwcProvider.getBitcoreCash().URI(element);
+        let addr = parsed.address ? parsed.address.toString() : '';
+        // keep address in original format
+        if (parsed.address && element.indexOf(addr) < 0) {
+          addr = parsed.address.toCashAddress();
+        }
+
+        let amount = parsed.amount;
+
+        let stateParams = {
+          amount,
+          toAddress: addr,
+          description: null,
+          coin: 'bch'
+        };
+        let nextView = {
+          name: 'ConfirmPage',
+          params: stateParams
+        };
+        expect(
+          incomingDataProvider.redir(element, { activePage: 'ScanPage' })
+        ).toBe(true);
+        expect(loggerSpy).toHaveBeenCalledWith(
+          'Incoming-data: Bitcoin Cash URI'
+        );
         expect(eventsSpy).toHaveBeenCalledWith('IncomingDataRedir', nextView);
       });
     });
@@ -199,8 +260,10 @@ describe('Provider: Incoming Data Provider', () => {
         let addr = parsed.address ? parsed.address.toString() : '';
         let message = parsed.message;
         let amount = parsed.amount ? parsed.amount : '';
-        expect(incomingDataProvider.redir(element, 'ScanPage')).toBe(true);
-        expect(loggerSpy).toHaveBeenCalledWith('Handling Bitcoin URI');
+        expect(
+          incomingDataProvider.redir(element, { activePage: 'ScanPage' })
+        ).toBe(true);
+        expect(loggerSpy).toHaveBeenCalledWith('Incoming-data: Bitcoin URI');
         if (amount) {
           let stateParams = {
             amount,
@@ -227,57 +290,96 @@ describe('Provider: Incoming Data Provider', () => {
         }
       });
     });
-    it(
-      'Should Handle Bitcoin Cash URI with legacy address',
-      fakeAsync(() => {
-        let data = 'bitcoincash:1ML5KKKrJEHw3fQqhhajQjHWkh3yKhNZpa';
-        expect(incomingDataProvider.redir(data, 'ScanPage')).toBe(true);
-        expect(loggerSpy).toHaveBeenCalledWith(
-          'Handling Bitcoin Cash URI with legacy address'
-        );
+    it('Should Handle Bitcoin Cash URI with legacy address', fakeAsync(() => {
+      let data = 'bitcoincash:1ML5KKKrJEHw3fQqhhajQjHWkh3yKhNZpa';
+      expect(incomingDataProvider.redir(data, { activePage: 'ScanPage' })).toBe(
+        true
+      );
+      expect(loggerSpy).toHaveBeenCalledWith(
+        'Incoming-data: Bitcoin Cash URI with legacy address'
+      );
 
-        let parsed = bwcProvider
-          .getBitcore()
-          .URI(data.replace(/^bitcoincash:/, 'bitcoin:'));
+      let parsed = bwcProvider
+        .getBitcore()
+        .URI(data.replace(/^bitcoincash:/, 'bitcoin:'));
 
-        let oldAddr = parsed.address ? parsed.address.toString() : '';
+      let oldAddr = parsed.address ? parsed.address.toString() : '';
 
-        let a = bwcProvider
-          .getBitcore()
-          .Address(oldAddr)
-          .toObject();
-        let addr = bwcProvider
-          .getBitcoreCash()
-          .Address.fromObject(a)
-          .toString();
+      let a = bwcProvider
+        .getBitcore()
+        .Address(oldAddr)
+        .toObject();
+      let addr = bwcProvider
+        .getBitcoreCash()
+        .Address.fromObject(a)
+        .toString();
 
-        let stateParams = {
-          toAddress: addr,
-          description: null,
-          coin: 'bch'
-        };
-        let nextView = {
-          name: 'AmountPage',
-          params: stateParams
-        };
-        tick();
-        expect(eventsSpy).toHaveBeenCalledWith('IncomingDataRedir', nextView);
-      })
-    );
+      let stateParams = {
+        toAddress: addr,
+        description: null,
+        coin: 'bch'
+      };
+      let nextView = {
+        name: 'AmountPage',
+        params: stateParams
+      };
+      tick();
+      expect(eventsSpy).toHaveBeenCalledWith('IncomingDataRedir', nextView);
+    }));
+    it('Should Handle Testnet Bitcoin Cash URI with legacy address', fakeAsync(() => {
+      let data = 'bchtest:mu7ns6LXun5rQiyTJx7yY1QxTzndob4bhJ';
+      expect(incomingDataProvider.redir(data, { activePage: 'ScanPage' })).toBe(
+        true
+      );
+
+      // bch testnet legacy, prefixed address are handled as normal addresses
+      expect(loggerSpy).toHaveBeenCalledWith('Incoming-data: Bitcoin Cash URI');
+
+      let parsed = bwcProvider
+        .getBitcore()
+        .URI(data.replace(/^bchtest:/, 'bitcoin:'));
+
+      let oldAddr = parsed.address ? parsed.address.toString() : '';
+
+      let a = bwcProvider
+        .getBitcore()
+        .Address(oldAddr)
+        .toObject();
+      let addr = bwcProvider
+        .getBitcoreCash()
+        .Address.fromObject(a)
+        .toString();
+
+      let stateParams = {
+        toAddress: addr,
+        description: null,
+        coin: 'bch'
+      };
+      let nextView = {
+        name: 'AmountPage',
+        params: stateParams
+      };
+      tick();
+      expect(eventsSpy).toHaveBeenCalledWith('IncomingDataRedir', nextView);
+    }));
     it('Should handle Bitcoin Livenet and Testnet Plain Address', () => {
       let data = [
         '1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa', // Genesis Bitcoin Address
         'mpXwg4jMtRhuSpVq4xS3HFHmCmWp9NyGKt' // Genesis Testnet3 Bitcoin Address
       ];
       data.forEach(element => {
-        expect(incomingDataProvider.redir(element, 'ScanPage')).toBe(true);
+        expect(
+          incomingDataProvider.redir(element, { activePage: 'ScanPage' })
+        ).toBe(true);
         expect(loggerSpy).toHaveBeenCalledWith(
-          'Handling Bitcoin Plain Address'
+          'Incoming-data: Bitcoin plain address'
         );
-        expect(eventsSpy).toHaveBeenCalledWith('showIncomingDataMenuEvent', {
-          data: element,
-          type: 'bitcoinAddress',
-          coin: 'btc'
+        expect(actionSheetSpy).toHaveBeenCalledWith({
+          data: {
+            data: element,
+            type: 'bitcoinAddress',
+            coin: 'btc'
+          }
         });
       });
     });
@@ -288,25 +390,17 @@ describe('Provider: Incoming Data Provider', () => {
         'L1aW4aubDFB7yfras2S1mN3bqg9nwySY8nkoLmJebSLD5BWv3ENZ' // WIF Mainnet Privkey (compressed pubkey)
       ];
       data.forEach(element => {
-        expect(incomingDataProvider.redir(element, 'ScanPage')).toBe(true);
-        expect(loggerSpy).toHaveBeenCalledWith('Handling private key');
-        expect(eventsSpy).toHaveBeenCalledWith('showIncomingDataMenuEvent', {
-          data: element,
-          type: 'privateKey'
+        expect(
+          incomingDataProvider.redir(element, { activePage: 'ScanPage' })
+        ).toBe(true);
+        expect(loggerSpy).toHaveBeenCalledWith('Incoming-data: private key');
+        expect(actionSheetSpy).toHaveBeenCalledWith({
+          data: {
+            data: element,
+            type: 'privateKey',
+            fromHomeCard: undefined
+          }
         });
-      });
-    });
-    it('Should handle Glidera URI', () => {
-      let data = ['bitpay://glidera', 'copay://glidera'];
-      data.forEach(element => {
-        let stateParams = { code: null };
-        let nextView = {
-          name: 'GlideraPage',
-          params: stateParams
-        };
-        expect(incomingDataProvider.redir(element, 'ScanPage')).toBe(true);
-        expect(loggerSpy).toHaveBeenCalledWith('Handling Glidera URL');
-        expect(eventsSpy).toHaveBeenCalledWith('IncomingDataRedir', nextView);
       });
     });
     it('Should handle Coinbase URI', () => {
@@ -317,20 +411,28 @@ describe('Provider: Incoming Data Provider', () => {
           name: 'CoinbasePage',
           params: stateParams
         };
-        expect(incomingDataProvider.redir(element, 'ScanPage')).toBe(true);
-        expect(loggerSpy).toHaveBeenCalledWith('Handling Coinbase URL');
+        expect(
+          incomingDataProvider.redir(element, { activePage: 'ScanPage' })
+        ).toBe(true);
+        expect(loggerSpy).toHaveBeenCalledWith(
+          'Incoming-data (redirect): Coinbase URL'
+        );
         expect(eventsSpy).toHaveBeenCalledWith('IncomingDataRedir', nextView);
       });
     });
     it('Should handle BitPay Card URI', () => {
-      let data = 'bitpay://';
-      let stateParams = { secret: null, email: null, otp: null };
+      let data = 'bitpay://bitpay.com?secret=xxxxx&email=xxx@xx.com';
+      let stateParams = { secret: 'xxxxx', email: 'xxx@xx.com', otp: null };
       let nextView = {
         name: 'BitPayCardIntroPage',
         params: stateParams
       };
-      expect(incomingDataProvider.redir(data, 'ScanPage')).toBe(true);
-      expect(loggerSpy).toHaveBeenCalledWith('Handling BitPayCard URL');
+      expect(incomingDataProvider.redir(data, { activePage: 'ScanPage' })).toBe(
+        true
+      );
+      expect(loggerSpy).toHaveBeenCalledWith(
+        'Incoming-data (redirect): BitPay Card URL'
+      );
       expect(eventsSpy).toHaveBeenCalledWith('IncomingDataRedir', nextView);
     });
   });

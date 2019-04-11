@@ -1,17 +1,14 @@
 import { Component, ViewChild } from '@angular/core';
 import { TranslateService } from '@ngx-translate/core';
-import {
-  Events,
-  ModalController,
-  NavController,
-  NavParams
-} from 'ionic-angular';
+import { App, ModalController, NavController, NavParams } from 'ionic-angular';
 import * as _ from 'lodash';
 
 // pages
 import { FinishModalPage } from '../finish/finish';
+import { TabsPage } from '../tabs/tabs';
 
 // providers
+import { ActionSheetProvider } from '../../providers/action-sheet/action-sheet';
 import { BwcErrorProvider } from '../../providers/bwc-error/bwc-error';
 import { BwcProvider } from '../../providers/bwc/bwc';
 import { FeeProvider } from '../../providers/fee/fee';
@@ -27,7 +24,8 @@ import { WalletOptions, WalletProvider } from '../../providers/wallet/wallet';
   templateUrl: 'paper-wallet.html'
 })
 export class PaperWalletPage {
-  @ViewChild('slideButton') slideButton;
+  @ViewChild('slideButton')
+  slideButton;
 
   public wallet;
   public walletName: string;
@@ -52,6 +50,8 @@ export class PaperWalletPage {
   public isCordova: boolean;
 
   constructor(
+    private app: App,
+    private actionSheetProvider: ActionSheetProvider,
     private navCtrl: NavController,
     private navParams: NavParams,
     private bwcProvider: BwcProvider,
@@ -61,7 +61,6 @@ export class PaperWalletPage {
     private walletProvider: WalletProvider,
     private feeProvider: FeeProvider,
     private profileProvider: ProfileProvider,
-    private events: Events,
     private modalCtrl: ModalController,
     private translate: TranslateService,
     private platformProvider: PlatformProvider,
@@ -194,25 +193,27 @@ export class PaperWalletPage {
 
         this.wallets = _.filter(_.clone(this.wallets), w => available[w.coin]);
 
-        this.wallet = this.wallets[0];
+        if (this.wallets[0]) this.wallet = this.wallets[0];
 
         if (this.balances.length == 0) {
-          this.popupProvider.ionicAlert(
-            'Error',
-            this.translate.instant('No funds found')
-          );
-
-          this.navCtrl.pop();
+          this.popupProvider
+            .ionicAlert('Error', this.translate.instant('No funds found'))
+            .then(() => {
+              this.navCtrl.pop();
+            });
         }
       })
       .catch(err => {
         this.onGoingProcessProvider.clear();
         this.logger.error(err);
-        this.popupProvider.ionicAlert(
-          this.translate.instant('Error scanning funds:'),
-          this.bwcErrorProvider.msg(err)
-        );
-        this.navCtrl.pop();
+        this.popupProvider
+          .ionicAlert(
+            this.translate.instant('Error scanning funds:'),
+            this.bwcErrorProvider.msg(err)
+          )
+          .then(() => {
+            this.navCtrl.pop();
+          });
       });
   }
 
@@ -300,15 +301,17 @@ export class PaperWalletPage {
   public showWallets(): void {
     this.isOpenSelector = true;
     let id = this.wallet ? this.wallet.credentials.walletId : null;
-    this.events.publish(
-      'showWalletsSelectorEvent',
-      this.wallets,
-      id,
-      'Transfer to'
+    const params = {
+      wallets: this.wallets,
+      selectedWalletId: id,
+      title: 'Transfer to'
+    };
+    const walletSelector = this.actionSheetProvider.createWalletSelector(
+      params
     );
-    this.events.subscribe('selectWalletEvent', wallet => {
+    walletSelector.present();
+    walletSelector.onDidDismiss(wallet => {
       if (!_.isEmpty(wallet)) this.onWalletSelect(wallet);
-      this.events.unsubscribe('selectWalletEvent');
       this.isOpenSelector = false;
     });
   }
@@ -325,7 +328,7 @@ export class PaperWalletPage {
     );
     modal.present();
     modal.onDidDismiss(() => {
-      this.navCtrl.pop();
+      this.app.getRootNavs()[0].setRoot(TabsPage);
     });
   }
 }

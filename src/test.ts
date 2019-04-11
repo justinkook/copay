@@ -76,15 +76,35 @@ import { AppProvider } from './providers/app/app';
 import { PlatformProvider } from './providers/platform/platform';
 
 import { KeysPipe } from './pipes/keys';
+import { OrderByPipe } from './pipes/order-by';
 import { SatToFiatPipe } from './pipes/satToFiat';
 import { SatToUnitPipe } from './pipes/satToUnit';
 
-import { Logger } from './providers';
+import { DomProvider, Logger } from './providers';
 import { ProvidersModule } from './providers/providers.module';
 
+import { ImageLoader, IonicImageLoader } from 'ionic-image-loader';
 import * as appTemplate from './../app-template/bitpay/appConfig.json';
+import { ActionSheetComponent } from './components/action-sheet/action-sheet';
+import { InfoSheetComponent } from './components/info-sheet/info-sheet';
+import { DomProviderMock } from './providers/dom/dom.mock';
+import { LoggerMock } from './providers/logger/logger.mock';
 
 declare const require: any;
+
+export class NavParamsMock {
+  static returnParam = null;
+  public get(_): any {
+    if (NavParamsMock.returnParam) {
+      return NavParamsMock.returnParam;
+    }
+    return 'default';
+  }
+  public data: any = {};
+  static setParams(value) {
+    NavParamsMock.returnParam = value;
+  }
+}
 
 // First, initialize the Angular testing environment.
 getTestBed().initTestEnvironment(
@@ -100,6 +120,7 @@ const baseImports = [
   FormsModule,
   HttpClientTestingModule,
   IonicModule,
+  IonicImageLoader.forRoot(),
   ReactiveFormsModule,
   TranslateModule.forRoot({
     loader: { provide: TranslateLoader, useClass: TranslateFakeLoader }
@@ -115,6 +136,7 @@ const ionicProviders = [
   Keyboard,
   MenuController,
   NavController,
+  ImageLoader,
   {
     provide: Platform,
     useFactory: () => {
@@ -158,6 +180,7 @@ const ionicProviders = [
     provide: ViewController,
     useFactory: () => ViewControllerMock.instance()
   },
+  { provide: DomProvider, useClass: DomProviderMock },
   { provide: FCM, useClass: FCMMock },
   { provide: File, useClass: FileMock },
   { provide: QRScanner, useClass: QRScannerMock },
@@ -165,13 +188,16 @@ const ionicProviders = [
   {
     provide: AndroidFingerprintAuth,
     useClass: AndroidFingerprintAuthMock
+  },
+  {
+    provide: NavParams,
+    useClass: NavParamsMock
   }
 ];
 const baseProviders = [
   ...angularProviders,
   ...ionicProviders,
-  Logger,
-  { provide: 'console', useValue: { log: () => undefined } }
+  { provide: Logger, useClass: LoggerMock }
 ];
 
 export class TestUtils {
@@ -201,7 +227,15 @@ export class TestUtils {
   ): Promise<{ fixture; instance; testBed: typeof TestBed }> {
     const providers = (otherParams && otherParams.providers) || [];
     await TestBed.configureTestingModule({
-      declarations: [...components, KeysPipe, SatToFiatPipe, SatToUnitPipe],
+      declarations: [
+        ...components,
+        KeysPipe,
+        OrderByPipe,
+        SatToFiatPipe,
+        SatToUnitPipe,
+        InfoSheetComponent,
+        ActionSheetComponent
+      ],
       imports: [...baseImports, MomentModule, ProvidersModule],
       schemas: [NO_ERRORS_SCHEMA],
       providers: [
@@ -209,14 +243,20 @@ export class TestUtils {
         AppProvider,
         DecimalPipe,
         KeysPipe,
+        OrderByPipe,
         SatToFiatPipe,
         SatToUnitPipe,
         GestureController,
-        NavParams,
         PlatformProvider,
         ...providers
       ]
-    }).compileComponents();
+    })
+      .overrideModule(BrowserDynamicTestingModule, {
+        set: {
+          entryComponents: [InfoSheetComponent, ActionSheetComponent]
+        }
+      })
+      .compileComponents();
     const appProvider = TestBed.get(AppProvider);
     spyOn(appProvider, 'getAppInfo').and.returnValue(
       Promise.resolve(appTemplate)

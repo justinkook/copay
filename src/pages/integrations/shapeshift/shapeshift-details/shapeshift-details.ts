@@ -13,6 +13,8 @@ import { ShapeshiftProvider } from '../../../../providers/shapeshift/shapeshift'
 })
 export class ShapeshiftDetailsPage {
   public ssData;
+  public amount;
+  public amountUnit;
 
   private defaults;
 
@@ -26,10 +28,13 @@ export class ShapeshiftDetailsPage {
   ) {
     this.defaults = this.configProvider.getDefaults();
     this.ssData = this.navParams.data.ssData;
+    const amountData = this.ssData.amount.split(' ');
+    this.amount = amountData[0];
+    this.amountUnit = amountData[1];
   }
 
   ionViewDidLoad() {
-    this.logger.info('ionViewDidLoad ShapeshiftDetailsPage');
+    this.logger.info('Loaded: ShapeshiftDetailsPage');
   }
 
   public remove() {
@@ -51,9 +56,11 @@ export class ShapeshiftDetailsPage {
   public openTransaction(id: string) {
     var url;
     if (this.ssData.outgoingType.toUpperCase() == 'BTC') {
-      url = 'https://' + this.defaults.blockExplorerUrl.btc + '/tx/' + id;
+      url =
+        'https://' + this.defaults.blockExplorerUrl.btc + 'mainnet/tx/' + id;
     } else if (this.ssData.outgoingType.toUpperCase() == 'BCH') {
-      url = 'https://' + this.defaults.blockExplorerUrl.bch + '/tx/' + id;
+      url =
+        'https://' + this.defaults.blockExplorerUrl.bch + 'mainnet/tx/' + id;
     } else {
       return;
     }

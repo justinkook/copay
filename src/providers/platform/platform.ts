@@ -1,4 +1,5 @@
 import { Injectable } from '@angular/core';
+import { Device } from '@ionic-native/device';
 import { Platform } from 'ionic-angular';
 
 import { Logger } from '../../providers/logger/logger';
@@ -9,12 +10,16 @@ export class PlatformProvider {
   public isIOS: boolean;
   public isSafari: boolean;
   public isCordova: boolean;
-  public isNW: boolean;
+  public isElectron: boolean;
   public ua: string;
   public isMobile: boolean;
   public isDevel: boolean;
 
-  constructor(private platform: Platform, private logger: Logger) {
+  constructor(
+    private platform: Platform,
+    private logger: Logger,
+    private device: Device
+  ) {
     let ua = navigator ? navigator.userAgent : null;
 
     if (!ua) {
@@ -29,11 +34,11 @@ export class PlatformProvider {
     this.isIOS = this.platform.is('ios');
     this.ua = ua;
     this.isCordova = this.platform.is('cordova');
-    this.isNW = this.isNodeWebkit();
+    this.isElectron = this.isElectronPlatform();
     this.isMobile = this.platform.is('mobile');
-    this.isDevel = !this.isMobile && !this.isNW;
+    this.isDevel = !this.isMobile && !this.isElectron;
 
-    this.logger.info('PlatformProvider initialized.');
+    this.logger.debug('PlatformProvider initialized');
   }
 
   public getBrowserName(): string {
@@ -54,16 +59,58 @@ export class PlatformProvider {
     return 'unknown';
   }
 
-  public isNodeWebkit(): boolean {
-    let isNode =
-      typeof process !== 'undefined' && typeof require !== 'undefined';
-    if (isNode) {
-      try {
-        return typeof (window as any).require('nw.gui') !== 'undefined';
-      } catch (e) {
-        return false;
+  public isElectronPlatform(): boolean {
+    const userAgent =
+      navigator && navigator.userAgent
+        ? navigator.userAgent.toLowerCase()
+        : null;
+    if (userAgent && userAgent.indexOf('electron/') > -1) {
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  public getOS() {
+    let OS = {
+      OSName: '',
+      extension: ''
+    };
+
+    if (this.isElectron) {
+      if (navigator.appVersion.indexOf('Win') != -1) {
+        OS.OSName = 'Windows';
+        OS.extension = '.exe';
+      }
+      if (navigator.appVersion.indexOf('Mac') != -1) {
+        OS.OSName = 'MacOS';
+        OS.extension = '.dmg';
+      }
+      if (navigator.appVersion.indexOf('Linux') != -1) {
+        OS.OSName = 'Linux';
+        OS.extension = '-linux.zip';
       }
     }
-    return false;
+
+    return OS;
+  }
+
+  public getDeviceInfo(): string {
+    let info: string;
+
+    if (this.isElectron) {
+      info = ' (' + navigator.appVersion + ')';
+    } else {
+      info =
+        ' (' +
+        this.device.platform +
+        ' ' +
+        this.device.version +
+        ' - ' +
+        this.device.model +
+        ')';
+    }
+
+    return info;
   }
 }

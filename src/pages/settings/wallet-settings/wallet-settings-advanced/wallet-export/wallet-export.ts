@@ -1,7 +1,7 @@
 import { Component } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { TranslateService } from '@ngx-translate/core';
-import { App, NavParams, ToastController } from 'ionic-angular';
+import { NavController, NavParams, ToastController } from 'ionic-angular';
 import { Logger } from '../../../../../providers/logger/logger';
 
 // native
@@ -9,20 +9,23 @@ import { Clipboard } from '@ionic-native/clipboard';
 import { SocialSharing } from '@ionic-native/social-sharing';
 
 // providers
+import { ActionSheetProvider } from '../../../../../providers/action-sheet/action-sheet';
 import { AppProvider } from '../../../../../providers/app/app';
 import { BackupProvider } from '../../../../../providers/backup/backup';
+import { BwcErrorProvider } from '../../../../../providers/bwc-error/bwc-error';
+import { ConfigProvider } from '../../../../../providers/config/config';
 import { PersistenceProvider } from '../../../../../providers/persistence/persistence';
 import { PlatformProvider } from '../../../../../providers/platform/platform';
-import { PopupProvider } from '../../../../../providers/popup/popup';
 import { ProfileProvider } from '../../../../../providers/profile/profile';
 import { WalletProvider } from '../../../../../providers/wallet/wallet';
-import { TabsPage } from '../../../../tabs/tabs';
+import { WalletTabsChild } from '../../../../wallet-tabs/wallet-tabs-child';
+import { WalletTabsProvider } from '../../../../wallet-tabs/wallet-tabs.provider';
 
 @Component({
   selector: 'page-wallet-export',
   templateUrl: 'wallet-export.html'
 })
-export class WalletExportPage {
+export class WalletExportPage extends WalletTabsChild {
   public wallet;
   public segments: string = 'file/text';
   public password: string = '';
@@ -38,14 +41,14 @@ export class WalletExportPage {
   public isIOS: boolean;
   public exportWalletInfo;
   public supported: boolean;
+  public showQrCode: boolean;
 
   constructor(
-    private app: App,
-    private profileProvider: ProfileProvider,
+    public profileProvider: ProfileProvider,
+    public navCtrl: NavController,
     private walletProvider: WalletProvider,
     private navParams: NavParams,
     private formBuilder: FormBuilder,
-    private popupProvider: PopupProvider,
     private logger: Logger,
     private persistenceProvider: PersistenceProvider,
     private backupProvider: BackupProvider,
@@ -54,8 +57,13 @@ export class WalletExportPage {
     private appProvider: AppProvider,
     private clipboard: Clipboard,
     public toastCtrl: ToastController,
-    private translate: TranslateService
+    private translate: TranslateService,
+    private actionSheetProvider: ActionSheetProvider,
+    public walletTabsProvider: WalletTabsProvider,
+    private configProvider: ConfigProvider,
+    private bwcErrorProvider: BwcErrorProvider
   ) {
+    super(navCtrl, profileProvider, walletTabsProvider);
     this.exportWalletForm = this.formBuilder.group(
       {
         password: ['', Validators.required],
@@ -67,7 +75,7 @@ export class WalletExportPage {
   }
 
   ionViewDidLoad() {
-    this.logger.info('ionViewDidLoad WalletExportPage');
+    this.logger.info('Loaded: WalletExportPage');
   }
 
   ionViewWillEnter() {
@@ -81,8 +89,8 @@ export class WalletExportPage {
 
   private matchingPasswords(passwordKey: string, confirmPasswordKey: string) {
     return (group: FormGroup) => {
-      let password = group.controls[passwordKey];
-      let confirmPassword = group.controls[confirmPasswordKey];
+      const password = group.controls[passwordKey];
+      const confirmPassword = group.controls[confirmPasswordKey];
       if (password.value !== confirmPassword.value) {
         return {
           mismatchedPasswords: true
@@ -117,11 +125,14 @@ export class WalletExportPage {
       this.segments = 'qr-code';
     }
 
+    this.showQrCode = false;
+
     this.getPassword()
       .then((password: string) => {
         this.walletProvider
           .getEncodedWalletInfo(this.wallet, password)
           .then(code => {
+            this.showQrCode = true;
             if (!code) this.supported = false;
             else {
               this.supported = true;
@@ -131,11 +142,19 @@ export class WalletExportPage {
             this.segments = 'qr-code';
           })
           .catch((err: string) => {
-            this.popupProvider.ionicAlert(this.translate.instant('Error'), err);
+            this.supported = false;
+            if (err) this.showErrorInfoSheet(err);
           });
       })
-      .catch((err: string) => {
-        this.popupProvider.ionicAlert(this.translate.instant('Error'), err);
+      .catch(err => {
+        this.showQrCode = false;
+        this.segments = 'file/text';
+        if (
+          err &&
+          err.message != 'FINGERPRINT_CANCELLED' &&
+          err.message != 'PASSWORD_CANCELLED'
+        )
+          this.showErrorInfoSheet(this.bwcErrorProvider.msg(err));
       });
   }
 
@@ -164,7 +183,7 @@ export class WalletExportPage {
       .then((password: string) => {
         this.getAddressBook()
           .then(localAddressBook => {
-            let opts = {
+            const opts = {
               noSign: this.exportWalletForm.value.noSignEnabled,
               addressBook: localAddressBook,
               password
@@ -177,24 +196,23 @@ export class WalletExportPage {
                 this.navParams.data.walletId
               )
               .then(() => {
-                this.app.getRootNavs()[0].setRoot(TabsPage);
+                this.close();
               })
               .catch(() => {
-                this.popupProvider.ionicAlert(
-                  this.translate.instant('Error'),
-                  this.translate.instant('Failed to export')
-                );
+                this.showErrorInfoSheet();
               });
           })
           .catch(() => {
-            this.popupProvider.ionicAlert(
-              this.translate.instant('Error'),
-              this.translate.instant('Failed to export')
-            );
+            this.showErrorInfoSheet();
           });
       })
-      .catch((err: string) => {
-        this.popupProvider.ionicAlert(this.translate.instant('Error'), err);
+      .catch(err => {
+        if (
+          err &&
+          err.message != 'FINGERPRINT_CANCELLED' &&
+          err.message != 'PASSWORD_CANCELLED'
+        )
+          this.showErrorInfoSheet(this.bwcErrorProvider.msg(err));
       });
   }
 
@@ -202,13 +220,13 @@ export class WalletExportPage {
     return new Promise((resolve, reject) => {
       this.persistenceProvider
         .getAddressBook(this.wallet.credentials.network)
-        .then(addressBook => {
-          let localAddressBook = [];
+        .then(localAddressBook => {
+          if (!localAddressBook) return resolve();
           try {
-            localAddressBook = JSON.parse(addressBook);
+            localAddressBook = JSON.parse(localAddressBook);
           } catch (ex) {
             this.logger.warn(
-              'Wallet Export: JSON Parse addressBook is not necessary',
+              'Wallet Export: JSON Parse localAddressBook is not necessary',
               ex
             );
           }
@@ -227,35 +245,34 @@ export class WalletExportPage {
         .then((password: string) => {
           this.getAddressBook()
             .then(localAddressBook => {
-              let opts = {
+              const opts = {
                 noSign: this.exportWalletForm.value.noSignEnabled,
                 addressBook: localAddressBook,
                 password
               };
 
-              var ew = this.backupProvider.walletExport(
+              const ew = this.backupProvider.walletExport(
                 this.exportWalletForm.value.password,
                 opts,
                 this.navParams.data.walletId
               );
               if (!ew) {
-                this.popupProvider.ionicAlert(
-                  this.translate.instant('Error'),
-                  this.translate.instant('Failed to export')
-                );
+                this.showErrorInfoSheet();
               }
               return resolve(ew);
             })
             .catch(() => {
-              this.popupProvider.ionicAlert(
-                this.translate.instant('Error'),
-                this.translate.instant('Failed to export')
-              );
+              this.showErrorInfoSheet();
               return resolve();
             });
         })
-        .catch((err: string) => {
-          this.popupProvider.ionicAlert(this.translate.instant('Error'), err);
+        .catch(err => {
+          if (
+            err &&
+            err.message != 'FINGERPRINT_CANCELLED' &&
+            err.message != 'PASSWORD_CANCELLED'
+          )
+            this.showErrorInfoSheet(this.bwcErrorProvider.msg(err));
           return resolve();
         });
     });
@@ -263,7 +280,7 @@ export class WalletExportPage {
 
   public viewWalletBackup(): void {
     this.getBackup().then(backup => {
-      var ew = backup;
+      const ew = backup;
       if (!ew) return;
       this.backupWalletPlainText = ew;
     });
@@ -271,11 +288,11 @@ export class WalletExportPage {
 
   public copyWalletBackup(): void {
     this.getBackup().then(backup => {
-      var ew = backup;
+      const ew = backup;
       if (!ew) return;
       this.clipboard.copy(ew);
-      let copyMessage = this.translate.instant('Copied to clipboard');
-      let showSuccess = this.toastCtrl.create({
+      const copyMessage = this.translate.instant('Copied to clipboard');
+      const showSuccess = this.toastCtrl.create({
         message: copyMessage,
         duration: 1000
       });
@@ -284,39 +301,77 @@ export class WalletExportPage {
   }
 
   public sendWalletBackup(): void {
-    let preparingMessage = this.translate.instant('Preparing backup...');
-    let showSuccess = this.toastCtrl.create({
+    const preparingMessage = this.translate.instant('Preparing backup...');
+    const showSuccess = this.toastCtrl.create({
       message: preparingMessage,
       duration: 1000
     });
     showSuccess.present();
     let name =
       this.wallet.credentials.walletName || this.wallet.credentials.walletId;
-    if (this.wallet.alias) {
-      name = this.wallet.alias + ' [' + name + ']';
+
+    const config = this.configProvider.get();
+
+    const alias =
+      config.aliasFor && config.aliasFor[this.wallet.credentials.walletId];
+
+    if (alias) {
+      name = alias + ' [' + name + ']';
     }
     this.getBackup().then(backup => {
-      let ew = backup;
+      const ew = backup;
       if (!ew) return;
 
       if (this.exportWalletForm.value.noSignEnabled)
         name = name + '(No Private Key)';
 
-      let subject = this.appProvider.info.nameCase + ' Wallet Backup: ' + name;
-      let body =
+      const subject =
+        this.appProvider.info.nameCase + ' Wallet Backup: ' + name;
+      const body =
         'Here is the encrypted backup of the wallet ' +
         name +
         ': \n\n' +
         ew +
         '\n\n To import this backup, copy all text between {...}, including the symbols {}';
-      this.socialSharing.shareViaEmail(
-        body,
-        subject,
-        null, // TO: must be null or an array
-        null, // CC: must be null or an array
-        null, // BCC: must be null or an array
-        null // FILES: can be null, a string, or an array
-      );
+
+      // Check if sharing via email is supported
+      this.socialSharing
+        .canShareViaEmail()
+        .then(() => {
+          this.logger.info('sharing via email is possible');
+          this.socialSharing
+            .shareViaEmail(
+              body,
+              subject,
+              null, // TO: must be null or an array
+              null, // CC: must be null or an array
+              null, // BCC: must be null or an array
+              null // FILES: can be null, a string, or an array
+            )
+            .then(data => {
+              this.logger.info('Email created successfully: ', data);
+            })
+            .catch(err => {
+              this.logger.error('socialSharing Error: ', err);
+            });
+        })
+        .catch(() => {
+          this.logger.warn('sharing via email is not possible');
+          this.socialSharing.share(body, subject).catch(err => {
+            this.logger.error('socialSharing Error: ', err);
+          });
+        });
     });
+  }
+
+  private showErrorInfoSheet(err?: Error | string): void {
+    const title = this.translate.instant('Error');
+    const msg = err ? err : this.translate.instant('Failed to export');
+    this.logger.error(err);
+    const errorInfoSheet = this.actionSheetProvider.createInfoSheet(
+      'default-error',
+      { msg, title }
+    );
+    errorInfoSheet.present();
   }
 }

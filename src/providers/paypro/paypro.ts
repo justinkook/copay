@@ -1,5 +1,4 @@
 import { Injectable } from '@angular/core';
-import { TranslateService } from '@ngx-translate/core';
 import { Logger } from '../../providers/logger/logger';
 
 // providers
@@ -11,10 +10,9 @@ export class PayproProvider {
   constructor(
     private profileProvider: ProfileProvider,
     private logger: Logger,
-    private onGoingProcessProvider: OnGoingProcessProvider,
-    private translate: TranslateService
+    private onGoingProcessProvider: OnGoingProcessProvider
   ) {
-    this.logger.info('PayproProvider initialized');
+    this.logger.debug('PayproProvider initialized');
   }
 
   public getPayProDetails(
@@ -23,40 +21,59 @@ export class PayproProvider {
     disableLoader?: boolean
   ): Promise<any> {
     return new Promise((resolve, reject) => {
-      let wallet = this.profileProvider.getWallets({
-        onlyComplete: true,
-        coin
-      })[0];
+      const getPayPro = (network: string = 'livenet') => {
+        return new Promise((resolve, reject) => {
+          let wallet = this.profileProvider.getWallets({
+            onlyComplete: true,
+            coin,
+            network
+          })[0];
 
-      if (!wallet) return resolve();
+          if (!wallet) return resolve();
 
-      this.logger.debug('Fetch PayPro Request...', uri);
-
-      if (disableLoader) {
-        this.onGoingProcessProvider.set('');
-      } else {
-        this.onGoingProcessProvider.set('fetchingPayPro');
-      }
-
-      wallet.fetchPayPro(
-        {
-          payProUrl: uri
-        },
-        (err, paypro) => {
-          this.onGoingProcessProvider.clear();
-          if (err)
-            return reject(
-              this.translate.instant(
-                'Could Not Fetch Payment: Check if it is still valid'
-              )
-            );
-          else if (!paypro.verified) {
-            this.logger.warn('Failed to verify payment protocol signatures');
-            return reject(this.translate.instant('Payment Protocol Invalid'));
+          this.logger.debug(`Fetch PayPro Request (${network})...`, uri);
+          if (!disableLoader) {
+            this.onGoingProcessProvider.set('fetchingPayPro');
           }
-          return resolve(paypro);
-        }
-      );
+
+          wallet.fetchPayPro(
+            {
+              payProUrl: uri
+            },
+            (err, paypro) => {
+              if (!disableLoader) this.onGoingProcessProvider.clear();
+              if (err) reject(err);
+              else if (paypro && !paypro.verified)
+                reject('Payment Protocol Invalid');
+              else resolve(paypro);
+            }
+          );
+        });
+      };
+
+      getPayPro()
+        .then(paypro => {
+          resolve(paypro);
+        })
+        .catch(err => {
+          if (
+            err &&
+            err.message &&
+            err.message.match(
+              /The key on the response is not trusted for transactions/
+            )
+          ) {
+            getPayPro('testnet')
+              .then(paypro => {
+                resolve(paypro);
+              })
+              .catch(err => {
+                reject(err.message || err);
+              });
+          } else {
+            return reject(err.message || err);
+          }
+        });
     });
   }
 }

@@ -1,5 +1,5 @@
 import { Component } from '@angular/core';
-import { App, Events, NavController, NavParams } from 'ionic-angular';
+import { Events, NavController, NavParams } from 'ionic-angular';
 import { Logger } from '../../../../../providers/logger/logger';
 
 // providers
@@ -10,7 +10,6 @@ import { ProfileProvider } from '../../../../../providers/profile/profile';
 import { WalletExtendedPrivateKeyPage } from './wallet-extended-private-key/wallet-extended-private-key';
 
 import * as _ from 'lodash';
-import { TabsPage } from '../../../../tabs/tabs';
 
 @Component({
   selector: 'page-wallet-information',
@@ -39,7 +38,6 @@ export class WalletInformationPage {
   private BLACK_WALLET_COLOR = '#202020';
 
   constructor(
-    private app: App,
     private profileProvider: ProfileProvider,
     private configProvider: ConfigProvider,
     private navParams: NavParams,
@@ -49,7 +47,7 @@ export class WalletInformationPage {
   ) {}
 
   ionViewDidLoad() {
-    this.logger.info('ionViewDidLoad WalletInformationPage');
+    this.logger.info('Loaded:  WalletInformationPage');
   }
 
   ionViewWillEnter() {
@@ -59,7 +57,9 @@ export class WalletInformationPage {
     this.walletId = this.wallet.credentials.walletId;
     this.N = this.wallet.credentials.n;
     this.M = this.wallet.credentials.m;
-    this.copayers = this.wallet.cachedStatus.wallet.copayers;
+    if (this.wallet.cachedStatus) {
+      this.copayers = this.wallet.cachedStatus.wallet.copayers;
+    }
     this.copayerId = this.wallet.credentials.copayerId;
     this.balanceByAddress = this.wallet.balanceByAddress;
     this.account = this.wallet.credentials.account;
@@ -89,7 +89,7 @@ export class WalletInformationPage {
     opts.colorFor[this.wallet.credentials.walletId] = color;
     this.configProvider.set(opts);
     this.events.publish('wallet:updated', this.wallet.credentials.walletId);
-    this.app.getRootNavs()[0].setRoot(TabsPage);
+    this.navCtrl.popToRoot();
   }
 
   public openWalletExtendedPrivateKey(): void {

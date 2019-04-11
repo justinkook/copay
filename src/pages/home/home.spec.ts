@@ -4,8 +4,8 @@ import { Subject } from 'rxjs';
 
 import { TestUtils } from '../../test';
 
-import { AddressBookProvider } from '../../providers/address-book/address-book';
-import { ConfigProvider } from './../../providers/config/config';
+import { ClipboardProvider } from '../../providers/clipboard/clipboard';
+import { IncomingDataProvider } from '../../providers/incoming-data/incoming-data';
 import { HomePage } from './home';
 
 describe('HomePage', () => {
@@ -24,54 +24,76 @@ describe('HomePage', () => {
       fixture.detectChanges();
     })));
   afterEach(() => {
+    spyOn(instance, 'ngOnDestroy');
     fixture.destroy();
   });
 
   describe('Lifecycle Hooks', () => {
     describe('ionViewWillEnter', () => {
-      it('should get recentTransactions enabled', () => {
-        instance.ionViewWillEnter();
-        const configProvider = testBed.get(ConfigProvider);
-        const recentTransactionsEnabled = configProvider.get()
-          .recentTransactions.enabled;
-        expect(recentTransactionsEnabled).toEqual(true);
+      describe('ionViewDidEnter', () => {
+        it('should check clipboard', () => {
+          const spy = spyOn(instance, 'checkClipboard');
+          instance.ionViewDidEnter();
+          expect(spy).toHaveBeenCalled();
+        });
       });
-      it('should not break if address book list call fails', () => {
-        spyOn(testBed.get(AddressBookProvider), 'list').and.returnValue(
-          Promise.reject('bad error')
+
+      describe('ionViewDidLoad', () => {
+        beforeEach(() => {
+          instance.plt.resume = new Subject();
+          instance.plt.pause = new Subject();
+        });
+        it('should subscribe to incoming data menu event', () => {
+          const spy = spyOn(instance, 'subscribeIncomingDataMenuEvent');
+          instance.ionViewDidLoad();
+          expect(spy).toHaveBeenCalled();
+        });
+        it('should subscribe to bws events', () => {
+          const spy = spyOn(instance, 'subscribeBwsEvents');
+          instance.ionViewDidLoad();
+          expect(spy).toHaveBeenCalled();
+        });
+        it('should update wallets on platform resume', () => {
+          instance.ionViewDidLoad();
+          const setWalletsSpy = spyOn(instance, 'setWallets');
+          instance.plt.resume.next();
+          expect(setWalletsSpy).toHaveBeenCalled();
+        });
+      });
+
+      describe('ionViewWillLeave', () => {
+        it('should call resetValuesForAnimationCard', () => {
+          const spy = spyOn(instance, 'resetValuesForAnimationCard');
+          instance.ionViewWillLeave();
+          expect(spy).toHaveBeenCalled();
+        });
+      });
+    });
+  });
+
+  describe('Methods', () => {
+    describe('checkClipboard', () => {
+      let incomingDataProvider: IncomingDataProvider;
+      beforeEach(() => {
+        const clipboardProvider: ClipboardProvider = testBed.get(
+          ClipboardProvider
         );
-        instance.ionViewWillEnter();
+        incomingDataProvider = testBed.get(IncomingDataProvider);
+        spyOn(clipboardProvider, 'getData').and.returnValue(Promise.resolve());
       });
-    });
-
-    describe('ionViewDidEnter', () => {
-      it('should check for update if NW', () => {
-        instance.isNW = true;
-        const spy = spyOn(instance, 'checkUpdate');
-        instance.ionViewDidEnter();
-        expect(spy).toHaveBeenCalled();
+      it('should ignore BitcoinAddress', async () => {
+        spyOn(incomingDataProvider, 'parseData').and.returnValue({
+          type: 'BitcoinAddress'
+        });
+        await instance.checkClipboard();
+        expect(instance.validDataFromClipboard).toBeNull();
       });
-    });
-
-    describe('ionViewDidLoad', () => {
-      it('should update txps and set wallets on platform resume', () => {
-        instance.plt.resume = new Subject();
-        instance.ionViewDidLoad();
-        const getNotificationsSpy = spyOn(instance, 'getNotifications');
-        const updateTxpsSpy = spyOn(instance, 'updateTxps');
-        const setWalletsSpy = spyOn(instance, 'setWallets');
-        instance.plt.resume.next();
-        expect(getNotificationsSpy).toHaveBeenCalled();
-        expect(updateTxpsSpy).toHaveBeenCalled();
-        expect(setWalletsSpy).toHaveBeenCalled();
-      });
-    });
-
-    describe('ionViewWillLeave', () => {
-      it('should unsubscribe from bwsEvent event', () => {
-        const spy = spyOn(instance.events, 'unsubscribe');
-        instance.ionViewWillLeave();
-        expect(spy).toHaveBeenCalledWith('bwsEvent');
+      it('should ignore BitcoinCashAddress', async () => {
+        spyOn(incomingDataProvider, 'parseData').and.returnValue({
+          type: 'BitcoinCashAddress'
+        });
+        await instance.checkClipboard();
+        expect(instance.validDataFromClipboard).toBeNull();
       });
     });
   });

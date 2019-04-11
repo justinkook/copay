@@ -1,18 +1,20 @@
+import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { NO_ERRORS_SCHEMA } from '@angular/core';
 import { async, TestBed } from '@angular/core/testing';
-import { IonicModule } from 'ionic-angular';
-
-import { CopayApp } from './app.component';
-
-import { HttpClientTestingModule } from '@angular/common/http/testing';
 import {
   TranslateFakeLoader,
   TranslateLoader,
   TranslateModule
 } from '@ngx-translate/core';
+import { IonicModule } from 'ionic-angular';
+
+import { IonicImageLoader } from 'ionic-image-loader';
 import { EmailNotificationsProvider } from '../providers/email-notifications/email-notifications';
+import { Logger } from '../providers/logger/logger';
+import { LoggerMock } from '../providers/logger/logger.mock';
 import { ProfileProvider } from '../providers/profile/profile';
 import { ProvidersModule } from './../providers/providers.module';
+import { CopayApp } from './app.component';
 
 describe('CopayApp', () => {
   let fixture;
@@ -24,13 +26,14 @@ describe('CopayApp', () => {
       schemas: [NO_ERRORS_SCHEMA],
       imports: [
         IonicModule.forRoot(CopayApp),
+        IonicImageLoader.forRoot(),
         ProvidersModule,
         HttpClientTestingModule,
         TranslateModule.forRoot({
           loader: { provide: TranslateLoader, useClass: TranslateFakeLoader }
         })
       ],
-      providers: [{ provide: 'console', useValue: { log: () => undefined } }]
+      providers: [{ provide: Logger, useClass: LoggerMock }, IonicImageLoader]
     });
   }));
 
@@ -67,33 +70,26 @@ describe('CopayApp', () => {
         expect(profileProvider.createProfile).toHaveBeenCalled();
       });
     });
-    describe('handleDeepLinksNW', () => {
+    describe('handleDeepLinksElectron', () => {
       beforeEach(() => {
         (window as any).require = () => {
           return {
-            App: {
-              on: () => {},
-              argv: ['URL']
+            ipcRenderer: {
+              on: () => {
+                component.processUrl('url');
+              }
             }
           };
         };
-        (window as any)._urlHandled = false;
       });
       afterEach(() => {
         delete (window as any).require;
-        delete (window as any)._urlHandled;
       });
-      it('should not try to handle deeplinks if was already handled', () => {
-        jasmine.clock().install();
-        const spy = spyOn(component, 'handleOpenUrl');
-        component.handleDeepLinksNW();
-        jasmine.clock().tick(1001);
-
-        component.handleDeepLinksNW();
-        jasmine.clock().tick(1001);
-
+      it('should listen to open-url-event event and process url', () => {
+        const spy = spyOn(component, 'processUrl');
+        component.handleDeepLinksElectron();
         expect(spy).toHaveBeenCalledTimes(1);
-        jasmine.clock().uninstall();
+        expect(spy).toHaveBeenCalledWith('url');
       });
     });
   });

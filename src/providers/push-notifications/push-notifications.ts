@@ -2,6 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { FCM } from '@ionic-native/fcm';
 import { Events } from 'ionic-angular';
+import { Observable } from 'rxjs';
 import { Logger } from '../../providers/logger/logger';
 
 // providers
@@ -31,7 +32,7 @@ export class PushNotificationsProvider {
     private FCMPlugin: FCM,
     private events: Events
   ) {
-    this.logger.info('PushNotificationsProvider initialized.');
+    this.logger.debug('PushNotificationsProvider initialized');
     this.isIOS = this.platformProvider.isIOS;
     this.isAndroid = this.platformProvider.isAndroid;
     this.usePushNotifications = this.platformProvider.isCordova;
@@ -46,6 +47,12 @@ export class PushNotificationsProvider {
 
       // Keep in mind the function will return null if the token has not been established yet.
       this.FCMPlugin.getToken().then(token => {
+        if (!token) {
+          setTimeout(() => {
+            this.init();
+          }, 5000);
+          return;
+        }
         this.logger.debug('Get token for push notifications: ' + token);
         this._token = token;
         this.enable();
@@ -63,19 +70,16 @@ export class PushNotificationsProvider {
         this.enable();
       });
 
-      this.FCMPlugin.onNotification().subscribe(data => {
+      this.FCMPlugin.onNotification().subscribe(async data => {
         if (!this._token) return;
         this.logger.debug(
           'New Event Push onNotification: ' + JSON.stringify(data)
         );
         if (data.wasTapped) {
           // Notification was received on device tray and tapped by the user.
-          var walletIdHashed = data.walletId;
+          const walletIdHashed = data.walletId;
           if (!walletIdHashed) return;
           this._openWallet(walletIdHashed);
-        } else {
-          // TODO
-          // Notification was received in foreground. Maybe the user needs to be notified.
         }
       });
     }
@@ -99,7 +103,7 @@ export class PushNotificationsProvider {
       return;
     }
 
-    var wallets = this.profileProvider.getWallets();
+    const wallets = this.profileProvider.getWallets();
     _.forEach(wallets, walletClient => {
       this._subscribe(walletClient);
     });
@@ -113,7 +117,7 @@ export class PushNotificationsProvider {
       return;
     }
 
-    var wallets = this.profileProvider.getWallets();
+    const wallets = this.profileProvider.getWallets();
     _.forEach(wallets, walletClient => {
       this._unsubscribe(walletClient);
     });
@@ -126,7 +130,7 @@ export class PushNotificationsProvider {
   }
 
   private _subscribe(walletClient): void {
-    let opts = {
+    const opts = {
       token: this._token,
       platform: this.isIOS ? 'ios' : this.isAndroid ? 'android' : null,
       packageName: this.appProvider.info.packageNameId
@@ -135,7 +139,7 @@ export class PushNotificationsProvider {
       if (err)
         this.logger.error(
           walletClient.name + ': Subscription Push Notifications error. ',
-          JSON.stringify(err)
+          err.message
         );
       else
         this.logger.debug(
@@ -149,7 +153,7 @@ export class PushNotificationsProvider {
       if (err)
         this.logger.error(
           walletClient.name + ': Unsubscription Push Notifications error. ',
-          JSON.stringify(err)
+          err.message
         );
       else
         this.logger.debug(
@@ -158,26 +162,26 @@ export class PushNotificationsProvider {
     });
   }
 
-  private _openWallet(walletIdHashed): void {
-    let walletIdHash;
-    let sjcl = this.bwcProvider.getSJCL();
-    let nextView: { name?: string; params?: { walletId: any } } = {};
+  private async _openWallet(walletIdHashed) {
+    const wallet = this.findWallet(walletIdHashed);
 
-    let wallets = this.profileProvider.getWallets();
-    let wallet = _.find(wallets, w => {
+    if (!wallet) return;
+
+    await Observable.timer(1000).toPromise(); // wait for subscription to OpenWallet event
+
+    this.events.publish('OpenWallet', wallet);
+  }
+
+  private findWallet(walletIdHashed) {
+    let walletIdHash;
+    const sjcl = this.bwcProvider.getSJCL();
+
+    const wallets = this.profileProvider.getWallets();
+    const wallet = _.find(wallets, w => {
       walletIdHash = sjcl.hash.sha256.hash(w.credentials.walletId);
       return _.isEqual(walletIdHashed, sjcl.codec.hex.fromBits(walletIdHash));
     });
 
-    if (!wallet) return;
-
-    if (!wallet.isComplete()) {
-      nextView.name = 'CopayersPage';
-      return;
-    } else {
-      nextView.name = 'WalletDetailsPage';
-      nextView.params = { walletId: wallet.credentials.walletId };
-    }
-    this.events.publish('OpenWalletEvent', nextView);
+    return wallet;
   }
 }

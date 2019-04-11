@@ -34,6 +34,7 @@ export class TxDetailsPage {
   public copayerId: string;
   public txsUnsubscribedForNotifications: boolean;
   public contactName: string;
+  public txMemo: string;
 
   constructor(
     private addressBookProvider: AddressBookProvider,
@@ -50,7 +51,9 @@ export class TxDetailsPage {
     private txFormatProvider: TxFormatProvider,
     private walletProvider: WalletProvider,
     private translate: TranslateService
-  ) {
+  ) {}
+
+  ionViewDidLoad() {
     this.config = this.configProvider.get();
 
     this.txId = this.navParams.data.txid;
@@ -78,16 +81,30 @@ export class TxDetailsPage {
     this.updateTx();
   }
 
-  ionViewWillEnter() {
-    this.events.subscribe('bwsEvent', (_, type: string, n) => {
-      if (type == 'NewBlock' && n && n.data && n.data.network == 'livenet')
-        this.updateTxDebounced({ hideLoading: true });
-    });
+  ionViewWillLoad() {
+    this.events.subscribe('bwsEvent', this.bwsEventHandler);
   }
 
-  ionViewWillLeave() {
-    this.events.unsubscribe('bwsEvent');
+  ionViewWillUnload() {
+    this.events.unsubscribe('bwsEvent', this.bwsEventHandler);
   }
+
+  private bwsEventHandler: any = (_, type: string, n) => {
+    let match = false;
+    if (
+      type == 'NewBlock' &&
+      n &&
+      n.data &&
+      this.wallet &&
+      n.data &&
+      n.data.network == this.wallet.network &&
+      n.data.coin == this.wallet.coin
+    ) {
+      match = true;
+      this.updateTxDebounced({ hideLoading: true });
+    }
+    this.logger.debug('bwsEvent handler @tx-details. Matched: ' + match);
+  };
 
   public readMore(): void {
     let url =
@@ -186,6 +203,13 @@ export class TxDetailsPage {
             2
           ) + '%';
 
+        if (!this.btx.note) {
+          this.txMemo = this.btx.message;
+        }
+        if (this.btx.note && this.btx.note.body) {
+          this.txMemo = this.btx.note.body;
+        }
+
         if (this.btx.action != 'invalid') {
           if (this.btx.action == 'sent')
             this.title = this.translate.instant('Sent Funds');
@@ -220,47 +244,32 @@ export class TxDetailsPage {
       });
   }
 
-  public showCommentPopup(): void {
-    let opts: { defaultText?: any } = {};
-    if (this.btx.message) {
-      opts.defaultText = this.btx.message;
-    }
-    if (this.btx.note && this.btx.note.body)
-      opts.defaultText = this.btx.note.body;
+  public async saveMemoInfo(): Promise<void> {
+    this.logger.info('Saving memo: ', this.txMemo);
+    this.btx.note = {
+      body: this.txMemo
+    };
+    let args = {
+      txid: this.btx.txid,
+      body: this.txMemo
+    };
 
-    this.popupProvider
-      .ionicPrompt(this.wallet.name, this.translate.instant('Memo'), opts)
-      .then((text: string) => {
-        if (text == null) return;
-
-        this.btx.note = {
-          body: text
-        };
-        this.logger.debug('Saving memo');
-
-        let args = {
-          txid: this.btx.txid,
-          body: text
-        };
-
-        this.walletProvider
-          .editTxNote(this.wallet, args)
-          .then(() => {
-            this.logger.info('Tx Note edited');
-          })
-          .catch(err => {
-            this.logger.debug('Could not save tx comment ' + err);
-          });
+    await this.walletProvider
+      .editTxNote(this.wallet, args)
+      .catch((err: any) => {
+        this.logger.error('Could not save tx comment ' + err);
       });
+
+    this.logger.info('Tx Note edited');
   }
 
   public viewOnBlockchain(): void {
     let btx = this.btx;
     let url =
       'https://' +
-      (this.getShortNetworkName() == 'test' ? 'test-' : '') +
       this.blockexplorerUrl +
-      '/tx/' +
+      (this.getShortNetworkName() == 'test' ? 'testnet/' : 'mainnet/') +
+      'tx/' +
       btx.txid;
     let optIn = true;
     let title = null;
@@ -305,5 +314,23 @@ export class TxDetailsPage {
       .catch(err => {
         this.logger.warn(err);
       });
+  }
+
+  public openExternalLink(url: string): void {
+    const optIn = true;
+    const title = null;
+    const message = this.translate.instant(
+      'Help and support information is available at the website.'
+    );
+    const okText = this.translate.instant('Open');
+    const cancelText = this.translate.instant('Go Back');
+    this.externalLinkProvider.open(
+      url,
+      optIn,
+      title,
+      message,
+      okText,
+      cancelText
+    );
   }
 }

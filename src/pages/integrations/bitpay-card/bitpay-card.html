@@ -9,7 +9,7 @@
   <div class="balance-card">
     <div class="balance-header">
       <div (tap)="update()" class="balance-str" *ngIf="balance">
-        {{balance | currency:currencySymbol:2 }}
+        {{balance | number:'1.2-2' }} {{currency}}
       </div>
       <button ion-button color="primary" (click)="topUp()" *ngIf="balance" no-low-fee>
         <span translate>Add funds</span> &rarr;
@@ -35,9 +35,9 @@
         <span translate>Activity</span>
       </ion-label>
       <ion-select okText="{{okText}}" cancelText="{{cancelText}}" padding-horizontal [(ngModel)]="dateRange.value" (ionChange)="update()">
-        <ion-option value="last30Days" selected>Recent</ion-option>
-        <ion-option value="lastMonth">Last Month</ion-option>
-        <ion-option value="all">All</ion-option>
+        <ion-option value="last30Days" selected translate>Recent</ion-option>
+        <ion-option value="lastMonth" translate>Last Month</ion-option>
+        <ion-option value="all" translate>All</ion-option>
       </ion-select>
     </ion-item-divider>
 
@@ -49,7 +49,7 @@
     </ion-item-divider>
     <ion-list>
       <div *ngFor="let card of bitpayCardTransactionHistoryConfirming">
-        <page-card-item [card]="card" [currencySymbol]="currencySymbol"></page-card-item>
+        <page-card-item [card]="card" [currency]="currency"></page-card-item>
       </div>
     </ion-list>
 
@@ -61,7 +61,7 @@
     </ion-item-divider>
     <ion-list>
       <div *ngFor="let card of bitpayCardTransactionHistoryPreAuth">
-        <page-card-item [card]="card" [currencySymbol]="currencySymbol"></page-card-item>
+        <page-card-item [card]="card" [currency]="currency"></page-card-item>
       </div>
     </ion-list>
 
@@ -70,7 +70,7 @@
     </ion-item-divider>
     <ion-list>
       <div *ngFor="let card of bitpayCardTransactionHistoryCompleted">
-        <page-card-item [card]="card" [currencySymbol]="currencySymbol"></page-card-item>
+        <page-card-item [card]="card" [currency]="currency"></page-card-item>
       </div>
     </ion-list>
   </ion-list>

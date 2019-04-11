@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, ViewChild } from '@angular/core';
 import { TranslateService } from '@ngx-translate/core';
 import {
   Events,
@@ -6,14 +6,16 @@ import {
   NavParams,
   ViewController
 } from 'ionic-angular';
+import { DecimalPipe } from '../../../node_modules/@angular/common';
 import { Logger } from '../../providers/logger/logger';
 
 // providers
-import { AddressBookProvider } from '../../providers/address-book/address-book';
+import { ActionSheetProvider } from '../../providers/action-sheet/action-sheet';
 import { BwcErrorProvider } from '../../providers/bwc-error/bwc-error';
 import { ConfigProvider } from '../../providers/config/config';
 import { FeeProvider } from '../../providers/fee/fee';
 import { OnGoingProcessProvider } from '../../providers/on-going-process/on-going-process';
+import { PayproProvider } from '../../providers/paypro/paypro';
 import { PlatformProvider } from '../../providers/platform/platform';
 import { PopupProvider } from '../../providers/popup/popup';
 import { ProfileProvider } from '../../providers/profile/profile';
@@ -30,6 +32,9 @@ import * as _ from 'lodash';
   templateUrl: 'txp-details.html'
 })
 export class TxpDetailsPage {
+  @ViewChild('slideButton')
+  slideButton;
+
   public wallet;
   public tx;
   public copayers;
@@ -44,13 +49,12 @@ export class TxpDetailsPage {
   public expires: string;
   public currentSpendUnconfirmed: boolean;
   public loading: boolean;
-  public contactName: string;
   public showMultiplesOutputs: boolean;
+  public amount: string;
+  public isCordova: boolean;
+  public hideSlideButton: boolean;
 
-  private isGlidera: boolean;
-  private GLIDERA_LOCK_TIME: number;
   private countDown;
-  private isCordova: boolean;
 
   constructor(
     private navParams: NavParams,
@@ -59,7 +63,6 @@ export class TxpDetailsPage {
     private events: Events,
     private logger: Logger,
     private popupProvider: PopupProvider,
-    private bwcError: BwcErrorProvider,
     private walletProvider: WalletProvider,
     private onGoingProcessProvider: OnGoingProcessProvider,
     private viewCtrl: ViewController,
@@ -68,7 +71,10 @@ export class TxpDetailsPage {
     private txFormatProvider: TxFormatProvider,
     private translate: TranslateService,
     private modalCtrl: ModalController,
-    private addressBookProvider: AddressBookProvider
+    private decimalPipe: DecimalPipe,
+    private payproProvider: PayproProvider,
+    private actionSheetProvider: ActionSheetProvider,
+    private bwcErrorProvider: BwcErrorProvider
   ) {
     this.showMultiplesOutputs = false;
     let config = this.configProvider.get().wallet;
@@ -82,17 +88,15 @@ export class TxpDetailsPage {
       this.walletProvider.useLegacyAddress()
     );
     if (!this.tx.toAddress) this.tx.toAddress = this.tx.outputs[0].toAddress;
-    this.isGlidera = this.navParams.data.isGlidera;
-    this.GLIDERA_LOCK_TIME = 6 * 60 * 60;
     this.currentSpendUnconfirmed = config.spendUnconfirmed;
     this.loading = false;
     this.isCordova = this.platformProvider.isCordova;
-    this.copayers = this.wallet.status.wallet.copayers;
+    this.copayers = this.wallet.cachedStatus.wallet.copayers;
     this.copayerId = this.wallet.credentials.copayerId;
     this.isShared = this.wallet.credentials.n > 1;
     this.canSign = this.wallet.canSign() || this.wallet.isPrivKeyExternal();
     this.color = this.wallet.color;
-    this.contact();
+    this.hideSlideButton = false;
 
     // To test multiple outputs...
 
@@ -114,44 +118,40 @@ export class TxpDetailsPage {
     // this.tx.hasMultiplesOutputs = true;
   }
 
-  ionViewWillEnter() {
+  ionViewDidLoad() {
     this.displayFeeValues();
     this.initActionList();
     this.checkPaypro();
     this.applyButtonText();
 
-    // ToDo: use tx.customData instead of tx.message
-    if (this.tx.message === 'Glidera transaction' && this.isGlidera) {
-      this.tx.isGlidera = true;
-      if (this.tx.canBeRemoved) {
-        this.tx.canBeRemoved =
-          Date.now() / 1000 - (this.tx.ts || this.tx.createdOn) >
-          this.GLIDERA_LOCK_TIME;
-      }
-    }
+    this.amount = this.decimalPipe.transform(this.tx.amount / 1e8, '1.2-6');
+  }
 
-    this.events.subscribe('bwsEvent', (walletId: string, type: string) => {
-      _.each(
-        [
-          'TxProposalRejectedBy',
-          'TxProposalAcceptedBy',
-          'transactionProposalRemoved',
-          'TxProposalRemoved',
-          'NewOutgoingTx',
-          'UpdateTx'
-        ],
-        (eventName: string) => {
-          if (walletId == this.wallet.id && type == eventName) {
-            this.updateTxInfo(eventName);
-          }
+  ionViewWillLoad() {
+    this.events.subscribe('bwsEvent', this.bwsEventHandler);
+  }
+
+  ionViewWillUnload() {
+    this.events.unsubscribe('bwsEvent', this.bwsEventHandler);
+  }
+
+  private bwsEventHandler: any = (walletId: string, type: string) => {
+    _.each(
+      [
+        'TxProposalRejectedBy',
+        'TxProposalAcceptedBy',
+        'transactionProposalRemoved',
+        'TxProposalRemoved',
+        'NewOutgoingTx',
+        'UpdateTx'
+      ],
+      (eventName: string) => {
+        if (walletId == this.wallet.id && type == eventName) {
+          this.updateTxInfo(eventName);
         }
-      );
-    });
-  }
-
-  ionViewWillLeave() {
-    this.events.unsubscribe('bwsEvent');
-  }
+      }
+    );
+  };
 
   private displayFeeValues(): void {
     this.tx.feeFiatStr = this.txFormatProvider.formatAlternativeStr(
@@ -217,30 +217,28 @@ export class TxpDetailsPage {
     }, 10);
   }
 
-  private checkPaypro() {
+  private checkPaypro(): void {
     if (this.tx.payProUrl) {
-      this.wallet.fetchPayPro(
-        {
-          payProUrl: this.tx.payProUrl
-        },
-        (err, paypro) => {
-          if (err) {
-            this.logger.error(err);
-            this.paymentExpired = true;
-            this.popupProvider.ionicAlert(
-              null,
-              this.translate.instant('Could not fetch the invoice')
-            );
-            return;
-          }
-          this.tx.paypro = paypro;
+      const disableLoader = true;
+      this.payproProvider
+        .getPayProDetails(this.tx.payProUrl, this.tx.coin, disableLoader)
+        .then(payProDetails => {
+          this.tx.paypro = payProDetails;
           this.paymentTimeControl(this.tx.paypro.expires);
-        }
-      );
+        })
+        .catch(err => {
+          this.logger.warn('Error in Payment Protocol: ', err);
+          this.paymentExpired = true;
+          this.showErrorInfoSheet(
+            err,
+            this.translate.instant('Error fetching this invoice')
+          );
+        });
     }
   }
 
-  private paymentTimeControl(expirationTime) {
+  private paymentTimeControl(expires): void {
+    const expirationTime = Math.floor(new Date(expires).getTime() / 1000);
     let setExpirationTime = (): void => {
       let now = Math.floor(Date.now() / 1000);
       if (now > expirationTime) {
@@ -262,16 +260,34 @@ export class TxpDetailsPage {
     }, 1000);
   }
 
-  private setError(err, prefix: string): void {
+  private showErrorInfoSheet(error: Error | string, title?: string): void {
     this.loading = false;
-    this.popupProvider.ionicAlert(
-      this.translate.instant('Error'),
-      this.bwcError.msg(err, prefix)
+    if (!error) return;
+    this.logger.warn('ERROR:', error);
+    if (this.isCordova) this.slideButton.isConfirmed(false);
+    if (
+      (error as Error).message === 'FINGERPRINT_CANCELLED' ||
+      (error as Error).message === 'PASSWORD_CANCELLED'
+    ) {
+      this.hideSlideButton = false;
+      return;
+    }
+
+    let infoSheetTitle = title ? title : this.translate.instant('Error');
+
+    const errorInfoSheet = this.actionSheetProvider.createInfoSheet(
+      'default-error',
+      { msg: this.bwcErrorProvider.msg(error), title: infoSheetTitle }
     );
+    errorInfoSheet.present();
+    errorInfoSheet.onDidDismiss(() => {
+      this.hideSlideButton = false;
+    });
   }
 
   public sign(): void {
     this.loading = true;
+    this.hideSlideButton = true;
     this.walletProvider
       .publishAndSign(this.wallet, this.tx)
       .then(() => {
@@ -280,7 +296,7 @@ export class TxpDetailsPage {
       })
       .catch(err => {
         this.onGoingProcessProvider.clear();
-        this.setError(err, 'Could not send payment');
+        this.showErrorInfoSheet(err, 'Could not send payment');
       });
   }
 
@@ -303,7 +319,7 @@ export class TxpDetailsPage {
           })
           .catch(err => {
             this.onGoingProcessProvider.clear();
-            this.setError(
+            this.showErrorInfoSheet(
               err,
               this.translate.instant('Could not reject payment')
             );
@@ -330,7 +346,7 @@ export class TxpDetailsPage {
           .catch(err => {
             this.onGoingProcessProvider.clear();
             if (err && !(err.message && err.message.match(/Unexpected/))) {
-              this.setError(
+              this.showErrorInfoSheet(
                 err,
                 this.translate.instant('Could not delete payment proposal')
               );
@@ -350,7 +366,7 @@ export class TxpDetailsPage {
       })
       .catch(err => {
         this.onGoingProcessProvider.clear();
-        this.setError(err, 'Could not broadcast payment');
+        this.showErrorInfoSheet(err, 'Could not broadcast payment');
 
         this.logger.error(
           'Could not broadcast: ',
@@ -414,6 +430,7 @@ export class TxpDetailsPage {
 
   public close(): void {
     this.loading = false;
+    this.hideSlideButton = false;
     this.viewCtrl.dismiss();
   }
 
@@ -427,20 +444,5 @@ export class TxpDetailsPage {
     modal.onDidDismiss(() => {
       this.close();
     });
-  }
-
-  private contact(): void {
-    let addr = this.tx.toAddress;
-    this.addressBookProvider
-      .get(addr)
-      .then(ab => {
-        if (ab) {
-          let name = _.isObject(ab) ? ab.name : ab;
-          this.contactName = name;
-        }
-      })
-      .catch(err => {
-        this.logger.warn(err);
-      });
   }
 }

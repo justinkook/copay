@@ -4,13 +4,13 @@ import { Logger } from '../../providers/logger/logger';
 
 import * as _ from 'lodash';
 
-const exchangeList: object[] = [{ name: 'coinbase' }, { name: 'glidera' }];
+const exchangeList: object[] = [{ name: 'coinbase' }, { name: 'shapeshift' }];
 
 @Injectable()
 export class HomeIntegrationsProvider {
   public services;
   constructor(public http: HttpClient, private logger: Logger) {
-    this.logger.info('HomeIntegrationsProviders initialized.');
+    this.logger.debug('HomeIntegrationsProviders initialized');
     this.services = [];
   }
 
@@ -39,6 +39,13 @@ export class HomeIntegrationsProvider {
       if (x.name == serviceName) x.show = !!show;
       return x;
     });
+  }
+
+  public shouldShowInHome(serviceName: string) {
+    const service = this.services.find(i => i.name === serviceName);
+    if (service && service.name === 'debitcard')
+      return service && service.show && !service.linked;
+    else return service && service.show;
   }
 
   public get() {

@@ -1,13 +1,14 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 
-import { Logger } from '../../providers/logger/logger';
+import { File } from '@ionic-native/file';
 
 // providers
 import { ConfigProvider } from '../../providers/config/config';
 import { LanguageProvider } from '../../providers/language/language';
+import { Logger } from '../../providers/logger/logger';
 import { PersistenceProvider } from '../../providers/persistence/persistence';
-import { PlatformProvider } from '../../providers/platform/platform';
+import { PlatformProvider } from '../platform/platform';
 
 /* TODO: implement interface properly
 interface App {
@@ -46,6 +47,7 @@ interface App {
 export class AppProvider {
   public info: any = {};
   public servicesInfo;
+  public isLockModalOpen: boolean;
   private jsonPathApp: string = 'assets/appConfig.json';
   private jsonPathServices: string = 'assets/externalServices.json';
 
@@ -55,14 +57,14 @@ export class AppProvider {
     private language: LanguageProvider,
     public config: ConfigProvider,
     private persistence: PersistenceProvider,
+    private file: File,
     private platformProvider: PlatformProvider
   ) {
-    this.logger.info('AppProvider initialized.');
+    this.logger.debug('AppProvider initialized');
   }
 
   public async load() {
     await Promise.all([this.getInfo(), this.loadProviders()]);
-    this.setCustomMenuBarNW();
   }
 
   private async getInfo() {
@@ -70,6 +72,10 @@ export class AppProvider {
       this.getServicesInfo(),
       this.getAppInfo()
     ]);
+    if (this.platformProvider.isCordova) {
+      this.info = JSON.parse(this.info);
+      this.servicesInfo = JSON.parse(this.servicesInfo);
+    }
   }
 
   private async loadProviders() {
@@ -79,27 +85,24 @@ export class AppProvider {
   }
 
   private getAppInfo() {
-    return this.http.get(this.jsonPathApp).toPromise();
+    if (this.platformProvider.isCordova) {
+      return this.file.readAsText(
+        this.file.applicationDirectory + 'www/',
+        this.jsonPathApp
+      );
+    } else {
+      return this.http.get(this.jsonPathApp).toPromise();
+    }
   }
 
   private getServicesInfo() {
-    return this.http.get(this.jsonPathServices).toPromise();
-  }
-
-  public setCustomMenuBarNW() {
-    if (!this.platformProvider.isNW) {
-      return;
+    if (this.platformProvider.isCordova) {
+      return this.file.readAsText(
+        this.file.applicationDirectory + 'www/',
+        this.jsonPathServices
+      );
+    } else {
+      return this.http.get(this.jsonPathServices).toPromise();
     }
-    let gui = (window as any).require('nw.gui');
-    let win = gui.Window.get();
-    let nativeMenuBar = new gui.Menu({
-      type: 'menubar'
-    });
-    try {
-      nativeMenuBar.createMacBuiltin(this.info.nameCase);
-    } catch (e) {
-      this.logger.debug('This is not OSX');
-    }
-    win.menu = nativeMenuBar;
   }
 }

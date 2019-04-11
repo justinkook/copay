@@ -12,6 +12,9 @@ describe('Persistence Provider', () => {
   const loggerMock = {
     info: info => {
       logs.push(info);
+    },
+    debug: info => {
+      logs.push(info);
     }
   } as Logger;
   const platformMock = {} as PlatformProvider;
@@ -79,7 +82,7 @@ describe('Persistence Provider', () => {
       expect(persistenceProvider.storage.constructor.name).toBe('LocalStorage');
     });
     it('should correctly perform a profile roundtrip', done => {
-      let p = { name: 'My profile' };
+      const p = { name: 'My profile' };
       persistenceProvider
         .storeNewProfile(p)
         .catch(err => expect(err).toBeNull)
@@ -94,7 +97,7 @@ describe('Persistence Provider', () => {
     });
 
     it('should fail to create a profile when one already exists', () => {
-      let p = { name: 'My profile' };
+      const p = { name: 'My profile' };
       persistenceProvider
         .storeNewProfile(p)
         .then(() => {
@@ -106,7 +109,7 @@ describe('Persistence Provider', () => {
     });
 
     it('should be able to delete a profile', done => {
-      let p = { name: 'My profile' };
+      const p = { name: 'My profile' };
       persistenceProvider
         .storeNewProfile(p)
         .catch(err => expect(err).toBeNull)
@@ -128,7 +131,7 @@ describe('Persistence Provider', () => {
     });
 
     it('should store profile', done => {
-      let p = { name: 'My profile' };
+      const p = { name: 'My profile' };
       persistenceProvider
         .storeProfile(p)
         .catch(err => expect(err).toBeNull)

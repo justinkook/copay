@@ -1,5 +1,4 @@
 // http://ionicframework.com/docs/theming/
-
 // App Global Sass
 // --------------------------------------------------
 // Put style rules here that you want to apply globally. These
@@ -13,6 +12,9 @@
 // To declare rules for a specific mode, create a child rule
 // for the .md, .ios, or .wp mode classes. The mode class is
 // automatically applied to the <body> element in the app.
+html {
+  height: 100vh;
+}
 
 body {
   line-height: 22px;
@@ -20,26 +22,35 @@ body {
 
 // Alert position
 // --------------------------------------------------
-
 ion-alert.alert-top {
   align-items: center;
 }
 
 // Text wrap
 // --------------------------------------------------
-
 ion-label {
   white-space: normal;
 }
 
+.two-lines {
+  white-space: normal;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  line-clamp: 2;
+  -webkit-line-clamp: 2;
+  box-orient: vertical;
+  -webkit-box-orient: vertical;
+}
+
 // Buttons
 // --------------------------------------------------
-
 .bottom-absolute {
   width: 100%;
   position: absolute;
   bottom: 0px;
   padding: 15px 15px calc(5vw + 1vh) 15px;
+
   .button {
     margin: 1.2rem auto;
     max-width: 360px;
@@ -50,7 +61,7 @@ ion-label {
   margin: 0px;
   height: 70px;
   width: 100%;
-  font-size: 1.6rem;
+  font-size: 18px;
 }
 
 // Hide border when refresh
@@ -61,7 +72,7 @@ ion-label {
 .scroll-content {
   .wrapper {
     background-color: $background-color;
-    min-height: 60%;
+    min-height: 100%;
   }
 }
 
@@ -77,12 +88,14 @@ ion-spinner * {
 .item-title {
   //  font-size: 1.4rem;
 }
+
 .item-subtitle {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   font-weight: 300;
   font-size: 12.5px;
+
   ion-icon {
     vertical-align: text-bottom;
     margin-left: 5px;
@@ -98,6 +111,36 @@ ion-spinner * {
 // Prevent the names of the tabs from disappearing
 .tabbar .tab-button .tab-button-text {
   display: block;
+}
+
+.toolbar.toolbar-md .back-button {
+  margin-top: -7px;
+}
+
+.tabbar {
+  .tabs-md &,
+  .tabs-ios & {
+    background: white;
+  }
+
+  .tabs-ios & {
+    .tab-button-icon {
+      height: 22px;
+    }
+  }
+
+  justify-content: center;
+  padding-top: 5px;
+  transform: translate3d(0, 0, 0);
+
+  .tab-button {
+    max-width: 15vw;
+    min-width: 80px; // Prevent the names of the tabs from disappearing
+
+    .tab-button-text {
+      display: block;
+    }
+  }
 }
 
 // Remove border of icons when screen resolution is big
@@ -131,6 +174,7 @@ ion-spinner * {
 
 .big-icon-svg {
   padding: 10px;
+
   .bg {
     padding: 0 7px;
     border-radius: $icon-border-radius;
@@ -139,6 +183,7 @@ ion-spinner * {
     background-repeat: no-repeat;
     background-clip: padding-box;
     background-size: 103%;
+
     &.green {
       background: rgb(1, 209, 162);
     }
@@ -170,54 +215,52 @@ ion-spinner * {
 
 .box-notification {
   cursor: pointer;
-  padding: 10px 0;
-  border: none;
-  margin: 10px;
+  padding: 10px;
   text-align: center;
-  color: color($colors, light);
+
   a {
-    display: block;
-    color: color($colors, light);
+    display: flex;
+    justify-content: center;
+    align-items: center;
   }
+
   .icon {
-    vertical-align: middle;
-    margin: 0 5px;
+    margin: 0 6px;
+    font-size: 20px;
   }
-  &.no-margin {
-    margin: 0;
-  }
+
   &.success {
-    background-color: color($colors, success);
+    background-color: color($background-colors, success);
+    color: color($colors, success);
   }
-  &.notice {
-    background-color: color($colors, dark);
+
+  &.info {
+    background-color: color($background-colors, info);
+    color: color($colors, info);
   }
-  &.warn {
-    background-color: color($colors, warning);
+
+  &.warning {
+    background-color: color($background-colors, warning);
+    color: color($colors, warning);
   }
+
   &.error {
-    background-color: color($colors, danger);
+    background-color: color($background-colors, danger);
+    color: color($colors, danger);
   }
 }
 
 .gravatar {
   min-width: 3rem;
   min-height: 3rem;
-  border-radius: $icon-border-radius;
 }
 
 // Compatibility Ionic 1
-
 .light,
 a.light,
 .stable,
 a.stable {
   color: color($colors, light);
-}
-
-.positive,
-a.positive {
-  color: color($colors, secondary);
 }
 
 .calm,
@@ -232,7 +275,7 @@ a.positive {
 
 .energized,
 a.energized {
-  color: color($colors, primary);
+  color: color($colors, warning);
 }
 
 .assertive,
@@ -244,6 +287,7 @@ a.assertive {
 a.balanced {
   color: color($colors, success);
 }
+
 .royal,
 a.royal {
   color: color($colors, dark);
@@ -272,13 +316,6 @@ a.royal {
   color: color($colors, danger);
 }
 
-.warning-container {
-  background: color($colors, danger);
-  color: color($colors, light);
-  padding: 1rem;
-  border-radius: 10px;
-}
-
 .card {
   padding-top: 1px;
   width: 92%;
@@ -293,10 +330,13 @@ a.royal {
   .item-divider {
     background-color: #ffffff;
     margin-bottom: 5px;
+    min-height: 48px;
   }
+
   .item-block {
     padding: 5px 0 0px 24px;
   }
+
   .input-wrapper {
     padding-bottom: 4px;
   }
@@ -311,45 +351,55 @@ ion-app,
   background: transparent !important;
 }
 
-ion-icon {
-  &[class*='tab-'] {
-    // Instead of using the font-based icons
-    // We're applying SVG masks
-    mask-size: contain;
-    mask-position: 50% 50%;
-    mask-repeat: no-repeat;
-    background: currentColor;
-    width: 2rem !important;
-    height: 2rem !important;
-  }
-  // custom icons
-  &[class*='tab-home'] {
-    mask-image: url(../assets/img/tab-icons/ico-home.svg);
-  }
-  &[class*='tab-receive'] {
-    mask-image: url(../assets/img/tab-icons/ico-receive.svg);
-  }
-  &[class*='tab-scan'] {
-    mask-image: url(../assets/img/tab-icons/ico-scan.svg);
-    width: 3rem !important;
-  }
-  &[class*='tab-send'] {
-    mask-image: url(../assets/img/tab-icons/ico-send.svg);
-  }
-  &[class*='tab-settings'] {
-    mask-image: url(../assets/img/tab-icons/ico-settings.svg);
-  }
-}
-
 .button-standard {
   width: 90%;
-  max-width: 300px !important;
+  max-width: 300px;
   margin-left: auto;
   margin-right: auto;
-  display: block;
+  display: flex;
   min-height: 57px;
   margin-top: 1.5rem;
   margin-bottom: 1.5rem;
+  border-radius: 5px;
+  box-shadow: none;
+  font-weight: 400;
+  font-size: 18px;
+
+  .button-inner {
+    padding: 2px;
+  }
+
+  span {
+    @extend .two-lines;
+  }
+}
+
+.button-default {
+  color: white;
+}
+
+.button-secondary {
+  background-color: #ededed;
+  color: black;
+
+  &:hover,
+  &:focus,
+  &:active {
+    &.button-md,
+    &.button-ios {
+      background-color: #ededed;
+      color: black;
+      box-shadow: none;
+    }
+  }
+
+  &:active,
+  &.activated {
+    &.button-md,
+    &.button-ios {
+      background-color: #e5e5e5;
+    }
+  }
 }
 
 .btn-transparent {
@@ -375,8 +425,21 @@ ion-alert .alert-message {
 .mdToastAfterHeader {
   top: $toolbar-md-height;
 }
+
 .iosToastAfterHeader {
   top: $toolbar-ios-height;
+}
+
+.hide-tabbar {
+  .tabbar {
+    display: none !important;
+  }
+
+  .fullscreen-tab {
+    .scroll-content {
+      margin-bottom: 0 !important;
+    }
+  }
 }
 
 .header-extend {
@@ -388,8 +451,96 @@ ion-alert .alert-message {
   z-index: 0;
   display: flex;
   justify-content: center;
-  .no-wallets {
-    position: absolute;
-    top: 60%;
+}
+
+.section-header {
+  color: rgba(0, 0, 0, 0.3);
+  font-weight: 600;
+  margin: 0 auto;
+  margin-bottom: -7px;
+  width: 92%;
+}
+
+button.modal-close-button {
+  font-size: 16px;
+  font-weight: 400;
+
+  ion-icon {
+    font-size: 26px;
   }
+}
+
+.qr-container {
+  flex-grow: 1;
+  @include center;
+  background: linear-gradient(#ececec, white);
+
+  .qr-card {
+    border: 1px solid rgb(207, 207, 207);
+    border-radius: 7px;
+    transform: translateY(0);
+    margin: 0;
+    padding-bottom: 0;
+    width: 70%;
+    max-width: 293px;
+    box-shadow: none;
+
+    .aclass {
+      @include center;
+      padding: 5px;
+    }
+
+    .aclass > img {
+      filter: grayscale(100%);
+      height: 100%;
+      width: 100%;
+      opacity: 0.715;
+    }
+  }
+}
+
+.address-divider {
+  width: 1px;
+  height: 25px;
+  background-color: rgb(227, 227, 227);
+  display: inline-block;
+  margin-left: 6px;
+  margin-right: 12px;
+  vertical-align: middle;
+}
+
+// Add padding bottom when item has label
+ion-item.with-label.item {
+  padding-bottom: 10px;
+
+  &.item-ios,
+  &.item-md {
+    .item-inner {
+      border-bottom: 0;
+    }
+  }
+}
+
+// avoid issue with box-shadow and floating labels
+.ng-valid .item-inner,
+.ng-invalid .item-inner,
+.item-input-has-focus .item-inner {
+  box-shadow: none !important;
+}
+
+// Remove arrowhead from label
+label-tip.warn.no-arrowhead:before {
+  display: none;
+}
+
+.slide-confirm-down {
+  transform: translate(0px, 90px);
+}
+
+.slide-confirm-slow {
+  transition: transform 0.7s;
+}
+
+.slide-confirm-fast {
+  transition: transform 0.3s;
 }

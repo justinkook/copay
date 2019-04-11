@@ -1,6 +1,6 @@
 <ion-header>
-  <ion-navbar>
-    <ion-buttons end>
+  <ion-navbar transparent>
+    <ion-buttons right>
       <button (click)="close(true)" ion-button color="primary" *ngIf="action === 'pinSetUp' || action === 'lockSetUp'">
         {{'Cancel' | translate}}
       </button>
@@ -28,6 +28,6 @@
   </div>
   <div class="code-wrapper">
     <pin-dots [pin]="currentPin" animate></pin-dots>
-    <pin-pad (keystroke)="newEntry($event)"></pin-pad>
+    <pin-pad (keystroke)="newEntry($event)" type="pin"></pin-pad>
   </div>
 </ion-content>

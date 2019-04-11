@@ -19,6 +19,18 @@ export class BwcErrorProvider {
 
     if (name) {
       switch (name) {
+        case 'UNCONFIRMED_INPUTS_NOT_ACCEPTED':
+          body = this.translate.instant(
+            'This invoice does not accept unconfirmed inputs.'
+          );
+          break;
+
+        case 'INVOICE_EXPIRED':
+          body = this.translate.instant(
+            'This invoice is not longer accepting payments'
+          );
+          break;
+
         case 'INVALID_BACKUP':
           body = this.translate.instant('Wallet Recovery Phrase is invalid');
           break;
@@ -112,7 +124,7 @@ export class BwcErrorProvider {
           break;
         case 'UPGRADE_NEEDED':
           body = this.translate.instant(
-            'Please upgrade Copay to perform this action'
+            'Please upgrade the app to perform this action'
           );
           break;
         case 'BAD_SIGNATURES':
@@ -152,11 +164,11 @@ export class BwcErrorProvider {
         case 'MISSING_PARAMETER':
           body = this.translate.instant('Missing parameter');
           break;
-        case 'NO_PASSWORD_GIVEN':
-          body = this.translate.instant('Encrypt password needed');
+        case 'NO_PASSWORD':
+          body = this.translate.instant('No password');
           break;
-        case 'PASSWORD_INCORRECT':
-          body = this.translate.instant('Wrong encrypt password');
+        case 'WRONG_PASSWORD':
+          body = this.translate.instant('Wrong password');
           break;
         case 'EXCEEDED_DAILY_LIMIT':
           body = this.translate.instant(

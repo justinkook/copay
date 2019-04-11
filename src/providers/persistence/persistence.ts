@@ -3,10 +3,16 @@ import { File } from '@ionic-native/file';
 import * as _ from 'lodash';
 import { Logger } from '../../providers/logger/logger';
 
+import { GiftCard } from '../gift-card/gift-card.types';
 import { PlatformProvider } from '../platform/platform';
 import { FileStorage } from './storage/file-storage';
 import { LocalStorage } from './storage/local-storage';
 // TODO import { RamStorage } from './storage/ram-storage';
+
+export enum Network {
+  livenet = 'livenet',
+  testnet = 'testnet'
+}
 
 export interface FeedbackValues {
   time: number;
@@ -14,10 +20,14 @@ export interface FeedbackValues {
   sent: boolean;
 }
 
+export interface GiftCardMap {
+  [invoiceId: string]: GiftCard;
+}
+
 const Keys = {
   ADDRESS_BOOK: network => 'addressbook-' + network,
   AGREE_DISCLAIMER: 'agreeDisclaimer',
-  AMAZON_GIFT_CARDS: network => 'amazonGiftCards-' + network,
+  GIFT_CARD_USER_INFO: 'amazonUserInfo', // keeps legacy key for backwards compatibility
   APP_IDENTITY: network => 'appIdentity-' + network,
   BACKUP: walletId => 'backup-' + walletId,
   BALANCE_CACHE: cardId => 'balanceCache-' + cardId,
@@ -29,21 +39,29 @@ const Keys = {
   CONFIG: 'config',
   FEEDBACK: 'feedback',
   FOCUSED_WALLET_ID: 'focusedWalletId',
-  GLIDERA_PERMISSIONS: network => 'glideraPermissions-' + network,
-  GLIDERA_STATUS: network => 'glideraStatus-' + network,
-  GLIDERA_TOKEN: network => 'glideraToken-' + network,
-  GLIDERA_TXS: network => 'glideraTxs-' + network,
+  GIFT_CARD_CONFIG_CACHE: (network: Network) => {
+    const suffix = network === Network.livenet ? '' : `-${network}`;
+    return `giftCardConfigCache${suffix}`;
+  },
+  ACTIVE_GIFT_CARDS: (network: Network) => {
+    return `activeGiftCards-${network}`;
+  },
+  GIFT_CARDS: (cardName: string, network: Network) => {
+    const legacyGiftCardKey = getLegacyGiftCardKey(cardName, network);
+    return legacyGiftCardKey || `giftCards-${cardName}-${network}`;
+  },
   HIDE_BALANCE: walletId => 'hideBalance-' + walletId,
-  HOME_TIP: 'homeTip',
   LAST_ADDRESS: walletId => 'lastAddress-' + walletId,
   LAST_CURRENCY_USED: 'lastCurrencyUsed',
-  MERCADO_LIBRE: network => 'MercadoLibreGiftCards-' + network,
   ONBOARDING_COMPLETED: 'onboardingCompleted',
   PROFILE: 'profile',
   REMOTE_PREF_STORED: 'remotePrefStored',
   TX_CONFIRM_NOTIF: txid => 'txConfirmNotif-' + txid,
   TX_HISTORY: walletId => 'txsHistory-' + walletId,
-  ORDER_WALLET: walletId => 'order-' + walletId
+  ORDER_WALLET: walletId => 'order-' + walletId,
+  SERVER_MESSAGE_DISMISSED: messageId => 'serverMessageDismissed-' + messageId,
+  SHAPESHIFT_TOKEN: network => 'shapeshiftToken-' + network,
+  VAULT: 'vault'
 };
 
 interface Storage {
@@ -62,13 +80,13 @@ export class PersistenceProvider {
     private platform: PlatformProvider,
     private file: File
   ) {
-    this.logger.info('PersistenceProvider initialized.');
+    this.logger.debug('PersistenceProvider initialized');
   }
 
   public load() {
     this.storage = this.platform.isCordova
       ? new FileStorage(this.file, this.logger)
-      : new LocalStorage(this.platform, this.logger);
+      : new LocalStorage(this.logger);
   }
 
   storeNewProfile(profile): Promise<void> {
@@ -89,6 +107,22 @@ export class PersistenceProvider {
 
   deleteProfile() {
     return this.storage.remove(Keys.PROFILE);
+  }
+
+  storeVault(vault): Promise<void> {
+    return this.storage.set(Keys.VAULT, vault);
+  }
+
+  getVault(): Promise<any> {
+    return new Promise(resolve => {
+      this.storage.get(Keys.VAULT).then(vault => {
+        resolve(vault);
+      });
+    });
+  }
+
+  deleteVault() {
+    return this.storage.remove(Keys.VAULT);
   }
 
   setFeedbackInfo(feedbackValues: FeedbackValues) {
@@ -155,14 +189,6 @@ export class PersistenceProvider {
     return this.storage.remove(Keys.CONFIG);
   }
 
-  getHomeTipAccepted() {
-    return this.storage.get(Keys.HOME_TIP);
-  }
-
-  setHomeTipAccepted(homeTip) {
-    return this.storage.set(Keys.HOME_TIP, homeTip);
-  }
-
   setHideBalanceFlag(walletId: string, val) {
     return this.storage.set(Keys.HIDE_BALANCE(walletId), val);
   }
@@ -194,54 +220,6 @@ export class PersistenceProvider {
 
   getRemotePrefsStoredFlag() {
     return this.storage.get(Keys.REMOTE_PREF_STORED);
-  }
-
-  setGlideraToken(network: string, token: string) {
-    return this.storage.set(Keys.GLIDERA_TOKEN(network), token);
-  }
-
-  getGlideraToken(network: string) {
-    return this.storage.get(Keys.GLIDERA_TOKEN(network));
-  }
-
-  removeGlideraToken(network: string) {
-    return this.storage.remove(Keys.GLIDERA_TOKEN(network));
-  }
-
-  setGlideraPermissions(network: string, permissions) {
-    return this.storage.set(Keys.GLIDERA_PERMISSIONS(network), permissions);
-  }
-
-  getGlideraPermissions(network: string) {
-    return this.storage.get(Keys.GLIDERA_PERMISSIONS(network));
-  }
-
-  removeGlideraPermissions(network: string) {
-    return this.storage.remove(Keys.GLIDERA_PERMISSIONS(network));
-  }
-
-  setGlideraStatus(network: string, status) {
-    return this.storage.set(Keys.GLIDERA_STATUS(network), status);
-  }
-
-  getGlideraStatus(network: string) {
-    return this.storage.get(Keys.GLIDERA_STATUS(network));
-  }
-
-  removeGlideraStatus(network: string) {
-    return this.storage.remove(Keys.GLIDERA_STATUS(network));
-  }
-
-  setGlideraTxs(network: string, txs) {
-    return this.storage.set(Keys.GLIDERA_TXS(network), txs);
-  }
-
-  getGlideraTxs(network: string) {
-    return this.storage.get(Keys.GLIDERA_TXS(network));
-  }
-
-  removeGlideraTxs(network: string) {
-    return this.storage.remove(Keys.GLIDERA_TXS(network));
   }
 
   setCoinbaseToken(network: string, token: string) {
@@ -351,22 +329,42 @@ export class PersistenceProvider {
   }
 
   removeAllWalletData(walletId: string) {
-    return this.clearLastAddress(walletId)
-      .then(() => this.removeTxHistory(walletId))
-      .then(() => this.clearBackupFlag(walletId))
-      .then(() => this.removeWalletOrder(walletId));
+    this.clearLastAddress(walletId);
+    this.removeTxHistory(walletId);
+    this.clearBackupFlag(walletId);
+    this.removeWalletOrder(walletId);
   }
 
-  setAmazonGiftCards(network: string, gcs) {
-    return this.storage.set(Keys.AMAZON_GIFT_CARDS(network), gcs);
+  getActiveGiftCards(network: Network) {
+    return this.storage.get(Keys.ACTIVE_GIFT_CARDS(network));
   }
 
-  getAmazonGiftCards(network: string) {
-    return this.storage.get(Keys.AMAZON_GIFT_CARDS(network));
+  setActiveGiftCards(network: Network, data) {
+    return this.storage.set(Keys.ACTIVE_GIFT_CARDS(network), data);
   }
 
-  removeAmazonGiftCards(network: string) {
-    return this.storage.remove(Keys.AMAZON_GIFT_CARDS(network));
+  getGiftCardConfigCache(network: Network) {
+    return this.storage.get(Keys.GIFT_CARD_CONFIG_CACHE(network));
+  }
+
+  removeGiftCardConfigCache(network: Network) {
+    return this.storage.remove(Keys.GIFT_CARD_CONFIG_CACHE(network));
+  }
+
+  setGiftCardConfigCache(network: Network, data) {
+    return this.storage.set(Keys.GIFT_CARD_CONFIG_CACHE(network), data);
+  }
+
+  setGiftCardUserInfo(data) {
+    return this.storage.set(Keys.GIFT_CARD_USER_INFO, data);
+  }
+
+  getGiftCardUserInfo() {
+    return this.storage.get(Keys.GIFT_CARD_USER_INFO);
+  }
+
+  removeGiftCardUserInfo() {
+    return this.storage.remove(Keys.GIFT_CARD_USER_INFO);
   }
 
   setTxConfirmNotification(txid: string, val) {
@@ -466,16 +464,24 @@ export class PersistenceProvider {
       });
   }
 
-  setMercadoLibreGiftCards(network: string, gcs) {
-    return this.storage.set(Keys.MERCADO_LIBRE(network), gcs);
+  setGiftCards(cardName: string, network: Network, gcs: string) {
+    return this.storage.set(Keys.GIFT_CARDS(cardName, network), gcs);
   }
 
-  getMercadoLibreGiftCards(network: string) {
-    return this.storage.get(Keys.MERCADO_LIBRE(network));
+  getGiftCards(cardName: string, network: Network): Promise<GiftCardMap> {
+    return this.storage.get(Keys.GIFT_CARDS(cardName, network));
   }
 
-  removeMercadoLibreGiftCards(network: string) {
-    return this.storage.remove(Keys.MERCADO_LIBRE(network));
+  setServerMessageDismissed(id) {
+    return this.storage.set(Keys.SERVER_MESSAGE_DISMISSED(id), 'dismissed');
+  }
+
+  getServerMessageDismissed(id) {
+    return this.storage.get(Keys.SERVER_MESSAGE_DISMISSED(id));
+  }
+
+  removeServerMessageDismissed(id) {
+    return this.storage.remove(Keys.SERVER_MESSAGE_DISMISSED(id));
   }
 
   setShapeshift(network: string, gcs) {
@@ -488,6 +494,18 @@ export class PersistenceProvider {
 
   removeShapeshift(network: string) {
     return this.storage.remove('shapeShift-' + network);
+  }
+
+  setShapeshiftToken(network: string, token: string) {
+    return this.storage.set(Keys.SHAPESHIFT_TOKEN(network), token);
+  }
+
+  getShapeshiftToken(network: string) {
+    return this.storage.get(Keys.SHAPESHIFT_TOKEN(network));
+  }
+
+  removeShapeshiftToken(network: string) {
+    return this.storage.remove(Keys.SHAPESHIFT_TOKEN(network));
   }
 
   setWalletOrder(walletId: string, order: number) {
@@ -524,5 +542,24 @@ export class PersistenceProvider {
 
   removeEmailLawCompliance() {
     return this.storage.remove('emailLawCompliance');
+  }
+}
+
+function getLegacyGiftCardKey(cardName: string, network: Network) {
+  switch (cardName + network) {
+    case 'Amazon.com' + Network.livenet:
+      return 'amazonGiftCards-livenet';
+    case 'Amazon.com' + Network.testnet:
+      return 'amazonGiftCards-testnet';
+    case 'Amazon.co.jp' + Network.livenet:
+      return 'amazonGiftCards-livenet-japan';
+    case 'Amazon.co.jp' + Network.testnet:
+      return 'amazonGiftCards-testnet-japan';
+    case 'Mercado Livre' + Network.livenet:
+      return 'MercadoLibreGiftCards-livenet';
+    case 'Mercado Livre' + Network.testnet:
+      return 'MercadoLibreGiftCards-testnet';
+    default:
+      return undefined;
   }
 }

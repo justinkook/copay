@@ -4,45 +4,51 @@ import {
   HostListener,
   NgZone
 } from '@angular/core';
-import { TranslateService } from '@ngx-translate/core';
-import { ActionSheetController, NavController, NavParams } from 'ionic-angular';
+import {
+  Events,
+  NavController,
+  NavParams,
+  ViewController
+} from 'ionic-angular';
 import * as _ from 'lodash';
 
 // Providers
 import { Config, ConfigProvider } from '../../../providers/config/config';
+import { ElectronProvider } from '../../../providers/electron/electron';
 import { FilterProvider } from '../../../providers/filter/filter';
 import { Logger } from '../../../providers/logger/logger';
-import { NodeWebkitProvider } from '../../../providers/node-webkit/node-webkit';
 import { PlatformProvider } from '../../../providers/platform/platform';
 import { RateProvider } from '../../../providers/rate/rate';
 import { TxFormatProvider } from '../../../providers/tx-format/tx-format';
 
 // Pages
-import { BuyAmazonPage } from '../../integrations/amazon/buy-amazon/buy-amazon';
+import { ActionSheetProvider, GiftCardProvider } from '../../../providers';
+import { CardConfig } from '../../../providers/gift-card/gift-card.types';
+import { ProfileProvider } from '../../../providers/profile/profile';
+import { Coin } from '../../../providers/wallet/wallet';
 import { BitPayCardTopUpPage } from '../../integrations/bitpay-card/bitpay-card-topup/bitpay-card-topup';
 import { BuyCoinbasePage } from '../../integrations/coinbase/buy-coinbase/buy-coinbase';
 import { SellCoinbasePage } from '../../integrations/coinbase/sell-coinbase/sell-coinbase';
-import { BuyGlideraPage } from '../../integrations/glidera/buy-glidera/buy-glidera';
-import { SellGlideraPage } from '../../integrations/glidera/sell-glidera/sell-glidera';
-import { BuyMercadoLibrePage } from '../../integrations/mercado-libre/buy-mercado-libre/buy-mercado-libre';
+import { ConfirmCardPurchasePage } from '../../integrations/gift-cards/confirm-card-purchase/confirm-card-purchase';
 import { ShapeshiftConfirmPage } from '../../integrations/shapeshift/shapeshift-confirm/shapeshift-confirm';
 import { CustomAmountPage } from '../../receive/custom-amount/custom-amount';
+import { WalletTabsChild } from '../../wallet-tabs/wallet-tabs-child';
+import { WalletTabsProvider } from '../../wallet-tabs/wallet-tabs.provider';
 import { ConfirmPage } from '../confirm/confirm';
 
 @Component({
   selector: 'page-amount',
   templateUrl: 'amount.html'
 })
-export class AmountPage {
+export class AmountPage extends WalletTabsChild {
   private LENGTH_EXPRESSION_LIMIT: number;
   private availableUnits;
-  private unit: string;
+  public unit: string;
   private reNr: RegExp;
   private reOp: RegExp;
   private nextView;
   private fixedUnit: boolean;
-  private itemSelectorLabel: string;
-  private fiatCode: string;
+  public fiatCode: string;
   private altUnitIndex: number;
   private unitIndex: number;
   private unitToSatoshi: number;
@@ -51,6 +57,8 @@ export class AmountPage {
   private zone;
   private description: string;
 
+  public disableHardwareKeyboard: boolean;
+  public onlyIntegers: boolean;
   public alternativeUnit: string;
   public globalResult: string;
   public alternativeAmount;
@@ -68,27 +76,37 @@ export class AmountPage {
   public email: string;
   public color: string;
   public useSendMax: boolean;
+  public useAsModal: boolean;
   public config: Config;
-  public showRecipient: boolean;
   public toWalletId: string;
   private _id: string;
+  public requestingAmount: boolean;
+
+  public cardName: string;
+  public cardConfig: CardConfig;
 
   constructor(
-    private actionSheetCtrl: ActionSheetController,
+    private actionSheetProvider: ActionSheetProvider,
     private configProvider: ConfigProvider,
     private filterProvider: FilterProvider,
+    private giftCardProvider: GiftCardProvider,
     private logger: Logger,
-    private navCtrl: NavController,
+    navCtrl: NavController,
     private navParams: NavParams,
-    private nodeWebkitProvider: NodeWebkitProvider,
+    private electronProvider: ElectronProvider,
     private platformProvider: PlatformProvider,
+    profileProvider: ProfileProvider,
     private rateProvider: RateProvider,
     private txFormatProvider: TxFormatProvider,
-    private translate: TranslateService,
-    private changeDetectorRef: ChangeDetectorRef
+    private changeDetectorRef: ChangeDetectorRef,
+    walletTabsProvider: WalletTabsProvider,
+    private events: Events,
+    private viewCtrl: ViewController
   ) {
+    super(navCtrl, profileProvider, walletTabsProvider);
     this.zone = new NgZone({ enableLongStackTrace: false });
     this.config = this.configProvider.get();
+    this.useAsModal = this.navParams.data.useAsModal;
     this.recipientType = this.navParams.data.recipientType;
     this.toAddress = this.navParams.data.toAddress;
     this.network = this.navParams.data.network;
@@ -97,8 +115,10 @@ export class AmountPage {
     this.color = this.navParams.data.color;
     this.fixedUnit = this.navParams.data.fixedUnit;
     this.description = this.navParams.data.description;
+    this.onlyIntegers = this.navParams.data.onlyIntegers
+      ? this.navParams.data.onlyIntegers
+      : false;
 
-    this.showRecipient = true;
     this.showSendMax = false;
     this.useSendMax = false;
     this.allowSend = false;
@@ -113,8 +133,10 @@ export class AmountPage {
 
     this.reNr = /^[1234567890\.]$/;
     this.reOp = /^[\*\+\-\/]$/;
+
+    this.requestingAmount =
+      this.navParams.get('nextPage') === 'CustomAmountPage';
     this.nextView = this.getNextView();
-    this.itemSelectorLabel = this.translate.instant('Send Max amount');
 
     this.unitToSatoshi = this.config.wallet.settings.unitToSatoshi;
     this.satToUnit = 1 / this.unitToSatoshi;
@@ -128,19 +150,43 @@ export class AmountPage {
     this.shiftMax = this.navParams.data.shiftMax;
     this.shiftMin = this.navParams.data.shiftMin;
 
+    this.cardName = this.navParams.get('cardName');
+  }
+
+  async ionViewDidLoad() {
     this.setAvailableUnits();
     this.updateUnitUI();
+    this.cardConfig =
+      this.cardName &&
+      (await this.giftCardProvider.getCardConfig(this.cardName));
   }
 
   ionViewWillEnter() {
+    this.disableHardwareKeyboard = false;
     this.expression = '';
     this.useSendMax = false;
     this.processAmount();
+    this.events.subscribe(
+      'Wallet/disableHardwareKeyboard',
+      this.walletDisableHardwareKeyboardHandler
+    );
+  }
+
+  ionViewWillLeave() {
+    this._disableHardwareKeyboard();
+  }
+
+  private walletDisableHardwareKeyboardHandler: any = () => {
+    this._disableHardwareKeyboard();
+  };
+
+  private _disableHardwareKeyboard() {
+    this.disableHardwareKeyboard = true;
   }
 
   @HostListener('document:keydown', ['$event'])
   handleKeyboardEvent(event: KeyboardEvent) {
-    if (this.navCtrl.getActive().name != 'AmountPage') return;
+    if (this.disableHardwareKeyboard) return;
     if (!event.key) return;
     if (event.which === 8) {
       event.preventDefault();
@@ -148,7 +194,7 @@ export class AmountPage {
     }
 
     if (event.key.match(this.reNr)) {
-      this.pushDigit(event.key);
+      this.pushDigit(event.key, true);
     } else if (event.key.match(this.reOp)) {
       this.pushOperator(event.key);
     } else if (event.keyCode === 86) {
@@ -159,17 +205,25 @@ export class AmountPage {
   private setAvailableUnits(): void {
     this.availableUnits = [];
 
-    this.availableUnits.push({
-      name: 'Bitcoin',
-      id: 'btc',
-      shortName: 'BTC'
-    });
+    const parentWalletCoin = this.navParams.data.wallet
+      ? this.navParams.data.wallet.coin
+      : this.wallet && this.wallet.coin;
 
-    this.availableUnits.push({
-      name: 'Bitcoin Cash',
-      id: 'bch',
-      shortName: 'BCH'
-    });
+    if (parentWalletCoin === 'btc' || !parentWalletCoin) {
+      this.availableUnits.push({
+        name: 'Bitcoin',
+        id: 'btc',
+        shortName: 'BTC'
+      });
+    }
+
+    if (parentWalletCoin === 'bch' || !parentWalletCoin) {
+      this.availableUnits.push({
+        name: 'Bitcoin Cash',
+        id: 'bch',
+        shortName: 'BCH'
+      });
+    }
 
     this.unitIndex = 0;
 
@@ -232,40 +286,23 @@ export class AmountPage {
     let nextPage;
     switch (this.navParams.data.nextPage) {
       case 'BitPayCardTopUpPage':
-        this.showRecipient = false;
         this.showSendMax = true;
         nextPage = BitPayCardTopUpPage;
         break;
-      case 'BuyAmazonPage':
-        this.showRecipient = false;
-        nextPage = BuyAmazonPage;
-        break;
-      case 'BuyGlideraPage':
-        this.showRecipient = false;
-        nextPage = BuyGlideraPage;
-        break;
-      case 'SellGlideraPage':
-        this.showRecipient = false;
-        nextPage = SellGlideraPage;
+      case 'ConfirmCardPurchasePage':
+        nextPage = ConfirmCardPurchasePage;
         break;
       case 'BuyCoinbasePage':
-        this.showRecipient = false;
         nextPage = BuyCoinbasePage;
         break;
       case 'SellCoinbasePage':
-        this.showRecipient = false;
         nextPage = SellCoinbasePage;
         break;
       case 'CustomAmountPage':
         nextPage = CustomAmountPage;
         break;
-      case 'BuyMercadoLibrePage':
-        this.showRecipient = false;
-        nextPage = BuyMercadoLibrePage;
-        break;
       case 'ShapeshiftConfirmPage':
         this.showSendMax = true;
-        this.showRecipient = false;
         nextPage = ShapeshiftConfirmPage;
         break;
       default:
@@ -276,38 +313,48 @@ export class AmountPage {
   }
 
   public processClipboard(): void {
-    if (!this.platformProvider.isNW) return;
+    if (!this.platformProvider.isElectron) return;
 
-    let value = this.nodeWebkitProvider.readFromClipboard();
+    let value = this.electronProvider.readFromClipboard();
 
     if (value && this.evaluate(value) > 0) this.paste(this.evaluate(value));
   }
 
-  public showSendMaxMenu(): void {
-    let buttons = [];
-
-    let sendMaxButton = {
-      text: this.itemSelectorLabel,
-      icon: 'speedometer',
-      handler: () => {
-        this.sendMax();
-      }
-    };
-    buttons.push(sendMaxButton);
-
-    const actionSheet = this.actionSheetCtrl.create({
-      buttons
-    });
-
-    actionSheet.present();
-  }
-
   public sendMax(): void {
     this.useSendMax = true;
-    this.finish();
+    if (!this.wallet) {
+      return this.finish();
+    }
+    const maxAmount = this.txFormatProvider.satToUnit(
+      this.wallet.cachedStatus.availableBalanceSat
+    );
+    this.zone.run(() => {
+      this.expression = this.availableUnits[this.unitIndex].isFiat
+        ? this.toFiat(maxAmount, this.wallet.coin).toFixed(2)
+        : maxAmount;
+      this.processAmount();
+      this.changeDetectorRef.detectChanges();
+      this.finish();
+    });
   }
 
-  public pushDigit(digit: string): void {
+  public isSendMaxButtonShown() {
+    return (
+      !this.expression &&
+      !this.requestingAmount &&
+      this.showSendMax &&
+      !this.useAsModal
+    );
+  }
+
+  public pushDigit(digit: string, isHardwareKeyboard?: boolean): void {
+    this.useSendMax = false;
+    if (digit === 'delete') {
+      return this.removeDigit();
+    }
+    if (this.isSendMaxButtonShown() && digit === '0' && !isHardwareKeyboard) {
+      return this.sendMax();
+    }
     if (
       this.expression &&
       this.expression.length >= this.LENGTH_EXPRESSION_LIMIT
@@ -357,7 +404,9 @@ export class AmountPage {
   private processAmount(): void {
     let formatedValue = this.format(this.expression);
     let result = this.evaluate(formatedValue);
-    this.allowSend = _.isNumber(result) && +result > 0;
+    this.allowSend = this.onlyIntegers
+      ? _.isNumber(result) && +result > 0 && Number.isInteger(+result)
+      : _.isNumber(result) && +result > 0;
 
     if (_.isNumber(result)) {
       this.globalResult = this.isExpression(this.expression)
@@ -371,6 +420,7 @@ export class AmountPage {
             a * this.unitToSatoshi,
             true
           );
+          this.checkAmountForBitpaycard(result);
         } else {
           this.alternativeAmount = result ? 'N/A' : null;
           this.allowSend = false;
@@ -379,7 +429,17 @@ export class AmountPage {
         this.alternativeAmount = this.filterProvider.formatFiatAmount(
           this.toFiat(result)
         );
+        this.checkAmountForBitpaycard(this.toFiat(result));
       }
+    }
+  }
+
+  private checkAmountForBitpaycard(amount: number): void {
+    // Check if the top up amount is at least 1 usd
+    const isTopUp =
+      this.navParams.data.nextPage === 'BitPayCardTopUpPage' ? true : false;
+    if (isTopUp && amount < 1) {
+      this.allowSend = false;
     }
   }
 
@@ -402,7 +462,7 @@ export class AmountPage {
     );
   }
 
-  private toFiat(val: number): number {
+  private toFiat(val: number, coin?: Coin): number {
     if (!this.rateProvider.getRate(this.fiatCode)) return undefined;
 
     return parseFloat(
@@ -410,7 +470,7 @@ export class AmountPage {
         .toFiat(
           val * this.unitToSatoshi,
           this.fiatCode,
-          this.availableUnits[this.unitIndex].id
+          coin || this.availableUnits[this.unitIndex].id
         )
         .toFixed(2)
     );
@@ -437,6 +497,22 @@ export class AmountPage {
     return result;
   }
 
+  public validateGiftCardAmount(amount) {
+    return (
+      amount <= this.cardConfig.maxAmount && amount >= this.cardConfig.minAmount
+    );
+  }
+
+  public showCardAmountInfoSheet(amount) {
+    const sheetType =
+      amount < this.cardConfig.minAmount
+        ? 'below-minimum-gift-card-amount'
+        : 'above-maximum-gift-card-amount';
+    this.actionSheetProvider
+      .createInfoSheet(sheetType, this.cardConfig)
+      .present();
+  }
+
   public finish(): void {
     let unit = this.availableUnits[this.unitIndex];
     let _amount = this.evaluate(this.format(this.expression));
@@ -448,13 +524,20 @@ export class AmountPage {
     }
 
     if (this.navParams.data.nextPage) {
+      const amount = this.useSendMax ? null : _amount;
+      if (this.cardConfig && !this.validateGiftCardAmount(amount)) {
+        this.showCardAmountInfoSheet(amount);
+        return;
+      }
+
       data = {
         id: this._id,
-        amount: this.useSendMax ? null : _amount,
+        amount,
         currency: unit.id.toUpperCase(),
         coin,
         useSendMax: this.useSendMax,
-        toWalletId: this.toWalletId
+        toWalletId: this.toWalletId,
+        cardName: this.cardName
       };
     } else {
       let amount = _amount;
@@ -472,9 +555,16 @@ export class AmountPage {
         useSendMax: this.useSendMax,
         description: this.description
       };
+
+      if (unit.isFiat) {
+        data.fiatAmount = _amount;
+        data.fiatCode = this.fiatCode;
+      }
     }
     this.useSendMax = null;
-    this.navCtrl.push(this.nextView, data);
+    this.useAsModal
+      ? this.closeModal(data)
+      : this.navCtrl.push(this.nextView, data);
   }
 
   private updateUnitUI(): void {
@@ -487,6 +577,12 @@ export class AmountPage {
         ' alternativeUnit:' +
         this.alternativeUnit
     );
+  }
+
+  private resetValues(): void {
+    this.expression = '';
+    this.globalResult = '';
+    this.alternativeAmount = null;
   }
 
   public changeUnit(): void {
@@ -504,9 +600,15 @@ export class AmountPage {
       });
     }
 
+    this.resetValues();
+
     this.zone.run(() => {
       this.updateUnitUI();
       this.changeDetectorRef.detectChanges();
     });
+  }
+
+  public closeModal(item): void {
+    this.viewCtrl.dismiss(item);
   }
 }
