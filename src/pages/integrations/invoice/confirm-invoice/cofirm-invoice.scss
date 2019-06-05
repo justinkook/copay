@@ -40,6 +40,19 @@ confirm-invoice-page {
       color: color($colors, light-grey);
     }
   }
+  img.sending-img {
+    width: auto;
+    height: 40px;
+  }
+  .amount-coin {
+    font-size: 1.5rem;
+    margin-top: 0.35rem;
+    margin-left: 0.8rem;
+  }
+  .alternative {
+    margin-top: 0.5rem;
+    color: color($colors, light-grey);
+  }
   .item-fee {
     line-height: 20px;
     .fee-title {

@@ -64,10 +64,10 @@ export class ConfirmInvoicePage extends ConfirmPage {
   public networkFee: number;
   public totalAmount: number;
   public network: string;
+  public networkFeeSat: number;
 
   private message: string;
   private configWallet: any;
-  private networkFeeSat: number;
   private parsedAmount: any;
   private browserUrl: string;
   private invoicePaid: boolean;
@@ -144,8 +144,8 @@ export class ConfirmInvoicePage extends ConfirmPage {
     this.email = this.merchantProvidedEmail
       ? this.merchantProvidedEmail
       : this.buyerProvidedEmail
-      ? this.buyerProvidedEmail
-      : await this.getEmail();
+        ? this.buyerProvidedEmail
+        : await this.getEmail();
     this.paymentTimeControl(this.invoiceData.expirationTime);
   }
 
@@ -197,7 +197,7 @@ export class ConfirmInvoicePage extends ConfirmPage {
 
   public onWalletSelect(wallet): void {
     this.wallet = wallet;
-    this.initialize(wallet).catch(() => {});
+    this.initialize(wallet).catch(() => { });
   }
 
   ionViewWillLeave() {
@@ -264,7 +264,7 @@ export class ConfirmInvoicePage extends ConfirmPage {
     this.message = this.replaceParametersProvider.replace(
       this.translate.instant(
         `Payment request for BitPay invoice ${
-          this.invoiceId
+        this.invoiceId
         } for {{amountUnitStr}} to merchant ${this.invoiceName}`
       ),
       { amountUnitStr: this.amountUnitStr }
