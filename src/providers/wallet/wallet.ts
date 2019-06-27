@@ -30,7 +30,8 @@ export interface HistoryOptionsI {
 
 export enum Coin {
   BTC = 'btc',
-  BCH = 'bch'
+  BCH = 'bch',
+  ETH = 'eth'
 }
 
 export interface WalletOptions {
@@ -176,7 +177,7 @@ export class WalletProvider {
 
         const configGet = this.configProvider.get();
         const config = configGet.wallet;
-
+        const settings = config.settings[wallet.coin];
         const cache = wallet.cachedStatus;
 
         // Address with Balance
@@ -203,7 +204,7 @@ export class WalletProvider {
         }
 
         // Selected unit
-        cache.unitToSatoshi = config.settings.unitToSatoshi;
+        cache.unitToSatoshi = settings.unitToSatoshi;
         cache.satToUnit = 1 / cache.unitToSatoshi;
 
         // STR
@@ -229,8 +230,8 @@ export class WalletProvider {
           cache.pendingAmount
         );
 
-        cache.alternativeName = config.settings.alternativeName;
-        cache.alternativeIsoCode = config.settings.alternativeIsoCode;
+        cache.alternativeName = settings.alternativeName;
+        cache.alternativeIsoCode = settings.alternativeIsoCode;
 
         this.rateProvider
           .whenRatesAvailable(wallet.coin)
