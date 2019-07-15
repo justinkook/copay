@@ -3,9 +3,9 @@ import { NavParams } from 'ionic-angular';
 import * as _ from 'lodash';
 
 // providers
+import { ConfigProvider } from '../../../../../providers/config/config';
 import { Logger } from '../../../../../providers/logger/logger';
 import { ProfileProvider } from '../../../../../providers/profile/profile';
-import { ConfigProvider } from '../../../../../providers/config/config';
 
 @Component({
   selector: 'page-wallet-information',
