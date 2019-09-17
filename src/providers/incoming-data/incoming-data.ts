@@ -19,6 +19,7 @@ export interface RedirParams {
   activePage?: any;
   amount?: string;
   coin?: Coin;
+  token?: string;
   fromHomeCard?: boolean;
 }
 
@@ -81,6 +82,11 @@ export class IncomingDataProvider {
   private isValidBitcoinCashUri(data: string): boolean {
     data = this.sanitizeUri(data);
     return !!this.bwcProvider.getBitcoreCash().URI.isValid(data);
+  }
+
+  private isValidEthereumUri(data: string): boolean {
+    data = this.sanitizeUri(data);
+    return !!/^(ethereum:)/.exec(data);
   }
 
   public isValidBitcoinCashUriWithLegacyAddress(data: string): boolean {
@@ -250,6 +256,34 @@ export class IncomingDataProvider {
 
     if (parsed.r) this.goToPayPro(data, coin);
     else this.goSend(address, amount, message, coin);
+  }
+
+  private handleEthereumUri(data: string, redirParams?: RedirParams): void {
+    this.logger.debug('Incoming-data: Ethereum URI');
+    let amountFromRedirParams =
+      redirParams && redirParams.amount ? redirParams.amount : '';
+    const coin = Coin.ETH;
+    const regex = /[\?\&]value=(\d+([\,\.]\d+)?)/i;
+    const parsedAmount = regex.exec(data);
+
+    const noPrefix = data.replace(/^(ethereum:)/, '');
+    const address = noPrefix.replace(regex, '');
+    const sanitizedAddress = address.replace(/&.*/, '');
+    const isValid = this.isValidEthereumAddress(sanitizedAddress);
+    let message = '';
+    let amount =
+      parsedAmount && parsedAmount[1] ? parsedAmount[1] : amountFromRedirParams;
+
+    if (isValid) {
+      if (amount) {
+        this.goSend(address, amount, message, coin);
+      } else {
+        this.handlePlainEthereumAddress(address, redirParams);
+      }
+    } else {
+      this.logger.error('Not a valid Ethereum address');
+      return;
+    }
   }
 
   private handleBitcoinCashUriLegacyAddress(data: string): void {
@@ -470,6 +504,11 @@ export class IncomingDataProvider {
       this.handleBitcoinCashUri(data, redirParams);
       return true;
 
+      // Ethereum URI
+    } else if (this.isValidEthereumUri(data)) {
+      this.handleEthereumUri(data, redirParams);
+      return true;
+
       // Bitcoin Cash URI using Bitcoin Core legacy address
     } else if (this.isValidBitcoinCashUriWithLegacyAddress(data)) {
       this.handleBitcoinCashUriLegacyAddress(data);
@@ -572,6 +611,14 @@ export class IncomingDataProvider {
         title: this.translate.instant('Bitcoin Cash URI')
       };
 
+      // Ethereum URI
+    } else if (this.isValidEthereumUri(data)) {
+      return {
+        data,
+        type: 'EthereumUri',
+        title: this.translate.instant('Ethereum URI')
+      };
+
       // Bitcoin Cash URI using Bitcoin Core legacy address
     } else if (this.isValidBitcoinCashUriWithLegacyAddress(data)) {
       return {
@@ -660,7 +707,7 @@ export class IncomingDataProvider {
 
   private sanitizeUri(data): string {
     // Fixes when a region uses comma to separate decimals
-    let regex = /[\?\&]amount=(\d+([\,\.]\d+)?)/i;
+    let regex = /[\?\&]amount=(\d+([\,\.]\d+)?)|[\?\&]value=(\d+([\,\.]\d+)?)/i;
     let match = regex.exec(data);
     if (!match || match.length === 0) {
       return data;
