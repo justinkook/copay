@@ -86,7 +86,13 @@ export class IncomingDataProvider {
 
   private isValidEthereumUri(data: string): boolean {
     data = this.sanitizeUri(data);
-    return !!/^(ethereum:)/.exec(data);
+    const uri = data;
+    const address = uri
+      .replace(/ethereum:/, '')
+      .replace(/[\?\&]value=(\d+([\,\.]\d+)?)/, '')
+      .replace(/[\?\&]gasPrice=(\d+([\,\.]\d+)?)/, '');
+    const isValid = this.isValidEthereumAddress(address);
+    return !!(/^(ethereum:)/.exec(data) && isValid);
   }
 
   public isValidBitcoinCashUriWithLegacyAddress(data: string): boolean {
@@ -263,27 +269,25 @@ export class IncomingDataProvider {
     let amountFromRedirParams =
       redirParams && redirParams.amount ? redirParams.amount : '';
     const coin = Coin.ETH;
-    const regex = /[\?\&]value=(\d+([\,\.]\d+)?)/i;
-    const parsedAmount = regex.exec(data);
-
-    const noPrefix = data.replace(/^(ethereum:)/, '');
-    const address = noPrefix.replace(regex, '');
-    const sanitizedAddress = address.replace(/&.*/, '');
-    const isValid = this.isValidEthereumAddress(sanitizedAddress);
-    let message = '';
-    let amount =
+    const amountMatch = /[\?\&]value=(\d+([\,\.]\d+)?)/i;
+    const feeMatch = /[\?\&]gasPrice=(\d+([\,\.]\d+)?)/i;
+    const parsedAmount = amountMatch.exec(data);
+    const parsedFee = feeMatch.exec(data);
+    const address = data
+      .replace(/^(ethereum:)/, '')
+      .replace(amountMatch, '')
+      .replace(feeMatch, '');
+    const message = '';
+    const amount =
       parsedAmount && parsedAmount[1] ? parsedAmount[1] : amountFromRedirParams;
 
-    if (isValid) {
-      if (amount) {
-        this.goSend(address, amount, message, coin);
-      } else {
-        this.handlePlainEthereumAddress(address, redirParams);
-      }
-    } else {
-      this.logger.error('Not a valid Ethereum address');
-      return;
+    let requiredFeeRate;
+    const defaultGasLimit = 21000;
+    if (parsedFee && parsedFee[1]) {
+      requiredFeeRate = Number(parsedFee[1]) / defaultGasLimit;
     }
+
+    this.goSend(address, amount, message, coin, requiredFeeRate);
   }
 
   private handleBitcoinCashUriLegacyAddress(data: string): void {
@@ -707,7 +711,7 @@ export class IncomingDataProvider {
 
   private sanitizeUri(data): string {
     // Fixes when a region uses comma to separate decimals
-    let regex = /[\?\&]amount=(\d+([\,\.]\d+)?)|[\?\&]value=(\d+([\,\.]\d+)?)/i;
+    let regex = /[\?\&]amount=(\d+([\,\.]\d+)?)|[\?\&]value=(\d+([\,\.]\d+)?)|[\?\&]gasPrice=(\d+([\,\.]\d+)?)/i;
     let match = regex.exec(data);
     if (!match || match.length === 0) {
       return data;
@@ -752,14 +756,16 @@ export class IncomingDataProvider {
     addr: string,
     amount: string,
     message: string,
-    coin: Coin
+    coin: Coin,
+    requiredFeeRate?: number
   ): void {
     if (amount) {
       let stateParams = {
         amount,
         toAddress: addr,
         description: message,
-        coin
+        coin,
+        requiredFeeRate
       };
       let nextView = {
         name: 'ConfirmPage',

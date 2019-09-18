@@ -7,6 +7,7 @@ import { SocialSharing } from '@ionic-native/social-sharing';
 
 // providers
 import { ActionSheetProvider } from '../../../providers/action-sheet/action-sheet';
+import { ERC20 } from '../../../providers/address/address';
 import { PlatformProvider } from '../../../providers/platform/platform';
 import { ProfileProvider } from '../../../providers/profile/profile';
 import { TxFormatProvider } from '../../../providers/tx-format/tx-format';
@@ -83,16 +84,30 @@ export class CustomAmountPage {
       }
 
       let protoAddr;
-      if (this.wallet.coin != 'bch') {
+      if (this.wallet.coin != 'bch' && !ERC20[this.wallet.coin.toUpperCase()]) {
         protoAddr = this.walletProvider.getProtoAddress(
           this.wallet.coin,
           this.wallet.network,
           this.address
         );
+      } else if (ERC20[this.wallet.coin.toUpperCase()]) {
+        protoAddr = this.walletProvider.getProtoAddress(
+          this.wallet.coin,
+          this.wallet.network,
+          this.wallet.credentials.token.address
+        );
       }
 
-      this.qrAddress =
-        (protoAddr ? protoAddr : this.address) + '?amount=' + this.amountCoin;
+      if (this.wallet.coin === 'eth') {
+        this.qrAddress =
+          protoAddr + '?value=' + (Number(this.navParams.data.amount) * 1e18).toString();
+      } else if (ERC20[this.wallet.coin.toUpperCase()]) {
+        this.qrAddress =
+          protoAddr + '/transfer?address=' + this.address + '&uint256=' + this.navParams.data.amount.toString();
+      } else {
+        this.qrAddress =
+          (protoAddr ? protoAddr : this.address) + '?amount=' + this.amountCoin;
+      }
     });
   }
 

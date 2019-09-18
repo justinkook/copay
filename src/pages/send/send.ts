@@ -238,6 +238,8 @@ export class SendPage extends WalletTabsChild {
       } else if (parsedData && parsedData.type == 'BitPayCard') {
         this.close();
         this.incomingDataProvider.redir(this.search);
+      } else if (parsedData && parsedData.type == 'EthereumUri') {
+        this.incomingDataProvider.redir(this.search);
       } else {
         this.invalidAddress = true;
       }

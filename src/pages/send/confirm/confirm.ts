@@ -448,7 +448,8 @@ export class ConfirmPage extends WalletTabsChild {
 
       const maxAllowedMerchantFee = {
         btc: 'urgent',
-        bch: 'normal'
+        bch: 'normal',
+        eth: 'urgent'
       };
 
       this.onGoingProcessProvider.set('calculatingFee');
