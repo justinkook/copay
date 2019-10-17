@@ -8,12 +8,12 @@ import { ActionSheetProvider } from '../action-sheet/action-sheet';
 import { AppProvider } from '../app/app';
 import { BwcProvider } from '../bwc/bwc';
 import { ConfigProvider } from '../config/config';
+import { Coin } from '../currency/currency';
 import { InvoiceProvider } from '../invoice/invoice';
 import { Logger } from '../logger/logger';
 import { PayproProvider } from '../paypro/paypro';
 import { Network } from '../persistence/persistence';
 import { ProfileProvider } from '../profile/profile';
-import { Coin } from '../wallet/wallet';
 
 export interface RedirParams {
   activePage?: any;

@@ -9,6 +9,10 @@ import { AmountPage } from './../../../send/amount/amount';
 
 // Providers
 import { ActionSheetProvider } from '../../../../providers/action-sheet/action-sheet';
+import {
+  CoinsMap,
+  CurrencyProvider
+} from '../../../../providers/currency/currency';
 import { ExternalLinkProvider } from '../../../../providers/external-link/external-link';
 import { PopupProvider } from '../../../../providers/popup/popup';
 import { ProfileProvider } from '../../../../providers/profile/profile';
@@ -19,8 +23,7 @@ import { ShapeshiftProvider } from '../../../../providers/shapeshift/shapeshift'
   templateUrl: 'shapeshift-shift.html'
 })
 export class ShapeshiftShiftPage {
-  private walletsBtc;
-  private walletsBch;
+  private wallets = {} as CoinsMap<any>;
 
   public toWallets;
   public fromWallets;
@@ -33,6 +36,7 @@ export class ShapeshiftShiftPage {
   public termsAccepted: boolean;
 
   constructor(
+    private currencyProvider: CurrencyProvider,
     private actionSheetProvider: ActionSheetProvider,
     private externalLinkProvider: ExternalLinkProvider,
     private logger: Logger,
@@ -42,34 +46,27 @@ export class ShapeshiftShiftPage {
     private shapeshiftProvider: ShapeshiftProvider,
     private translate: TranslateService
   ) {
-    this.walletsBtc = [];
-    this.walletsBch = [];
+    for (const coin of this.currencyProvider.getAvailableCoins()) {
+      this.wallets[coin] = this.profileProvider.getWallets({
+        onlyComplete: true,
+        network: this.network,
+        coin
+      });
+
+      if (_.isEmpty(this.wallets[coin])) {
+        this.showErrorAndBack(
+          null,
+          this.translate.instant('No wallets available to use ShapeShift')
+        );
+        return;
+      }
+    }
     this.toWallets = [];
     this.fromWallets = [];
     this.fromWalletSelectorTitle = 'From';
     this.toWalletSelectorTitle = 'To';
     this.termsAccepted = false;
     this.network = this.shapeshiftProvider.getNetwork();
-
-    this.walletsBtc = this.profileProvider.getWallets({
-      onlyComplete: true,
-      network: this.network,
-      coin: 'btc'
-    });
-
-    this.walletsBch = this.profileProvider.getWallets({
-      onlyComplete: true,
-      network: this.network,
-      coin: 'bch'
-    });
-
-    if (_.isEmpty(this.walletsBtc) || _.isEmpty(this.walletsBch)) {
-      this.showErrorAndBack(
-        null,
-        this.translate.instant('No wallets available to use ShapeShift')
-      );
-      return;
-    }
 
     this.fromWallets = this.profileProvider.getWallets({
       onlyComplete: true,
@@ -112,10 +109,9 @@ export class ShapeshiftShiftPage {
   }
 
   private showToWallets(): void {
-    this.toWallets =
-      this.fromWallet.coin == 'btc' ? this.walletsBch : this.walletsBtc;
-
-    this.toWallets = this.toWallets.filter(w => !w.needsBackup);
+    this.toWallets = this.wallets[this.fromWallet.coin].filter(
+      w => !w.needsBackup
+    );
 
     if (_.isEmpty(this.toWallets)) {
       let msg = this.translate.instant(

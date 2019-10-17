@@ -12,6 +12,7 @@ import { TabsPage } from '../../tabs/tabs';
 import { ActionSheetProvider } from '../../../providers/action-sheet/action-sheet';
 import { BwcProvider } from '../../../providers/bwc/bwc';
 import { ConfigProvider } from '../../../providers/config/config';
+import { Coin, CurrencyProvider } from '../../../providers/currency/currency';
 import { DerivationPathHelperProvider } from '../../../providers/derivation-path-helper/derivation-path-helper';
 import { OnGoingProcessProvider } from '../../../providers/on-going-process/on-going-process';
 import { PlatformProvider } from '../../../providers/platform/platform';
@@ -31,7 +32,7 @@ export class ImportWalletPage {
   private reader: FileReader;
   private defaults;
   private processedInfo;
-
+  public availableCoins: string[];
   public importForm: FormGroup;
   public prettyFileName: string;
   public formFile;
@@ -53,6 +54,7 @@ export class ImportWalletPage {
     private bwcProvider: BwcProvider,
     private walletProvider: WalletProvider,
     private configProvider: ConfigProvider,
+    private currencyProvider: CurrencyProvider,
     private popupProvider: PopupProvider,
     private platformProvider: PlatformProvider,
     private logger: Logger,
@@ -73,6 +75,7 @@ export class ImportWalletPage {
     this.isIOS = this.platformProvider.isIOS;
     this.selectedTab = 'words';
     this.showAdvOpts = false;
+    this.availableCoins = this.currencyProvider.getAvailableChains();
 
     this.code = this.navParams.data.code;
     this.processedInfo = this.processWalletInfo(this.code);
@@ -109,6 +112,10 @@ export class ImportWalletPage {
     this.processedInfo = this.processWalletInfo(data.value);
     this.setForm();
   };
+
+  public getCoinName(coin: Coin) {
+    return this.currencyProvider.getCoinName(coin);
+  }
 
   public selectTab(tab: string): void {
     this.selectedTab = tab;
