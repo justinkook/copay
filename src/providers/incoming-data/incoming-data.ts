@@ -9,6 +9,7 @@ import { AppProvider } from '../app/app';
 import { BwcProvider } from '../bwc/bwc';
 import { ConfigProvider } from '../config/config';
 import { Coin } from '../currency/currency';
+import { Token } from '../currency/token';
 import { InvoiceProvider } from '../invoice/invoice';
 import { Logger } from '../logger/logger';
 import { PayproProvider } from '../paypro/paypro';
@@ -19,6 +20,7 @@ export interface RedirParams {
   activePage?: any;
   amount?: string;
   coin?: Coin;
+  token?: Token;
   fromHomeCard?: boolean;
 }
 

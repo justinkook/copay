@@ -198,7 +198,10 @@ export class ConfirmPage extends WalletTabsChild {
     this.tx = {
       toAddress: this.navParams.data.toAddress,
       sendMax: this.navParams.data.useSendMax ? true : false,
-      amount: this.navParams.data.useSendMax ? 0 : parseInt(amount, 10),
+      amount:
+        this.navParams.data.useSendMax && this.isChain()
+          ? 0
+          : parseInt(amount, 10),
       description: this.navParams.data.description,
       paypro: this.navParams.data.paypro,
       data: this.navParams.data.data, // eth
@@ -214,7 +217,8 @@ export class ConfirmPage extends WalletTabsChild {
         ? this.navParams.data.network
         : networkName,
       coin: this.navParams.data.coin,
-      txp: {}
+      txp: {},
+      tokenAddress: this.navParams.data.tokenAddress
     };
     this.tx.origToAddress = this.tx.toAddress;
 
@@ -268,6 +272,15 @@ export class ConfirmPage extends WalletTabsChild {
         this.currencyProvider.getPrecision(this.coin).unitToSatoshi,
       '1.2-6'
     );
+  }
+
+  private isChain() {
+    const chain = this.currencyProvider.getAvailableChains();
+    return chain.includes(this.coin);
+  }
+
+  public isERCToken(): boolean {
+    return this.currencyProvider.isERCToken(this.coin);
   }
 
   private afterWalletSelectorSet() {
@@ -471,7 +484,7 @@ export class ConfirmPage extends WalletTabsChild {
           }
 
           // call getSendMaxInfo if was selected from amount view
-          if (tx.sendMax) {
+          if (tx.sendMax && this.isChain()) {
             this.useSendMax(tx, wallet, opts)
               .then(() => {
                 return resolve();
@@ -741,6 +754,17 @@ export class ConfirmPage extends WalletTabsChild {
         txp.customData = {
           toWalletName: tx.name ? tx.name : null
         };
+      }
+
+      if (tx.tokenAddress) {
+        txp.tokenAddress = tx.tokenAddress;
+        txp.data = this.bwcProvider
+          .getCore()
+          .Transactions.get({ chain: 'ERC20' })
+          .encodeData({
+            recipients: [{ address: tx.toAddress, amount: tx.amount }],
+            tokenAddress: tx.tokenAddress
+          });
       }
 
       this.walletProvider

@@ -564,6 +564,9 @@ export class AmountPage extends WalletTabsChild {
         toWalletId: this.toWalletId,
         cardName: this.cardName
       };
+      if (this.wallet && this.wallet.credentials.token) {
+        data.tokenAddress = this.wallet.credentials.token.address;
+      }
     } else {
       let amount = _amount;
       amount = unit.isFiat
@@ -580,6 +583,10 @@ export class AmountPage extends WalletTabsChild {
         useSendMax: this.useSendMax,
         description: this.description
       };
+
+      if (this.wallet && this.wallet.credentials.token) {
+        data.tokenAddress = this.wallet.credentials.token.address;
+      }
 
       if (unit.isFiat) {
         data.fiatAmount = _amount;

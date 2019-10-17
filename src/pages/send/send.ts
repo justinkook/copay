@@ -105,9 +105,11 @@ export class SendPage extends WalletTabsChild {
 
   public openScanner(): void {
     this.scannerOpened = true;
+    const { token } = this.wallet.credentials;
     this.walletTabsProvider.setSendParams({
       amount: this.navParams.data.amount,
-      coin: this.navParams.data.coin
+      coin: this.navParams.data.coin,
+      token: token ? token.address : ''
     });
     this.walletTabsProvider.setFromPage({ fromSend: true });
     this.events.publish('ScanFromWallet');
@@ -153,9 +155,11 @@ export class SendPage extends WalletTabsChild {
   }
 
   private redir() {
+    const { token } = this.wallet.credentials;
     this.incomingDataProvider.redir(this.search, {
       amount: this.navParams.data.amount,
-      coin: this.navParams.data.coin
+      coin: this.navParams.data.coin,
+      token: token ? token.address : ''
     });
     this.search = '';
   }
