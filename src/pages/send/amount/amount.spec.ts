@@ -47,6 +47,7 @@ describe('AmountPage', () => {
       instance.ionViewDidLoad();
       instance.fiatCode = 'USD';
       instance.unitIndex = 1;
+      instance.unitToSatoshi = 1e8;
       const rateProvider: RateProvider = testBed.get(RateProvider);
       spyOn(rateProvider, 'getRate').and.returnValue(1000000);
       const spy = spyOn(rateProvider, 'toFiat').and.returnValue(1000000);
