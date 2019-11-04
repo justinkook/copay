@@ -303,7 +303,7 @@ describe('Provider: Incoming Data Provider', () => {
         };
 
         let nextView = {
-          name: 'ConfirmInvoicePage',
+          name: 'SelectInvoicePage',
           params: stateParams
         };
 
