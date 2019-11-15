@@ -68,7 +68,9 @@ export class IncomingDataProvider {
 
   private isValidPayProNonBackwardsCompatible(data: string): boolean {
     data = this.sanitizeUri(data);
-    return !!/^(bitcoin|bitcoincash|bchtest|ethereum)?:\?r=[\w+]/.exec(data);
+    return !!/^(bitcoin|bitcoincash|bchtest|ethereum|ripple)?:\?r=[\w+]/.exec(
+      data
+    );
   }
 
   private isValidBitPayInvoice(data: string): boolean {
@@ -88,6 +90,11 @@ export class IncomingDataProvider {
   private isValidEthereumUri(data: string): boolean {
     data = this.sanitizeUri(data);
     return !!this.bwcProvider.getCore().Validation.validateUri('ETH', data);
+  }
+
+  private isValidRippleUri(data: string): boolean {
+    data = this.sanitizeUri(data);
+    return !!this.bwcProvider.getCore().Validation.validateUri('XRP', data);
   }
 
   public isValidBitcoinCashUriWithLegacyAddress(data: string): boolean {
@@ -130,6 +137,12 @@ export class IncomingDataProvider {
     return !!this.bwcProvider
       .getCore()
       .Validation.validateAddress('ETH', 'livenet', data);
+  }
+
+  private isValidRippleAddress(data: string): boolean {
+    return !!this.bwcProvider
+      .getCore()
+      .Validation.validateAddress('XRP', 'livenet', data);
   }
 
   private isValidCoinbaseUri(data: string): boolean {
@@ -285,6 +298,31 @@ export class IncomingDataProvider {
     }
   }
 
+  private handleRippleUri(data: string, redirParams?: RedirParams): void {
+    this.logger.debug('Incoming-data: Ripple URI');
+    let amountFromRedirParams =
+      redirParams && redirParams.amount ? redirParams.amount : '';
+    const coin = Coin.XRP;
+    const amountParam = /[\?\&]amount=(\d+([\,\.]\d+)?)/i;
+    const tagParam = /[\?\&]dt=(\d+([\,\.]\d+)?)/i;
+    let parsedAmount;
+    let destinationTag;
+    if (amountParam.exec(data)) {
+      parsedAmount = amountParam.exec(data)[1];
+    }
+    if (tagParam.exec(data)) {
+      destinationTag = tagParam.exec(data)[1];
+    }
+    const address = this.extractAddress(data);
+    const message = '';
+    const amount = parsedAmount || amountFromRedirParams;
+    if (amount) {
+      this.goSend(address, amount, message, coin, '', destinationTag);
+    } else {
+      this.handleRippleAddress(address, redirParams);
+    }
+  }
+
   private handleBitcoinCashUriLegacyAddress(data: string): void {
     this.logger.debug('Incoming-data: Bitcoin Cash URI with legacy address');
     const coin = Coin.BCH;
@@ -367,6 +405,22 @@ export class IncomingDataProvider {
       this.showMenu({
         data,
         type: 'ethereumAddress',
+        coin
+      });
+    } else if (redirParams && redirParams.amount) {
+      this.goSend(data, redirParams.amount, '', coin);
+    } else {
+      this.goToAmountPage(data, coin);
+    }
+  }
+
+  private handleRippleAddress(data: string, redirParams?: RedirParams): void {
+    this.logger.debug('Incoming-data: Ripple address');
+    const coin = Coin.XRP;
+    if (redirParams && redirParams.activePage === 'ScanPage') {
+      this.showMenu({
+        data,
+        type: 'rippleAddress',
         coin
       });
     } else if (redirParams && redirParams.amount) {
@@ -502,6 +556,11 @@ export class IncomingDataProvider {
       this.handleEthereumUri(data, redirParams);
       return true;
 
+      // Ripple URI
+    } else if (this.isValidRippleUri(data)) {
+      this.handleRippleUri(data, redirParams);
+      return true;
+
       // Bitcoin Cash URI using Bitcoin Core legacy address
     } else if (this.isValidBitcoinCashUriWithLegacyAddress(data)) {
       this.handleBitcoinCashUriLegacyAddress(data);
@@ -525,6 +584,11 @@ export class IncomingDataProvider {
       // Address (Ethereum)
     } else if (this.isValidEthereumAddress(data)) {
       this.handleEthereumAddress(data, redirParams);
+      return true;
+
+      // Address (Ripple)
+    } else if (this.isValidRippleAddress(data)) {
+      this.handleRippleAddress(data, redirParams);
       return true;
 
       // Coinbase
@@ -612,6 +676,14 @@ export class IncomingDataProvider {
         title: this.translate.instant('Ethereum URI')
       };
 
+      // Ripple URI
+    } else if (this.isValidRippleUri(data)) {
+      return {
+        data,
+        type: 'RippleUri',
+        title: this.translate.instant('Ripple URI')
+      };
+
       // Bitcoin Cash URI using Bitcoin Core legacy address
     } else if (this.isValidBitcoinCashUriWithLegacyAddress(data)) {
       return {
@@ -650,6 +722,14 @@ export class IncomingDataProvider {
         data,
         type: 'EthereumAddress',
         title: this.translate.instant('Ethereum Address')
+      };
+
+      // Plain Address (Ripple)
+    } else if (this.isValidRippleAddress(data)) {
+      return {
+        data,
+        type: 'RippleAddress',
+        title: this.translate.instant('Ripple Address')
       };
 
       // Coinbase
@@ -722,7 +802,7 @@ export class IncomingDataProvider {
 
   public getPayProUrl(data: string): string {
     return decodeURIComponent(
-      data.replace(/(bitcoin|bitcoincash|ethereum)?:\?r=/, '')
+      data.replace(/(bitcoin|bitcoincash|ethereum|ripple)?:\?r=/, '')
     );
   }
 
@@ -758,7 +838,8 @@ export class IncomingDataProvider {
     amount: string,
     message: string,
     coin: Coin,
-    requiredFeeRate?: string
+    requiredFeeRate?: string,
+    destinationTag?: number
   ): void {
     if (amount) {
       let stateParams = {
@@ -766,7 +847,8 @@ export class IncomingDataProvider {
         toAddress: addr,
         description: message,
         coin,
-        requiredFeeRate
+        requiredFeeRate,
+        destinationTag
       };
       let nextView = {
         name: 'ConfirmPage',
@@ -819,6 +901,7 @@ export class IncomingDataProvider {
       return;
     }
 
+    let invoiceID;
     let requiredFeeRate;
 
     if (payProDetails.requiredFeeRate) {
@@ -836,11 +919,17 @@ export class IncomingDataProvider {
       const { estimatedAmount } = paymentOptions.find(
         option => option.currency.toLowerCase() === coin
       );
+      const instructions = payProDetails.instructions[0];
+      const { outputs, toAddress, data } = instructions;
+      if (coin === 'xrp' && outputs) {
+        invoiceID = outputs.invoiceID;
+      }
       const stateParams = {
         amount: estimatedAmount,
-        toAddress: payProDetails.instructions[0].toAddress,
+        toAddress,
         description: payProDetails.memo,
-        data: payProDetails.instructions[0].data,
+        data,
+        invoiceID,
         paypro: payProDetails,
         coin,
         network: payProDetails.network,

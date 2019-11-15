@@ -447,6 +447,24 @@ describe('Provider: Incoming Data Provider', () => {
         });
       });
     });
+    it('Should handle XRP plain Address', () => {
+      let data = ['rh3VLyj1GbQjX7eA15BwUagEhSrPHmLkSR'];
+      data.forEach(element => {
+        expect(
+          incomingDataProvider.redir(element, { activePage: 'ScanPage' })
+        ).toBe(true);
+        expect(loggerSpy).toHaveBeenCalledWith('Incoming-data: Ripple address');
+
+        expect(actionSheetSpy).toHaveBeenCalledWith({
+          data: {
+            data: element,
+            type: 'rippleAddress',
+            coin: 'xrp'
+          }
+        });
+      });
+    });
+
     it('Should handle Bitcoin cash Copay/BitPay format and CashAddr format URI', () => {
       let data = [
         'bitcoincash:CcnxtMfvBHGTwoKGPSuezEuYNpGPJH6tjN',
@@ -501,6 +519,24 @@ describe('Provider: Incoming Data Provider', () => {
       });
     });
 
+    it('Should handle XRP URI as address if there is no amount', () => {
+      let data = ['ripple:rh3VLyj1GbQjX7eA15BwUagEhSrPHmLkSR'];
+      data.forEach(element => {
+        expect(
+          incomingDataProvider.redir(element, { activePage: 'ScanPage' })
+        ).toBe(true);
+        expect(loggerSpy).toHaveBeenCalledWith('Incoming-data: Ripple address');
+
+        expect(actionSheetSpy).toHaveBeenCalledWith({
+          data: {
+            data: 'rh3VLyj1GbQjX7eA15BwUagEhSrPHmLkSR',
+            type: 'rippleAddress',
+            coin: 'xrp'
+          }
+        });
+      });
+    });
+
     it('Should handle ETH URI with amount (value)', () => {
       let data = [
         {
@@ -537,6 +573,47 @@ describe('Provider: Incoming Data Provider', () => {
           incomingDataProvider.redir(element.uri, { activePage: 'ScanPage' })
         ).toBe(true);
         expect(loggerSpy).toHaveBeenCalledWith('Incoming-data: Ethereum URI');
+        expect(eventsSpy).toHaveBeenCalledWith('IncomingDataRedir', nextView);
+      });
+    });
+
+    it('Should handle XRP URI with amount', () => {
+      let data = [
+        {
+          uri: 'ripple:rh3VLyj1GbQjX7eA15BwUagEhSrPHmLkSR?amount=1543000000000',
+          stateParams: {
+            amount: '1543000000000',
+            toAddress: 'rh3VLyj1GbQjX7eA15BwUagEhSrPHmLkSR',
+            description: '',
+            coin: 'xrp',
+            requiredFeeRate: undefined,
+            destinationTag: undefined
+          },
+          nextpage: 'ConfirmPage'
+        },
+        {
+          uri:
+            'ripple:rh3VLyj1GbQjX7eA15BwUagEhSrPHmLkSR?amount=1543000000000000000?dt=123456',
+          stateParams: {
+            amount: '1543000000000',
+            toAddress: 'rh3VLyj1GbQjX7eA15BwUagEhSrPHmLkSR',
+            description: '',
+            coin: 'xrp',
+            requiredFeeRate: '0000400000000',
+            destinationTag: 123456
+          },
+          nextpage: 'ConfirmPage'
+        }
+      ];
+      data.forEach(element => {
+        let nextView = {
+          name: element.nextpage,
+          params: element.stateParams
+        };
+        expect(
+          incomingDataProvider.redir(element.uri, { activePage: 'ScanPage' })
+        ).toBe(true);
+        expect(loggerSpy).toHaveBeenCalledWith('Incoming-data: Ripple URI');
         expect(eventsSpy).toHaveBeenCalledWith('IncomingDataRedir', nextView);
       });
     });
