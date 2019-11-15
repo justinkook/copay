@@ -46,10 +46,23 @@ export class AddressProvider {
           if (isValidEthAddress) {
             return { coin: 'eth', network };
           } else {
-            return null;
+            throw isValidEthAddress;
           }
         } catch (e) {
-          return null;
+          try {
+            const isValidXrpAddress = this.core.Validation.validateAddress(
+              'XRP',
+              network,
+              address
+            );
+            if (isValidXrpAddress) {
+              return { coin: 'xrp', network };
+            } else {
+              return null;
+            }
+          } catch (e) {
+            return null;
+          }
         }
       }
     }
@@ -73,6 +86,7 @@ export class AddressProvider {
     if (Address.isValid(str, 'testnet')) return true;
     if (AddressCash.isValid(str, 'livenet')) return true;
     if (AddressCash.isValid(str, 'testnet')) return true;
+    if (AddressEth.validateAddress('XRP', 'livenet', str)) return true;
     if (AddressEth.validateAddress('ETH', 'livenet', str)) return true;
 
     return false;

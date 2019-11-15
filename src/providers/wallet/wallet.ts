@@ -77,6 +77,8 @@ export interface TransactionProposal {
   feeLevel: string;
   dryRun: boolean;
   tokenAddress?: string;
+  destinationTag?: string;
+  invoiceID?: string;
 }
 
 @Injectable()
