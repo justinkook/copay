@@ -28,7 +28,7 @@
       <div class="title-info">
         <span translate>Mmm...</span>
       </div>
-      <div class="subtitle-info" *ngIf="!wallet.coin === 'xrp'">
+      <div class="subtitle-info" *ngIf="wallet.coin !== 'xrp'">
         <span translate>It appears that you do not have any money to send.</span>
       </div>
 

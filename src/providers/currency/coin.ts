@@ -175,7 +175,7 @@ export const availableCoins: CoinsMap<CoinOpts> = {
       feeUnit: 'drops',
       feeUnitAmount: 1e6,
       blockTime: 0.05,
-      maxMerchantFee: 'urgent'
+      maxMerchantFee: 'normal'
     },
     theme: {
       backgroundColor: 'rgba(35,41,47,1)',

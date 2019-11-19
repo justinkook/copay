@@ -1027,7 +1027,7 @@ export class ConfirmPage extends WalletTabsChild {
   }
 
   public chooseFeeLevel(): void {
-    if (this.tx.coin == 'bch') return;
+    if (this.tx.coin === 'bch' || this.tx.coin === 'xrp') return;
     if (this.usingMerchantFee) return; // TODO: should we allow override?
 
     const txObject = {
