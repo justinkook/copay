@@ -131,7 +131,7 @@ export class MyMissingTranslationHandler implements MissingTranslationHandler {
     ZXingScannerModule.forRoot(),
     /* Enable Service Workers for Production */
     ServiceWorkerModule.register('./ngsw-worker.js', {
-      enabled: env.name === 'production'
+      enabled: true
     })
   ],
   bootstrap: [IonicApp],
@@ -145,5 +145,5 @@ export class MyMissingTranslationHandler implements MissingTranslationHandler {
   ]
 })
 export class AppModule {
-  constructor(public config: Config) { }
+  constructor(public config: Config) {}
 }

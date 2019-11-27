@@ -12,8 +12,7 @@ const templates = {
   'ionic.config-template.json': '/',
   'manifest.ionic-template.json': 'src/',
   'build-electron-template.js': 'electron/',
-  'afterPack-template.js': 'electron/',
-  'ngsw-worker.js': 'src/'
+  'afterPack-template.js': 'electron/'
 };
 
 const jsonHeader = `{
@@ -23,7 +22,7 @@ const jsonHeader = `{
 
 console.log(`Applying templates for: ${config.nameCase}`);
 
-Object.keys(templates).forEach(function (k) {
+Object.keys(templates).forEach(function(k) {
   const targetDir = templates[k];
   console.log(' #    ' + k + ' => ' + targetDir);
 
@@ -35,7 +34,7 @@ Object.keys(templates).forEach(function (k) {
     content = MakefileHeader + content;
   }
 
-  Object.keys(config).forEach(function (k) {
+  Object.keys(config).forEach(function(k) {
     if (k.indexOf('_') == 0) return;
 
     const r = new RegExp('\\*' + k.toUpperCase() + '\\*', 'g');
@@ -61,8 +60,6 @@ Object.keys(templates).forEach(function (k) {
     k = 'afterPack.js';
   } else if (k === 'build-electron-template.js') {
     k = 'build-electron.js';
-  } else if (k === 'ngsw-worker.js') {
-    k = 'ngsw-worker.js';
   }
 
   if (!fs.existsSync('../' + targetDir)) {
@@ -72,7 +69,7 @@ Object.keys(templates).forEach(function (k) {
 });
 
 // Get latest commit hash
-const getCommitHash = function () {
+const getCommitHash = function() {
   //exec git command to get the hash of the current commit
   const hash = shell
     .exec('git rev-parse HEAD', {
