@@ -3,7 +3,6 @@ import { ErrorHandler, NgModule } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { ServiceWorkerModule } from '@angular/service-worker';
-
 import {
   Config,
   IonicApp,
@@ -131,7 +130,7 @@ export class MyMissingTranslationHandler implements MissingTranslationHandler {
     }),
     ZXingScannerModule.forRoot(),
     /* Enable Service Workers for Production */
-    ServiceWorkerModule.register('/ngsw-worker.js', {
+    ServiceWorkerModule.register('./ngsw-worker.js', {
       enabled: env.name === 'production'
     })
   ],
@@ -146,5 +145,5 @@ export class MyMissingTranslationHandler implements MissingTranslationHandler {
   ]
 })
 export class AppModule {
-  constructor(public config: Config) {}
+  constructor(public config: Config) { }
 }

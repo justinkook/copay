@@ -1,6 +1,6 @@
 {
-  "name": "copay",
-  "description": "A Secure Bitcoin Wallet",
+  "name": "bitpay",
+  "description": "Secure Bitcoin Wallet",
   "author": "BitPay",
   "version": "8.0.3",
   "keywords": [
@@ -16,7 +16,7 @@
     "npm": "6.4.1"
   },
   "main": "electron/main.js",
-  "title": "Copay",
+  "title": "BitPay",
   "user-agent": "%name %ver (%osinfo)",
   "webkit": {
     "page-cache": false,
@@ -25,7 +25,7 @@
   },
   "dom_storage_quota": 200,
   "id": "jid1-x7bV5evAaI1P9Q",
-  "homepage": "https://copay.io",
+  "homepage": "https://bitpay.com",
   "license": "MIT",
   "repository": {
     "url": "git://github.com/bitpay/copay.git",
@@ -36,6 +36,7 @@
   },
   "scripts": {
     "postinstall": "npm run env:dev && npm run prompt",
+    "heroku-postbuild": "npm run env:prod && npm run apply:bitpay && npm run ionic:build --prod && npm run ngsw-apply",
     "electron:patch": "(! grep -q 'com.apple.security.app-sandbox' ./node_modules/app-builder-lib/templates/entitlements.mac.plist && sed -i -e \"/<dict>/ a\\ \n<key>com.apple.security.app-sandbox</key><true/>\" ./node_modules/app-builder-lib/templates/entitlements.mac.plist) | echo 'electron patched.'",
     "prompt": "\n\n\n\n\n\n#\n#  Choose a distribution with:\n#\n#     $ npm run apply:copay\n#              or\n#     $ npm run apply:bitpay\n#\n",
     "start": "npm run ionic:serve",
@@ -90,11 +91,11 @@
     "sign:bitpay-macos": "gpg -u 1112CFA1 --output dist/BitPay.dmg.sig --detach-sig dist/BitPay.dmg",
     "sign:bitpay-linux": "gpg -u 1112CFA1 --output dist/BitPay-linux.zip.sig --detach-sig dist/BitPay-linux.zip",
     "sign:bitpay-windows": "gpg -u 1112CFA1 --output dist/BitPay.exe.sig --detach-sig dist/BitPay.exe",
-    "verify:bitpay-desktop": "gpg --verify dist/BitPay-linux.zip.sig dist/BitPay-linux.zip; gpg --verify dist/BitPay.exe.sig dist/BitPay.exe; gpg --verify dist/BitPay.dmg.sig dist/BitPay.dmg"
+    "verify:bitpay-desktop": "gpg --verify dist/BitPay-linux.zip.sig dist/BitPay-linux.zip; gpg --verify dist/BitPay.exe.sig dist/BitPay.exe; gpg --verify dist/BitPay.dmg.sig dist/BitPay.dmg",
+    "ngsw-apply": "cp ngsw-worker.js www/"
   },
   "dependencies": {
     "@angular/animations": "5.2.10",
-    "@angular/cli": "7.1.4",
     "@angular/common": "5.2.10",
     "@angular/compiler": "5.2.10",
     "@angular/compiler-cli": "5.2.10",
@@ -120,7 +121,6 @@
     "@ionic-native/touch-id": "4.14.0",
     "@ionic-native/user-agent": "4.14.0",
     "@ionic-native/vibration": "4.14.0",
-    "@ionic/app-scripts": "3.2.3",
     "@ionic/storage": "2.1.3",
     "@ngx-translate/core": "9.1.1",
     "@zxing/library": "0.8.2",
@@ -129,7 +129,7 @@
     "base64-js": "1.3.0",
     "bitauth": "git+https://github.com/bitpay/bitauth.git#copay",
     "bitcore-wallet-client": "8.12.0",
-    "body-parser": "^1.19.0",
+    "body-parser": "1.19.0",
     "buffer-compare": "1.1.1",
     "chart.js": "2.8.0",
     "cordova": "8.1.2",
@@ -162,16 +162,16 @@
     "cordova-plugin-wkwebview-engine": "1.1.4",
     "cordova-plugin-x-socialsharing": "5.3.2",
     "cordova-plugin-x-toast": "2.6.0",
-    "cors": "^2.8.5",
+    "cors": "2.8.5",
     "es6-promise-plugin": "4.2.2",
-    "express": "^4.17.1",
+    "express": "4.17.1",
     "fcm-ng": "1.1.0",
     "gettext-parser": "1.3.0",
     "ionic-angular": "3.9.5",
     "ionic-image-loader": "6.3.2",
     "ionicons": "3.0.0",
     "lodash": "4.17.15",
-    "morgan": "^1.9.1",
+    "morgan": "1.9.1",
     "ngx-barcode": "0.2.4",
     "ngx-markdown": "1.5.2",
     "ngx-qrcode2": "0.1.0",
@@ -183,11 +183,13 @@
   },
   "devDependencies": {
     "@angular-devkit/build-angular": "0.12.4",
+    "@angular/cli": "7.1.4",
     "@biesbjerg/ngx-translate-extract": "2.3.4",
     "@ionic-native-mocks/android-fingerprint-auth": "2.0.12",
     "@ionic-native-mocks/file": "2.0.12",
     "@ionic-native-mocks/qr-scanner": "2.0.12",
     "@ionic-native-mocks/touch-id": "2.0.12",
+    "@ionic/app-scripts": "3.2.3",
     "@types/chrome": "0.0.64",
     "@types/cordova-plugin-qrscanner": "1.0.31",
     "@types/jasmine": "2.8.6",
@@ -241,7 +243,7 @@
       "cordova-custom-config": {},
       "cordova-plugin-customurlscheme-ng": {
         "URL_SCHEME": "bitcoin",
-        "SECOND_URL_SCHEME": "copay",
+        "SECOND_URL_SCHEME": "bitpay",
         "THIRD_URL_SCHEME": "bitcoincash",
         "FOURTH_URL_SCHEME": "bchtest",
         "FIFTH_URL_SCHEME": "ethereum",
