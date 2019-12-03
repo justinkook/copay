@@ -63,6 +63,7 @@ export class BitPayCardTopUpPage {
   private countDown;
   public paymentExpired: boolean;
   public remainingTimeStr: string;
+  public isERCToken: boolean;
 
   private bitcoreCash;
   private createdTx;
@@ -244,18 +245,21 @@ export class BitPayCardTopUpPage {
     invoiceFeeSat: number,
     networkFeeSat: number
   ) {
-    this.satToFiat(wallet.coin, amountSat).then((a: string) => {
-      this.amount = Number(a);
+    const chain = this.currencyProvider.getChain(wallet.coin).toLowerCase();
+    this.satToFiat(this.isERCToken ? wallet.coin : chain, amountSat).then(
+      (a: string) => {
+        this.amount = Number(a);
 
-      this.satToFiat(wallet.coin, invoiceFeeSat).then((i: string) => {
-        this.invoiceFee = Number(i);
+        this.satToFiat(chain, invoiceFeeSat).then((i: string) => {
+          this.invoiceFee = Number(i);
 
-        this.satToFiat(wallet.coin, networkFeeSat).then((n: string) => {
-          this.networkFee = Number(n);
-          this.totalAmount = this.amount + this.invoiceFee + this.networkFee;
+          this.satToFiat(chain, networkFeeSat).then((n: string) => {
+            this.networkFee = Number(n);
+            this.totalAmount = this.amount + this.invoiceFee + this.networkFee;
+          });
         });
-      });
-    });
+      }
+    );
   }
 
   private isCryptoCurrencySupported(wallet, invoice) {
@@ -590,7 +594,7 @@ export class BitPayCardTopUpPage {
 
             this.totalAmountStr = this.txFormatProvider.formatAmountStr(
               wallet.coin,
-              ctxp.amount
+              ctxp.amount || parsedAmount.amountSat
             );
 
             if (this.currencyProvider.isUtxoCoin(wallet.coin)) {
@@ -708,13 +712,15 @@ export class BitPayCardTopUpPage {
 
   public onWalletSelect(wallet): void {
     this.wallet = wallet;
-
+    this.isERCToken = this.currencyProvider.isERCToken(this.wallet.coin);
     if (this.countDown) {
       clearInterval(this.countDown);
     }
 
-    // Update Rates
-    this.updateRates(wallet.coin);
+    if (!this.isERCToken) {
+      // Update Rates
+      this.updateRates(wallet.coin);
+    }
 
     this.onGoingProcessProvider.set('retrievingInputs');
     this.calculateAmount(wallet)
