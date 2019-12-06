@@ -210,10 +210,7 @@ export class IncomingDataProvider {
     this.logger.debug('Incoming-data: Handling bitpay invoice');
     try {
       const disableLoader = true;
-      const details = await this.payproProvider.getPayProOptions(
-        invoiceUrl,
-        disableLoader
-      );
+      const details = await this.payproProvider.getPayProOptions(invoiceUrl);
       const selected = details.paymentOptions.filter(option => option.selected);
       if (selected.length === 1) {
         // BTC, BCH, ETH Chains
@@ -707,7 +704,7 @@ export class IncomingDataProvider {
       return {
         data,
         type: 'BitPayCard',
-        title: this.translate.instant('BitPay Card URI')
+        title: 'BitPay Card URI'
       };
 
       // BitPay  URI
@@ -715,7 +712,7 @@ export class IncomingDataProvider {
       return {
         data,
         type: 'BitPayUri',
-        title: this.translate.instant('BitPay URI')
+        title: 'BitPay URI'
       };
 
       // Join
