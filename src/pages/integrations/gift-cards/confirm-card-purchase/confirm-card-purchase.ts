@@ -182,7 +182,9 @@ export class ConfirmCardPurchasePage extends ConfirmPage {
     this.wallets = this.profileProvider.getWallets({
       onlyComplete: true,
       network: this.network,
-      hasFunds: true
+      hasFunds: true,
+      currency: this.currency,
+      minFiatAmount: this.amount
     });
     if (_.isEmpty(this.wallets)) {
       this.showErrorInfoSheet(

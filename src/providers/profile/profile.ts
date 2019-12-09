@@ -1710,6 +1710,23 @@ export class ProfileProvider {
       });
     }
 
+    if (opts.minFiatAmount && opts.currency) {
+      ret = _.filter(ret, w => {
+        // IF no cached Status => return true!
+        if (_.isEmpty(w.cachedStatus)) return true;
+        const {
+          availableBalanceAlternative,
+          alternativeBalanceAvailable,
+          alternativeIsoCode
+        } = w.cachedStatus;
+        return (
+          alternativeBalanceAvailable &&
+          alternativeIsoCode === opts.currency &&
+          Number(availableBalanceAlternative) >= opts.minFiatAmount
+        );
+      });
+    }
+
     if (opts.hasFunds) {
       ret = _.filter(ret, w => {
         // IF no cached Status => return true!
