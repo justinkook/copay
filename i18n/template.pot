@@ -585,6 +585,9 @@ msgstr ""
 msgid "Create"
 msgstr ""
 
+msgid "Create Key"
+msgstr ""
+
 msgid "Create New Key"
 msgstr ""
 
@@ -989,6 +992,9 @@ msgstr ""
 msgid "Gift Card"
 msgstr ""
 
+msgid "Gift Card Settings"
+msgstr ""
+
 msgid "Gift card canceled"
 msgstr ""
 
@@ -1031,6 +1037,9 @@ msgid "Hide"
 msgstr ""
 
 msgid "Hide Balance"
+msgstr ""
+
+msgid "Hide Wallet"
 msgstr ""
 
 msgid "Hide advanced options"
@@ -1129,8 +1138,8 @@ msgstr ""
 
 msgid ""
 "In order to create a token wallet, an Ethereum (ETH) wallet is required. "
-"Please create an ETH wallet first.\n"
-"        Only one {{ params.token.name }} wallet is allowed per ETH wallet."
+"Please create an ETH wallet first. Only one {{ params.token.name }} wallet "
+"is allowed per ETH wallet."
 msgstr ""
 
 msgid ""
@@ -1251,6 +1260,9 @@ msgid "Learn more"
 msgstr ""
 
 msgid "Learn more about testnet blockchain"
+msgstr ""
+
+msgid "Learn where you can spend your crypto today."
 msgstr ""
 
 msgid "Legacy"
@@ -2188,6 +2200,11 @@ msgid ""
 msgstr ""
 
 msgid ""
+"The amount on the transaction does not match the amount requested. This "
+"payment will not be accepted"
+msgstr ""
+
+msgid ""
 "The destination wallet is not backed up. Please, complete the backup "
 "process before continue."
 msgstr ""
@@ -2202,6 +2219,9 @@ msgid ""
 "The information you are about to share/export may contain sensitive data "
 "such us wallet IDs, addresses, balances, etc. Please be sure you trust the "
 "person or entity with whom you are sharing this information."
+msgstr ""
+
+msgid "The invoice is no available"
 msgstr ""
 
 msgid ""
@@ -2260,6 +2280,11 @@ msgid ""
 "The transaction history and every new incoming transaction are cached in "
 "the app. Clearing the cache cleans up the transaction history and "
 "synchronizes again from the server."
+msgstr ""
+
+msgid ""
+"The transaction you sent does not have any output to the address on the "
+"invoice"
 msgstr ""
 
 msgid "The wallet is already in the app"
@@ -2324,13 +2349,19 @@ msgstr ""
 msgid "This invoice does not accept unconfirmed inputs."
 msgstr ""
 
-msgid "This invoice is not longer accepting payments"
+msgid "This invoice is no longer accepting payments"
+msgstr ""
+
+msgid "This invoice is priced in BTC, not BCH. Please try with a BTC wallet instead"
 msgstr ""
 
 msgid ""
 "This is a new 12-word key that manages its own set of wallets. It is "
 "unrelated to any 12 word key you may have previously created. Store and "
 "manage it accordingly."
+msgstr ""
+
+msgid "This key contains {{wallets.length}} wallets."
 msgstr ""
 
 msgid ""
@@ -2429,6 +2460,9 @@ msgid "Transaction already broadcasted"
 msgstr ""
 
 msgid "Transaction confirmed"
+msgstr ""
+
+msgid "Transaction fee is below the current minimum threshold"
 msgstr ""
 
 msgid "Transaction has not been created"
@@ -2543,6 +2577,9 @@ msgid "View"
 msgstr ""
 
 msgid "View Confirmation Status"
+msgstr ""
+
+msgid "View Directory"
 msgstr ""
 
 msgid "View Invoice"
@@ -2681,7 +2718,22 @@ msgid ""
 "joining our community on Crowdin."
 msgstr ""
 
+msgid ""
+"We could not find one or more inputs for your transaction on the "
+"blockchain. Make sure you're not trying to use unconfirmed change"
+msgstr ""
+
 msgid "We couldn't find your wallet!"
+msgstr ""
+
+msgid ""
+"We were unable to parse the transaction you sent. Please try again or "
+"contact your wallet provider"
+msgstr ""
+
+msgid ""
+"We were unable to parse your payment. Please try again or contact your "
+"wallet provider"
 msgstr ""
 
 msgid ""
@@ -2867,6 +2919,16 @@ msgid "Your recovery phrase is verified"
 msgstr ""
 
 msgid ""
+"Your request did not include a transaction. Please try again or contact "
+"your wallet provider"
+msgstr ""
+
+msgid ""
+"Your transaction was an in an invalid format, it must be a hexadecimal "
+"string. Contact your wallet provider"
+msgstr ""
+
+msgid ""
 "Your wallet address is similar to a bank account number. You can add funds "
 "to your wallet by withdrawing funds you may have stored on an exchange to "
 "your wallet address. Or other {coinName} users can send you money by "
@@ -2880,8 +2942,8 @@ msgstr ""
 
 msgid ""
 "Your wallet master key is a phrase composed of 12 randomly selected words. "
-"If you were to ever lose or damage your device, you can restore access to "
-"your wallet as long as you have your 12 word master key."
+"If you ever lose or damage your device, you can re-gain access to your "
+"wallet as long as you have your 12 word master key."
 msgstr ""
 
 msgid "Your wallet {{walletName}} is complete."
@@ -2954,4 +3016,10 @@ msgid "{{updatingTxHistoryProgress}} transactions downloaded"
 msgstr ""
 
 msgid "{{wallet.m}}-of-{{wallet.n}}"
+msgstr ""
+
+msgid "{{walletsGroup.length}} Wallet"
+msgstr ""
+
+msgid "{{walletsGroup.length}} Wallets"
 msgstr ""
