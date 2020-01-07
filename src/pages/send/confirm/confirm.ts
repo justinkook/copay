@@ -199,8 +199,10 @@ export class ConfirmPage extends WalletTabsChild {
           ? 0
           : parseInt(amount, 10),
       description: this.navParams.data.description,
+      destinationTag: this.navParams.data.destinationTag, // xrp
       paypro: this.navParams.data.paypro,
       data: this.navParams.data.data, // eth
+      invoiceID: this.navParams.data.invoiceID, // xrp
       payProUrl: this.navParams.data.payProUrl,
       spendUnconfirmed: this.config.wallet.spendUnconfirmed,
 
@@ -239,12 +241,12 @@ export class ConfirmPage extends WalletTabsChild {
     this.showAddress = false;
     this.walletSelectorTitle = this.translate.instant('Send from');
 
-    this.setWalletSelector(this.tx.coin, this.tx.network, this.tx.amount)
+    this.setWalletSelector(this.tx.coin, this.tx.network)
       .then(() => {
         this.afterWalletSelectorSet();
       })
       .catch(err => {
-        this.showErrorInfoSheet(err, null, true);
+        this.showErrorInfoSheet(err.msg, err.title, true);
       });
 
     if (this.isCordova) {
@@ -294,11 +296,7 @@ export class ConfirmPage extends WalletTabsChild {
     }
   }
 
-  private setWalletSelector(
-    coin: string,
-    network: string,
-    minAmount: number
-  ): Promise<any> {
+  private setWalletSelector(coin: string, network: string): Promise<any> {
     const parentWallet = this.getParentWallet();
     if (
       parentWallet &&
@@ -306,19 +304,22 @@ export class ConfirmPage extends WalletTabsChild {
     ) {
       return Promise.resolve();
     }
-    return new Promise(resolve => {
-      // no min amount? (sendMax) => look for no empty wallets
-      minAmount = minAmount ? minAmount : 1;
 
-      this.wallets = this.profileProvider.getWallets({
-        onlyComplete: true,
-        hasFunds: true,
-        network,
-        coin
-      });
-
-      return resolve();
+    this.wallets = this.profileProvider.getWallets({
+      onlyComplete: true,
+      hasFunds: true,
+      network,
+      coin
     });
+
+    if (_.isEmpty(this.wallets)) {
+      const msg = this.translate.instant(
+        'You are trying to send more funds than you have available. Make sure you do not have funds locked by pending transaction proposals.'
+      );
+      const title = this.translate.instant('No wallets available');
+      return Promise.reject({ msg, title });
+    }
+    return Promise.resolve();
   }
 
   /* sets a wallet on the UI, creates a TXPs for that wallet */
@@ -336,7 +337,11 @@ export class ConfirmPage extends WalletTabsChild {
     this.setButtonText(this.wallet.credentials.m > 1, !!this.tx.paypro);
 
     if (this.tx.paypro) this.paymentTimeControl(this.tx.paypro.expires);
-
+    const parentWallet = this.getParentWallet();
+    const exit =
+      parentWallet || (this.wallets && this.wallets.length === 1)
+        ? true
+        : false;
     const feeOpts = this.feeProvider.getFeeOpts();
     this.tx.feeLevelName = feeOpts[this.tx.feeLevel];
     this.updateTx(this.tx, this.wallet, { dryRun: true }).catch(err => {
@@ -349,7 +354,7 @@ export class ConfirmPage extends WalletTabsChild {
                 'You do not have enough confirmed funds to make this payment. Wait for your pending transactions to confirm or enable "Use unconfirmed funds" in Advanced Settings.'
               ),
               this.translate.instant('No enough confirmed funds'),
-              true
+              exit
             );
           } else if (previousView === 'AmountPage') {
             // Do not allow user to change or use max amount if previous view is not Amount
@@ -360,7 +365,7 @@ export class ConfirmPage extends WalletTabsChild {
                 'You are trying to send more funds than you have available. Make sure you do not have funds locked by pending transaction proposals.'
               ),
               this.translate.instant('Insufficient funds'),
-              true
+              exit
             );
           }
           break;
@@ -791,6 +796,11 @@ export class ConfirmPage extends WalletTabsChild {
         }
       }
 
+      if (wallet.coin === 'xrp') {
+        txp.invoiceID = tx.invoiceID;
+        txp.destinationTag = tx.destinationTag;
+      }
+
       this.walletProvider
         .getAddress(this.wallet, false)
         .then(address => {
@@ -839,7 +849,6 @@ export class ConfirmPage extends WalletTabsChild {
       (error as Error).message === 'FINGERPRINT_CANCELLED' ||
       (error as Error).message === 'PASSWORD_CANCELLED'
     ) {
-      this.hideSlideButton = false;
       return;
     }
     const infoSheetTitle = title ? title : this.translate.instant('Error');
@@ -850,7 +859,6 @@ export class ConfirmPage extends WalletTabsChild {
     );
     errorInfoSheet.present();
     errorInfoSheet.onDidDismiss(() => {
-      this.hideSlideButton = false;
       if (exit) {
         this.isWithinWalletTabs()
           ? this.navCtrl.popToRoot()
@@ -872,7 +880,6 @@ export class ConfirmPage extends WalletTabsChild {
   public approve(tx, wallet): Promise<void> {
     if (!tx || !wallet) return undefined;
 
-    this.hideSlideButton = true;
     if (this.paymentExpired) {
       this.showErrorInfoSheet(
         this.translate.instant('This bitcoin payment request has expired.')
@@ -885,10 +892,7 @@ export class ConfirmPage extends WalletTabsChild {
       .then(txp => {
         return this.confirmTx(txp, wallet).then((nok: boolean) => {
           if (nok) {
-            if (this.isCordova) {
-              this.slideButton.isConfirmed(false);
-              this.hideSlideButton = false;
-            }
+            if (this.isCordova) this.slideButton.isConfirmed(false);
             this.onGoingProcessProvider.clear();
             return;
           }
@@ -1020,7 +1024,7 @@ export class ConfirmPage extends WalletTabsChild {
   }
 
   public chooseFeeLevel(): void {
-    if (this.tx.coin == 'bch') return;
+    if (this.tx.coin === 'bch' || this.tx.coin === 'xrp') return;
     if (this.usingMerchantFee) return; // TODO: should we allow override?
 
     const txObject = {
