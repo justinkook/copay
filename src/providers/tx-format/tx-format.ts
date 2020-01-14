@@ -208,6 +208,7 @@ export class TxFormatProvider {
       coin
     );
     let satToUnit = 1 / unitToSatoshi;
-    return parseFloat((amount * satToUnit).toFixed(unitDecimals));
+    const scaleFactor = Math.pow(10, unitDecimals - 2);
+    return Math.floor((amount * satToUnit * scaleFactor) / scaleFactor);
   }
 }
