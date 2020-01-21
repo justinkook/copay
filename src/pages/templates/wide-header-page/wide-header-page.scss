@@ -1,7 +1,14 @@
 wide-header-page,
 card-catalog-page {
   @include fix-ios-bg-scroll();
-
+  ion-buttons[right] {
+    .button {
+      padding: 10px;
+      border-radius: 17.5px;
+      background-color: rgba(155, 163, 174, 0.12);
+      margin-right: 13px;
+    }
+  }
   expandable-header-primary {
     line-height: 1.2;
   }
@@ -19,8 +26,8 @@ card-catalog-page {
       color: black;
       font-size: 25px;
       font-weight: 500;
-      padding-top: 30px;
-      padding-bottom: 20px;
+      padding-top: 10px;
+      padding-bottom: 10px;
       padding-left: 20px;
     }
 

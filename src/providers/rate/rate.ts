@@ -58,8 +58,10 @@ export class RateProvider {
     });
   }
 
-  public getRate(code: string, chain?: string): number {
-    return this.rates[chain][code];
+  public getRate(code: string, chain?: string, opts?: { rates? }): number {
+    const customRate =
+      opts && opts.rates && opts.rates[chain] && opts.rates[chain][code];
+    return customRate || this.rates[chain][code];
   }
 
   private getAlternatives(): any[] {
@@ -74,23 +76,35 @@ export class RateProvider {
     return this.ratesAvailable[chain];
   }
 
-  public toFiat(satoshis: number, code: string, chain): number {
+  public toFiat(
+    satoshis: number,
+    code: string,
+    chain,
+    opts?: { customRate?: number; rates? }
+  ): number {
     if (!this.isCoinAvailable(chain)) {
       return null;
     }
+    const customRate = opts && opts.customRate;
+    const rate = customRate || this.getRate(code, chain, opts);
     return (
       satoshis *
       (1 / this.currencyProvider.getPrecision(chain).unitToSatoshi) *
-      this.getRate(code, chain)
+      rate
     );
   }
 
-  public fromFiat(amount: number, code: string, chain): number {
+  public fromFiat(
+    amount: number,
+    code: string,
+    chain,
+    opts?: { rates? }
+  ): number {
     if (!this.isCoinAvailable(chain)) {
       return null;
     }
     return (
-      (amount / this.getRate(code, chain)) *
+      (amount / this.getRate(code, chain, opts)) *
       this.currencyProvider.getPrecision(chain).unitToSatoshi
     );
   }
