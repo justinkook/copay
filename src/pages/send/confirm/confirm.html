@@ -1,13 +1,11 @@
-<wide-header-page title="{{'Confirm Payment' | translate}}">
-  <ion-buttons *ngIf="fromWalletDetails" right>
-    <button clear wide-header-bar-button (click)="close()" ion-button>
-      {{'Cancel' | translate}}
-    </button>
-  </ion-buttons>
+<ion-header>
+  <ion-navbar>
+    <ion-title>{{ 'Confirm Payment' | translate }}</ion-title>
+  </ion-navbar>
+</ion-header>
 
-  <div page-content [ngClass]="{'add-padding-bottom': !hideSlideButton && isCordova}">
+<ion-content [ngClass]="{'add-padding-bottom': !hideSlideButton && isCordova}" no-bounce>
 
-    <div class="line-divider"></div>
     <ion-list *ngIf="tx" class="bp-list">
       <ion-item class="sub-title">
         <ion-label>
@@ -41,14 +39,7 @@
 
           <ion-row align-items-center class="wallet" *ngIf="tx.recipientType == 'wallet'">
             <ion-col>
-
-              <ion-icon class="item-img rectangle" [ngClass]="{ 'background_btc': tx.coin == 'btc',
-            'background_bch': tx.coin == 'bch',
-            'background_eth': tx.coin == 'eth',
-            'background_xrp': tx.coin == 'xrp',
-            'testnet': tx.network === 'testnet' }" item-start>
-                <img src="assets/img/currencies/{{wallet?.coin}}.svg" />
-              </ion-icon>
+              <coin-icon [coin]="tx.coin" [network]="tx.network"></coin-icon>
             </ion-col>
 
             <ion-col>
@@ -74,25 +65,16 @@
             </ion-col>
           </ion-row>
 
-          <ion-row align-items-center class="wallet" (click)="showMultiplesOutputs = !showMultiplesOutputs" *ngIf="fromMultiSend">
-            <ion-col>
-              <ion-icon item-start>
-                <img class="coin-img" src="assets/img/icon-{{tx.coin}}-small.svg" alt="Coin" />
-              </ion-icon>
-            </ion-col>
-            <ion-col>
-              <span class="note-container ellipsis" translate>Multiple recipients </span>
-            </ion-col>
-            <ion-col>
-              <span>({{recipients?.length}}):</span>
-            </ion-col>
-            <ion-col>
-              <button ion-button clear color="grey" icon-only item-end>
-                <ion-icon *ngIf="showMultiplesOutputs" name="ios-arrow-up-outline"></ion-icon>
-                <ion-icon *ngIf="!showMultiplesOutputs" name="ios-arrow-down-outline"></ion-icon>
-              </button>
-            </ion-col>
-          </ion-row>
+          <div class="multi-recip-title" (click)="showMultiplesOutputs = !showMultiplesOutputs" *ngIf="fromMultiSend">
+            <ion-icon item-start>
+              <img class="coin-img" src="assets/img/icon-{{tx.coin}}-small.svg" alt="Coin" />
+            </ion-icon>
+            <span class="ellipsis" translate>{{'Multiple recipients ({recipientsCount})' | translate: { recipientsCount: recipients?.length } }}</span>
+            <button ion-button clear color="grey" icon-only item-end>
+              <ion-icon *ngIf="showMultiplesOutputs" name="ios-arrow-up-outline"></ion-icon>
+              <ion-icon *ngIf="!showMultiplesOutputs" name="ios-arrow-down-outline"></ion-icon>
+            </button>
+          </div>
         </ion-note>
       </ion-item>
 
@@ -100,6 +82,7 @@
         <ion-item *ngFor="let recipient of recipients" copy-to-clipboard="{{recipient.toAddress}}">
           <ion-note class="secondary-note" item-right text-end>
             <span>{{recipient.addressToShow || recipient.toAddress || recipient.address}}</span>
+            <br>
             <span>{{recipient.amountToShow}} {{coin | uppercase}}
               <span *ngIf="recipient.altAmountStr">({{recipient.altAmountStr}})</span>
             </span>
@@ -122,9 +105,12 @@
             <div>...</div>
           </div>
           <div class="summary-item-detail">
+            <span class="text-bold">{{tx.feeLevelName | uppercase}}</span>
+          </div>
+          <div class="summary-item-detail">
             {{tx.txp[wallet.id].fee | satToUnit: getChain(tx.coin)}}
           </div>
-          <div class="secondary-note fee-details">
+          <div class="secondary-note fee-details" [ngStyle]="tx.txp[wallet.id].feeTooHigh === true ? { opacity: 1 } : null">
             {{tx.txp[wallet.id].fee | satToFiat: getChain(tx.coin)}}
             <span *ngIf="tx.txp[wallet.id].feeRatePerStr">
               &middot;
@@ -149,13 +135,7 @@
         <ion-note item-end>
           <ion-row align-items-center class="wallet" *ngIf="wallet">
             <ion-col>
-              <ion-icon class="item-img rectangle" [ngClass]="{ 'background_btc': tx.coin == 'btc',
-            'background_bch': tx.coin == 'bch',
-            'background_eth': tx.coin == 'eth',
-            'background_xrp': tx.coin == 'xrp',
-            'testnet': tx.network === 'testnet' }" item-start>
-                <img src="assets/img/currencies/{{wallet?.coin}}.svg" />
-              </ion-icon>
+              <coin-icon [coin]="wallet.coin" [network]="wallet.network"></coin-icon>
             </ion-col>
 
             <ion-col>
@@ -229,14 +209,12 @@
         </label-tip>
       </ng-template>
     </ion-list>
-  </div>
+</ion-content>
 
-  <div footer-content>
-    <page-slide-to-accept #slideButton *ngIf="isCordova" [ngClass]="{'slide-confirm-fast slide-confirm-down': hideSlideButton, 'slide-confirm-slow': !hideSlideButton}" [disabled]="!wallet || !tx?.txp[wallet.id] || paymentExpired" [buttonText]="buttonText" (slideDone)="approve(tx, wallet)">
-    </page-slide-to-accept>
-    <ion-toolbar *ngIf="!isCordova">
-      <button ion-button full class="button-footer" (click)="approve(tx, wallet)" [disabled]="!wallet || !tx?.txp[wallet.id] || paymentExpired">{{buttonText}}</button>
-    </ion-toolbar>
-  </div>
-
-</wide-header-page>
+<ion-footer>
+  <page-slide-to-accept #slideButton *ngIf="isCordova" [ngClass]="{'slide-confirm-fast slide-confirm-down': hideSlideButton, 'slide-confirm-slow': !hideSlideButton}" [disabled]="!wallet || !tx?.txp[wallet.id] || paymentExpired" [buttonText]="buttonText" (slideDone)="approve(tx, wallet)">
+  </page-slide-to-accept>
+  <ion-toolbar *ngIf="!isCordova">
+    <button ion-button full class="button-footer" (click)="approve(tx, wallet)" [disabled]="!wallet || !tx?.txp[wallet.id] || paymentExpired">{{buttonText}}</button>
+  </ion-toolbar>
+</ion-footer>

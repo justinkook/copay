@@ -1,5 +1,4 @@
 import { Component } from '@angular/core';
-import { StatusBar } from '@ionic-native/status-bar';
 import { TranslateService } from '@ngx-translate/core';
 import {
   App,
@@ -112,8 +111,7 @@ export class ConfirmCardPurchasePage extends ConfirmPage {
     platformProvider: PlatformProvider,
     clipboardProvider: ClipboardProvider,
     events: Events,
-    appProvider: AppProvider,
-    statusBar: StatusBar
+    appProvider: AppProvider
   ) {
     super(
       addressProvider,
@@ -141,8 +139,7 @@ export class ConfirmCardPurchasePage extends ConfirmPage {
       walletProvider,
       clipboardProvider,
       events,
-      appProvider,
-      statusBar
+      appProvider
     );
     this.configWallet = this.configProvider.get().wallet;
   }
@@ -391,7 +388,9 @@ export class ConfirmCardPurchasePage extends ConfirmPage {
     }
 
     if (
+      wallet.coin === 'xrp' &&
       instructions &&
+      instructions[0] &&
       instructions[0].outputs &&
       instructions[0].outputs[0] &&
       instructions[0].outputs[0].invoiceID
@@ -463,17 +462,23 @@ export class ConfirmCardPurchasePage extends ConfirmPage {
     }
     const email = await this.giftCardProvider.getUserEmail();
     if (email) return Promise.resolve(email);
-    const title = this.translate.instant('Enter email address');
-    const message = this.translate.instant(
-      'Where do you want to receive your purchase receipt?'
-    );
-    const opts = { type: 'email', defaultText: '' };
-    const newEmail = await this.popupProvider.ionicPrompt(title, message, opts);
-    if (!this.giftCardProvider.emailIsValid(newEmail)) {
-      this.throwEmailRequiredError();
-    }
-    this.giftCardProvider.storeEmail(newEmail);
-    return newEmail;
+  }
+
+  private setEmail(wallet) {
+    const emailComponent = this.actionSheetProvider.createEmailComponent();
+    emailComponent.present();
+    emailComponent.onDidDismiss(email => {
+      if (email) {
+        if (!this.giftCardProvider.emailIsValid(email)) {
+          this.throwEmailRequiredError();
+        }
+        this.giftCardProvider.storeEmail(email);
+        this.initialize(wallet, email);
+      } else {
+        this.throwEmailRequiredError();
+      }
+      this.isOpenSelector = false;
+    });
   }
 
   private throwEmailRequiredError() {
@@ -486,10 +491,9 @@ export class ConfirmCardPurchasePage extends ConfirmPage {
     throw new Error('email required');
   }
 
-  private async initialize(wallet) {
+  private async initialize(wallet, email) {
     const COIN = wallet.coin.toUpperCase();
     this.currencyIsoCode = this.currency;
-    const email = await this.promptEmail();
     const discount = getVisibleDiscount(this.cardConfig);
     const dataSrc = {
       amount: this.amount,
@@ -631,10 +635,15 @@ export class ConfirmCardPurchasePage extends ConfirmPage {
     );
   }
 
-  public onWalletSelect(wallet): void {
+  public async onWalletSelect(wallet) {
     this.wallet = wallet;
     this.isERCToken = this.currencyProvider.isERCToken(this.wallet.coin);
-    this.initialize(wallet).catch(() => {});
+    const email = await this.promptEmail();
+    if (email) {
+      this.initialize(wallet, email).catch(() => {});
+    } else {
+      this.setEmail(wallet);
+    }
   }
 
   public showWallets(): void {

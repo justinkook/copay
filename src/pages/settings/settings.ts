@@ -19,7 +19,6 @@ import { TouchIdProvider } from '../../providers/touchid/touchid';
 
 // pages
 import { AddPage } from '../add/add';
-import { BitPayCardIntroPage } from '../integrations/bitpay-card/bitpay-card-intro/bitpay-card-intro';
 import { BitPaySettingsPage } from '../integrations/bitpay-card/bitpay-settings/bitpay-settings';
 import { CoinbaseSettingsPage } from '../integrations/coinbase/coinbase-settings/coinbase-settings';
 import { GiftCardsSettingsPage } from '../integrations/gift-cards/gift-cards-settings/gift-cards-settings';
@@ -31,11 +30,11 @@ import { AddressbookPage } from './addressbook/addressbook';
 import { AdvancedPage } from './advanced/advanced';
 import { AltCurrencyPage } from './alt-currency/alt-currency';
 import { FeePolicyPage } from './fee-policy/fee-policy';
+import { KeySettingsPage } from './key-settings/key-settings';
 import { LanguagePage } from './language/language';
 import { LockPage } from './lock/lock';
 import { NotificationsPage } from './notifications/notifications';
 import { SharePage } from './share/share';
-import { WalletGroupSettingsPage } from './wallet-group-settings/wallet-group-settings';
 import { WalletSettingsPage } from './wallet-settings/wallet-settings';
 
 @Component({
@@ -230,10 +229,6 @@ export class SettingsPage {
     );
   }
 
-  public addBitpayCard() {
-    this.navCtrl.push(BitPayCardIntroPage);
-  }
-
   private openPinModal(action): void {
     const modal = this.modalCtrl.create(
       PinModalPage,
@@ -271,7 +266,7 @@ export class SettingsPage {
   }
 
   public openWalletGroupSettings(keyId: string): void {
-    this.navCtrl.push(WalletGroupSettingsPage, { keyId });
+    this.navCtrl.push(KeySettingsPage, { keyId });
   }
 
   public goToAddView(): void {
