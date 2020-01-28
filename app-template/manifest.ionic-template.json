@@ -20,6 +20,6 @@
       "type": "image/png"
     }
   ],
-  "background_color": "*THEMECOLOR*",
-  "theme_color": "*THEMECOLOR*"
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff"
 }
