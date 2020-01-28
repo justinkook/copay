@@ -1,16 +1,18 @@
 import { HttpClientModule } from '@angular/common/http';
-import { ErrorHandler, NgModule } from '@angular/core';
-import { BrowserModule } from '@angular/platform-browser';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { ServiceWorkerModule } from '@angular/service-worker';
+import { IonicImageLoader } from 'ionic-image-loader';
+import { MarkdownModule } from 'ngx-markdown';
+import { NgxTextOverflowClampModule } from 'ngx-text-overflow-clamp';
+
+import { ErrorHandler, NgModule } from '@angular/core';
+import { BrowserModule } from '@angular/platform-browser';
 import {
   Config,
   IonicApp,
   IonicErrorHandler,
   IonicModule
 } from 'ionic-angular';
-import { IonicImageLoader } from 'ionic-image-loader';
-import { MarkdownModule } from 'ngx-markdown';
 
 /* Modules */
 import {
@@ -111,6 +113,7 @@ export class MyMissingTranslationHandler implements MissingTranslationHandler {
       backButtonIcon: 'arrow-round-back',
       backButtonText: ''
     }),
+    NgxTextOverflowClampModule,
     IonicImageLoader.forRoot(),
     BrowserModule,
     BrowserAnimationsModule,

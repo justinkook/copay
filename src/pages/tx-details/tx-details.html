@@ -1,4 +1,9 @@
-<wide-header-page title="{{title | translate}}">
+<wide-header-page title="{{title | translate}}" hideBackButton="true">
+  <ion-buttons left>
+    <button class="close-container disable-hover" (click)="close()" ion-button>
+      <ion-icon ios="md-close" md="md-close"></ion-icon>
+    </button>
+  </ion-buttons>
   <div page-content>
     <ion-list *ngIf="btx" class="bp-list">
       <ion-item>
@@ -170,8 +175,8 @@
               <div class="line" *ngIf="a.type !== 'reject' && a.type !== 'broadcasted'">{{actionList.length - i}}</div>
             </div>
             <div class="timeline-content-label">
-              <div class="action">{{a.description}}</div>
-              <div class="name">{{a.by}}</div>
+              <div class="action ellipsis">{{a.description}}</div>
+              <div class="name ellipsis">{{a.by}}</div>
             </div>
             <ion-note class="ellipsis">
               <time>{{ a.time * 1000 | amTimeAgo}}</time>
