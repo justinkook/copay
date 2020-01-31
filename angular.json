@@ -12,11 +12,15 @@
           "builder": "@angular-devkit/build-angular:browser",
           "options": {
             "outputPath": "dist",
-            "index": "index.html",
-            "main": "app/main.ts",
+            "index": "src/index.html",
+            "main": "src/app/main.ts",
             "tsConfig": "./tsconfig.json",
             "polyfills": "polyfills.ts",
-            "assets": ["assets", "favicon.ico"],
+            "assets": [
+              "src/assets",
+              "src/assets/img/favicon.ico",
+              "src/manifest.json"
+            ],
             "styles": [],
             "scripts": []
           },
@@ -38,7 +42,9 @@
               "aot": true,
               "extractLicenses": true,
               "vendorChunk": false,
-              "buildOptimizer": true
+              "buildOptimizer": true,
+              "serviceWorker": true,
+              "ngswConfigPath": "ngsw-config.json"
             }
           }
         },
@@ -78,7 +84,7 @@
             ],
             "scripts": [],
             "styles": [],
-            "assets": ["src/assets", "src/favicon.ico"]
+            "assets": ["src/assets", "src/favicon.ico", "src/manifest.json"]
           }
         },
         "lint": {

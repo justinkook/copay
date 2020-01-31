@@ -1,11 +1,9 @@
 import { Component } from '@angular/core';
-import { AlertController, NavController, NavParams } from 'ionic-angular';
+import { AlertController, IonicPage, NavController, NavParams } from 'ionic-angular';
 import * as _ from 'lodash';
 import { AddressBookProvider } from '../../../providers/address-book/address-book';
 import { Logger } from '../../../providers/logger/logger';
-import { AddressbookAddPage } from './add/add';
-import { AddressbookViewPage } from './view/view';
-
+@IonicPage()
 @Component({
   selector: 'page-addressbook',
   templateUrl: 'addressbook.html'
@@ -56,11 +54,11 @@ export class AddressbookPage {
   }
 
   public addEntry(): void {
-    this.navCtrl.push(AddressbookAddPage);
+    this.navCtrl.push('AddressbookAddPage');
   }
 
   public viewEntry(contact): void {
-    this.navCtrl.push(AddressbookViewPage, { contact });
+    this.navCtrl.push('AddressbookViewPage', { contact });
   }
 
   public getItems(event): void {

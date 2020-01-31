@@ -1,8 +1,9 @@
 import { Component } from '@angular/core';
-import { NavParams, ViewController } from 'ionic-angular';
+import { IonicPage, NavParams, ViewController } from 'ionic-angular';
 import { CurrencyProvider } from '../../../providers/currency/currency';
 import { Logger } from '../../../providers/logger/logger';
 
+@IonicPage()
 @Component({
   selector: 'page-wallet-balance',
   templateUrl: 'wallet-balance.html'

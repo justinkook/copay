@@ -1,6 +1,6 @@
 import { Component } from '@angular/core';
 import { TranslateService } from '@ngx-translate/core';
-import { ActionSheetController } from 'ionic-angular';
+import { ActionSheetController, IonicPage } from 'ionic-angular';
 
 // native
 import { SocialSharing } from '@ionic-native/social-sharing';
@@ -14,7 +14,7 @@ import { Logger } from '../../../../providers/logger/logger';
 import { PlatformProvider } from '../../../../providers/platform/platform';
 
 import * as _ from 'lodash';
-
+@IonicPage()
 @Component({
   selector: 'page-session-log',
   templateUrl: 'session-log.html'

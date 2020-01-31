@@ -4,6 +4,7 @@ import { StatusBar } from '@ionic-native/status-bar';
 import { TranslateService } from '@ngx-translate/core';
 import {
   Events,
+  IonicPage,
   ModalController,
   NavController,
   NavParams,
@@ -29,12 +30,7 @@ import { TimeProvider } from '../../providers/time/time';
 import { WalletProvider } from '../../providers/wallet/wallet';
 
 // pages
-import { BackupKeyPage } from '../../pages/backup/backup-key/backup-key';
-import { SendPage } from '../../pages/send/send';
-import { WalletAddressesPage } from '../../pages/settings/wallet-settings/wallet-settings-advanced/wallet-addresses/wallet-addresses';
 import { TxDetailsModal } from '../../pages/tx-details/tx-details';
-import { ProposalsNotificationsPage } from '../../pages/wallets/proposals-notifications/proposals-notifications';
-import { AmountPage } from '../send/amount/amount';
 import { SearchTxModalPage } from './search-tx-modal/search-tx-modal';
 import { WalletBalanceModal } from './wallet-balance/wallet-balance';
 
@@ -46,6 +42,8 @@ interface UpdateWalletOptsI {
   force?: boolean;
   alsoUpdateHistory?: boolean;
 }
+
+@IonicPage()
 @Component({
   selector: 'page-wallet-details',
   templateUrl: 'wallet-details.html'
@@ -280,7 +278,9 @@ export class WalletDetailsPage {
   }
 
   public openProposalsNotificationsPage(): void {
-    this.navCtrl.push(ProposalsNotificationsPage, { walletId: this.wallet.id });
+    this.navCtrl.push('ProposalsNotificationsPage', {
+      walletId: this.wallet.id
+    });
   }
 
   private updateAll = _.debounce(
@@ -462,13 +462,13 @@ export class WalletDetailsPage {
   }
 
   public openBackup() {
-    this.navCtrl.push(BackupKeyPage, {
+    this.navCtrl.push('BackupKeyPage', {
       keyId: this.wallet.credentials.keyId
     });
   }
 
   public openAddresses() {
-    this.navCtrl.push(WalletAddressesPage, {
+    this.navCtrl.push('WalletAddressesPage', {
       walletId: this.wallet.credentials.walletId
     });
   }
@@ -581,7 +581,7 @@ export class WalletDetailsPage {
   }
 
   public goToSendPage() {
-    this.navCtrl.push(SendPage, {
+    this.navCtrl.push('SendPage', {
       wallet: this.wallet
     });
   }
@@ -606,7 +606,7 @@ export class WalletDetailsPage {
 
   public requestSpecificAmount(): void {
     this.walletProvider.getAddress(this.wallet, false).then(addr => {
-      this.navCtrl.push(AmountPage, {
+      this.navCtrl.push('AmountPage', {
         toAddress: addr,
         id: this.wallet.credentials.walletId,
         recipientType: 'wallet',
@@ -635,7 +635,7 @@ export class WalletDetailsPage {
   }
 
   public goToBackup(): void {
-    this.navCtrl.push(BackupKeyPage, {
+    this.navCtrl.push('BackupKeyPage', {
       keyId: this.wallet.credentials.keyId
     });
   }

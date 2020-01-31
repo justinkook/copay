@@ -1,10 +1,7 @@
 import { Component, NgZone, ViewChild } from '@angular/core';
-import { NavController, Slides } from 'ionic-angular';
+import { IonicPage, NavController, Slides } from 'ionic-angular';
 import * as _ from 'lodash';
 import * as moment from 'moment';
-import { IntegrationsPage } from '../../pages/integrations/integrations';
-import { SimplexPage } from '../../pages/integrations/simplex/simplex';
-import { SimplexBuyPage } from '../../pages/integrations/simplex/simplex-buy/simplex-buy';
 import {
   AppProvider,
   ExternalLinkProvider,
@@ -20,9 +17,8 @@ import { CurrencyProvider } from '../../providers/currency/currency';
 import { ExchangeRatesProvider } from '../../providers/exchange-rates/exchange-rates';
 import { HomeIntegrationsProvider } from '../../providers/home-integrations/home-integrations';
 import { RateProvider } from '../../providers/rate/rate';
-import { BitPayCardIntroPage } from '../integrations/bitpay-card/bitpay-card-intro/bitpay-card-intro';
-import { CardCatalogPage } from '../integrations/gift-cards/card-catalog/card-catalog';
 
+@IonicPage()
 @Component({
   selector: 'page-home',
   templateUrl: 'home.html'
@@ -48,7 +44,7 @@ export class HomePage {
       body: 'Leverage your crypto with a reloadable BitPay card.',
       app: 'bitpay',
       linkText: 'Buy Now',
-      link: BitPayCardIntroPage,
+      link: 'BitPayCardIntroPage',
       dismissible: true,
       /* imgSrc: TODO 'assets/img/bitpay-card-solid.svg' */
       imgSrc: 'assets/img/bitpay-card/bitpay-card-visa.svg'
@@ -69,7 +65,7 @@ export class HomePage {
       body: 'Leverage your crypto with an amazon.com gift card.',
       app: 'bitpay',
       linkText: 'Buy Now',
-      link: CardCatalogPage,
+      link: 'CardCatalogPage',
       imgSrc: 'assets/img/amazon.svg',
       dismissible: true
     }
@@ -392,11 +388,11 @@ export class HomePage {
   }
 
   public goToShop() {
-    this.navCtrl.push(CardCatalogPage);
+    this.navCtrl.push('CardCatalogPage');
   }
 
   public goToServices() {
-    this.navCtrl.push(IntegrationsPage, {
+    this.navCtrl.push('IntegrationsPage', {
       homeIntegrations: this.homeIntegrations
     });
   }
@@ -404,9 +400,9 @@ export class HomePage {
   public goToBuyCrypto() {
     this.simplexProvider.getSimplex().then(simplexData => {
       if (simplexData && !_.isEmpty(simplexData)) {
-        this.navCtrl.push(SimplexPage);
+        this.navCtrl.push('SimplexPage');
       } else {
-        this.navCtrl.push(SimplexBuyPage);
+        this.navCtrl.push('SimplexBuyPage');
       }
     });
   }

@@ -1,5 +1,6 @@
 import { Component } from '@angular/core';
 import { TranslateService } from '@ngx-translate/core';
+import { IonicPage } from 'ionic-angular';
 import { Logger } from '../../../providers/logger/logger';
 
 // native
@@ -11,7 +12,7 @@ import { AppProvider } from '../../../providers/app/app';
 import { ConfigProvider } from '../../../providers/config/config';
 import { PopupProvider } from '../../../providers/popup/popup';
 import { ReplaceParametersProvider } from '../../../providers/replace-parameters/replace-parameters';
-
+@IonicPage()
 @Component({
   selector: 'page-share',
   templateUrl: 'share.html'

@@ -1,6 +1,6 @@
 import { Component } from '@angular/core';
 import { TranslateService } from '@ngx-translate/core';
-import { ModalController } from 'ionic-angular';
+import { IonicPage, ModalController } from 'ionic-angular';
 
 // pages
 import { PinModalPage } from '../../pin/pin-modal/pin-modal';
@@ -11,7 +11,7 @@ import { ProfileProvider } from '../../../providers/profile/profile';
 import { TouchIdProvider } from '../../../providers/touchid/touchid';
 
 import * as _ from 'lodash';
-
+@IonicPage()
 @Component({
   selector: 'page-lock',
   templateUrl: 'lock.html'
@@ -47,7 +47,7 @@ export class LockPage {
           enabled:
             !this.lockOptions.method ||
             (this.lockOptions.method &&
-            this.lockOptions.method.toLowerCase() == 'disabled'
+              this.lockOptions.method.toLowerCase() == 'disabled'
               ? true
               : false),
           disabled: false
@@ -57,7 +57,7 @@ export class LockPage {
           method: 'pin',
           enabled:
             this.lockOptions.method &&
-            this.lockOptions.method.toLowerCase() == 'pin'
+              this.lockOptions.method.toLowerCase() == 'pin'
               ? true
               : false,
           disabled: needsBackup
@@ -67,7 +67,7 @@ export class LockPage {
           method: 'fingerprint',
           enabled:
             this.lockOptions.method &&
-            this.lockOptions.method.toLowerCase() == 'fingerprint'
+              this.lockOptions.method.toLowerCase() == 'fingerprint'
               ? true
               : false,
           disabled: !isAvailable || needsBackup

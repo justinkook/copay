@@ -1,6 +1,6 @@
 import { Component } from '@angular/core';
 import { TranslateService } from '@ngx-translate/core';
-import { NavController, NavParams } from 'ionic-angular';
+import { IonicPage, NavController, NavParams } from 'ionic-angular';
 
 // pages
 import { CreateWalletPage } from '../add/create-wallet/create-wallet';
@@ -12,7 +12,7 @@ import { Logger } from '../../providers/logger/logger';
 import { ProfileProvider } from '../../providers/profile/profile';
 
 import * as _ from 'lodash';
-
+@IonicPage()
 @Component({
   selector: 'page-add-wallet',
   templateUrl: 'add-wallet.html'

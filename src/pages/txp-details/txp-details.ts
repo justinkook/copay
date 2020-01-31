@@ -2,6 +2,7 @@ import { Component, ViewChild } from '@angular/core';
 import { TranslateService } from '@ngx-translate/core';
 import {
   Events,
+  IonicPage,
   ModalController,
   NavParams,
   ViewController
@@ -27,7 +28,7 @@ import { WalletProvider } from '../../providers/wallet/wallet';
 import { FinishModalPage } from '../finish/finish';
 
 import * as _ from 'lodash';
-
+@IonicPage()
 @Component({
   selector: 'page-txp-details',
   templateUrl: 'txp-details.html'

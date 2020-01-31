@@ -1,10 +1,6 @@
 import { Component } from '@angular/core';
 import { TranslateService } from '@ngx-translate/core';
-import { NavController } from 'ionic-angular';
-
-// pages
-import { SendFeedbackPage } from '../../feedback/send-feedback/send-feedback';
-import { SessionLogPage } from './session-log/session-log';
+import { IonicPage, NavController } from 'ionic-angular';
 
 // providers
 import {
@@ -13,6 +9,7 @@ import {
   Logger,
   ReplaceParametersProvider
 } from '../../../providers';
+@IonicPage()
 @Component({
   selector: 'page-about',
   templateUrl: 'about.html'
@@ -29,7 +26,7 @@ export class AboutPage {
     private externalLinkProvider: ExternalLinkProvider,
     private replaceParametersProvider: ReplaceParametersProvider,
     private translate: TranslateService
-  ) {}
+  ) { }
 
   ionViewDidLoad() {
     this.logger.info('Loaded: AboutPage');
@@ -100,10 +97,10 @@ export class AboutPage {
   }
 
   public openSessionLog(): void {
-    this.navCtrl.push(SessionLogPage);
+    this.navCtrl.push('SessionLogPage');
   }
 
   public openSendFeedbackPage(): void {
-    this.navCtrl.push(SendFeedbackPage);
+    this.navCtrl.push('SendFeedbackPage');
   }
 }

@@ -3,6 +3,7 @@ import { StatusBar } from '@ionic-native/status-bar';
 import { TranslateService } from '@ngx-translate/core';
 import {
   Events,
+  IonicPage,
   ModalController,
   NavController,
   NavParams
@@ -12,7 +13,6 @@ import { Logger } from '../../../providers/logger/logger';
 
 // Pages
 import { ShapeshiftDetailsPage } from './shapeshift-details/shapeshift-details';
-import { ShapeshiftShiftPage } from './shapeshift-shift/shapeshift-shift';
 
 // Providers
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
@@ -22,7 +22,7 @@ import { PlatformProvider } from '../../../providers/platform/platform';
 import { PopupProvider } from '../../../providers/popup/popup';
 import { ShapeshiftProvider } from '../../../providers/shapeshift/shapeshift';
 import { TimeProvider } from '../../../providers/time/time';
-
+@IonicPage()
 @Component({
   selector: 'page-shapeshift',
   templateUrl: 'shapeshift.html'
@@ -207,7 +207,7 @@ export class ShapeshiftPage {
   public goTo(page: string): void {
     switch (page) {
       case 'Shift':
-        this.navCtrl.push(ShapeshiftShiftPage);
+        this.navCtrl.push('ShapeshiftShiftPage');
         break;
     }
   }

@@ -1,16 +1,15 @@
 import { Component } from '@angular/core';
-import { ModalController, NavController, NavParams } from 'ionic-angular';
+import { IonicPage, ModalController, NavController, NavParams } from 'ionic-angular';
 import * as _ from 'lodash';
 
 // Pages
-import { SimplexBuyPage } from './simplex-buy/simplex-buy';
 import { SimplexDetailsPage } from './simplex-details/simplex-details';
 
 // Proviers
 import { ExternalLinkProvider } from '../../../providers/external-link/external-link';
 import { Logger } from '../../../providers/logger/logger';
 import { SimplexProvider } from '../../../providers/simplex/simplex';
-
+@IonicPage()
 @Component({
   selector: 'page-simplex',
   templateUrl: 'simplex.html'
@@ -26,7 +25,7 @@ export class SimplexPage {
     private navCtrl: NavController,
     private navParams: NavParams,
     private simplexProvider: SimplexProvider
-  ) {}
+  ) { }
 
   ionViewDidLoad() {
     this.paymentRequests = [];
@@ -72,7 +71,7 @@ export class SimplexPage {
   }
 
   public continueToSimplexBuyPage(): void {
-    this.navCtrl.push(SimplexBuyPage);
+    this.navCtrl.push('SimplexBuyPage');
   }
 
   public openSimplexModal(paymentRequestData) {

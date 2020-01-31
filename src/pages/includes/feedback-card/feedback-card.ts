@@ -1,6 +1,6 @@
 import { Component } from '@angular/core';
 import { TranslateService } from '@ngx-translate/core';
-import { NavController } from 'ionic-angular';
+import { IonicPage, NavController } from 'ionic-angular';
 import { Logger } from '../../../providers/logger/logger';
 
 // providers
@@ -8,9 +8,7 @@ import { AppProvider } from '../../../providers/app/app';
 import { PersistenceProvider } from '../../../providers/persistence/persistence';
 import { ReplaceParametersProvider } from '../../../providers/replace-parameters/replace-parameters';
 
-// pages
-import { SendFeedbackPage } from '../../../pages/feedback/send-feedback/send-feedback';
-
+@IonicPage()
 @Component({
   selector: 'page-feedback-card',
   templateUrl: 'feedback-card.html'
@@ -74,7 +72,7 @@ export class FeedbackCardPage {
 
   public goFeedbackFlow(): void {
     this.hideCard();
-    this.navCtrl.push(SendFeedbackPage, {
+    this.navCtrl.push('SendFeedbackPage', {
       score: this.score,
       fromCard: true
     });

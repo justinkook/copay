@@ -1,6 +1,6 @@
 import { Component } from '@angular/core';
 import { TranslateService } from '@ngx-translate/core';
-import { ModalController, NavController } from 'ionic-angular';
+import { IonicPage, ModalController, NavController } from 'ionic-angular';
 import { Logger } from '../../providers/logger/logger';
 
 import * as _ from 'lodash';
@@ -18,25 +18,9 @@ import { ProfileProvider } from '../../providers/profile/profile';
 import { TouchIdProvider } from '../../providers/touchid/touchid';
 
 // pages
-import { AddPage } from '../add/add';
-import { BitPaySettingsPage } from '../integrations/bitpay-card/bitpay-settings/bitpay-settings';
-import { CoinbaseSettingsPage } from '../integrations/coinbase/coinbase-settings/coinbase-settings';
-import { GiftCardsSettingsPage } from '../integrations/gift-cards/gift-cards-settings/gift-cards-settings';
-import { ShapeshiftSettingsPage } from '../integrations/shapeshift/shapeshift-settings/shapeshift-settings';
-import { SimplexSettingsPage } from '../integrations/simplex/simplex-settings/simplex-settings';
 import { PinModalPage } from '../pin/pin-modal/pin-modal';
-import { AboutPage } from './about/about';
-import { AddressbookPage } from './addressbook/addressbook';
-import { AdvancedPage } from './advanced/advanced';
-import { AltCurrencyPage } from './alt-currency/alt-currency';
-import { FeePolicyPage } from './fee-policy/fee-policy';
-import { KeySettingsPage } from './key-settings/key-settings';
-import { LanguagePage } from './language/language';
-import { LockPage } from './lock/lock';
-import { NotificationsPage } from './notifications/notifications';
-import { SharePage } from './share/share';
-import { WalletSettingsPage } from './wallet-settings/wallet-settings';
 
+@IonicPage()
 @Component({
   selector: 'page-settings',
   templateUrl: 'settings.html'
@@ -132,19 +116,19 @@ export class SettingsPage {
   }
 
   public openAltCurrencyPage(): void {
-    this.navCtrl.push(AltCurrencyPage);
+    this.navCtrl.push('AltCurrencyPage');
   }
 
   public openLanguagePage(): void {
-    this.navCtrl.push(LanguagePage);
+    this.navCtrl.push('LanguagePage');
   }
 
   public openAdvancedPage(): void {
-    this.navCtrl.push(AdvancedPage);
+    this.navCtrl.push('AdvancedPage');
   }
 
   public openAboutPage(): void {
-    this.navCtrl.push(AboutPage);
+    this.navCtrl.push('AboutPage');
   }
 
   public openLockPage(): void {
@@ -153,57 +137,57 @@ export class SettingsPage {
       config && config.lock && config.lock.method
         ? config.lock.method.toLowerCase()
         : null;
-    if (!lockMethod || lockMethod == 'disabled') this.navCtrl.push(LockPage);
+    if (!lockMethod || lockMethod == 'disabled') this.navCtrl.push('LockPage');
     if (lockMethod == 'pin') this.openPinModal('lockSetUp');
     if (lockMethod == 'fingerprint') this.checkFingerprint();
   }
 
   public openAddressBookPage(): void {
-    this.navCtrl.push(AddressbookPage);
+    this.navCtrl.push('AddressbookPage');
   }
 
   public openNotificationsPage(): void {
-    this.navCtrl.push(NotificationsPage);
+    this.navCtrl.push('NotificationsPage');
   }
 
   public openFeePolicyPage(): void {
-    this.navCtrl.push(FeePolicyPage);
+    this.navCtrl.push('FeePolicyPage');
   }
 
   public openWalletSettingsPage(walletId: string): void {
-    this.navCtrl.push(WalletSettingsPage, { walletId });
+    this.navCtrl.push('WalletSettingsPage', { walletId });
   }
 
   public openSharePage(): void {
-    this.navCtrl.push(SharePage);
+    this.navCtrl.push('SharePage');
   }
 
   public openSettingIntegration(name: string): void {
     switch (name) {
       case 'coinbase':
-        this.navCtrl.push(CoinbaseSettingsPage);
+        this.navCtrl.push('CoinbaseSettingsPage');
         break;
       case 'debitcard':
-        this.navCtrl.push(BitPaySettingsPage);
+        this.navCtrl.push('BitPaySettingsPage');
         break;
       case 'shapeshift':
-        this.navCtrl.push(ShapeshiftSettingsPage);
+        this.navCtrl.push('ShapeshiftSettingsPage');
         break;
       case 'simplex':
-        this.navCtrl.push(SimplexSettingsPage);
+        this.navCtrl.push('SimplexSettingsPage');
         break;
       case 'giftcards':
-        this.navCtrl.push(GiftCardsSettingsPage);
+        this.navCtrl.push('GiftCardsSettingsPage');
         break;
     }
   }
 
   public openCardSettings(id): void {
-    this.navCtrl.push(BitPaySettingsPage, { id });
+    this.navCtrl.push('BitPaySettingsPage', { id });
   }
 
   public openGiftCardsSettings() {
-    this.navCtrl.push(GiftCardsSettingsPage);
+    this.navCtrl.push('GiftCardsSettingsPage');
   }
 
   public openHelpExternalLink(): void {
@@ -237,13 +221,13 @@ export class SettingsPage {
     );
     modal.present();
     modal.onDidDismiss(cancelClicked => {
-      if (!cancelClicked) this.navCtrl.push(LockPage);
+      if (!cancelClicked) this.navCtrl.push('LockPage');
     });
   }
 
   private checkFingerprint(): void {
     this.touchid.check().then(() => {
-      this.navCtrl.push(LockPage);
+      this.navCtrl.push('LockPage');
     });
   }
 
@@ -266,11 +250,11 @@ export class SettingsPage {
   }
 
   public openWalletGroupSettings(keyId: string): void {
-    this.navCtrl.push(KeySettingsPage, { keyId });
+    this.navCtrl.push('KeySettingsPage', { keyId });
   }
 
   public goToAddView(): void {
-    this.navCtrl.push(AddPage, {
+    this.navCtrl.push('AddPage', {
       isZeroState: true
     });
   }

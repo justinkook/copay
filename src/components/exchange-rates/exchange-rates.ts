@@ -1,4 +1,5 @@
 import { Component } from '@angular/core';
+import { IonicPage } from 'ionic-angular';
 import * as _ from 'lodash';
 import * as moment from 'moment';
 import {
@@ -8,7 +9,7 @@ import {
   Logger
 } from '../../providers';
 import { Coin } from '../../providers/currency/currency';
-
+@IonicPage()
 @Component({
   selector: 'exchange-rates',
   templateUrl: 'exchange-rates.html'

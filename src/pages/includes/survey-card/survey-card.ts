@@ -1,4 +1,5 @@
 import { Component } from '@angular/core';
+import { IonicPage } from 'ionic-angular';
 
 // Providers
 import {
@@ -7,6 +8,7 @@ import {
   PersistenceProvider
 } from '../../../providers';
 
+@IonicPage()
 @Component({
   selector: 'page-survey-card',
   templateUrl: 'survey-card.html'

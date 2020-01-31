@@ -1,5 +1,5 @@
 import { Component } from '@angular/core';
-import { NavController } from 'ionic-angular';
+import { IonicPage, NavController } from 'ionic-angular';
 import * as _ from 'lodash';
 
 // providers
@@ -9,8 +9,7 @@ import {
   Logger,
   ProfileProvider
 } from '../../../providers';
-import { WalletRecoverPage } from './wallet-recover-page/wallet-recover-page';
-
+@IonicPage()
 @Component({
   selector: 'page-advanced',
   templateUrl: 'advanced.html'
@@ -64,6 +63,6 @@ export class AdvancedPage {
   }
 
   public openWalletRecoveryPage() {
-    this.navCtrl.push(WalletRecoverPage);
+    this.navCtrl.push('WalletRecoverPage');
   }
 }

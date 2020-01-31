@@ -6,9 +6,10 @@ import {
 } from '@angular/core';
 import {
   Events,
+  IonicPage,
   NavController,
   NavParams,
-  ViewController
+  ViewController,
 } from 'ionic-angular';
 import * as _ from 'lodash';
 
@@ -27,13 +28,7 @@ import { ActionSheetProvider, GiftCardProvider } from '../../../providers';
 import { getActivationFee } from '../../../providers/gift-card/gift-card';
 import { CardConfig } from '../../../providers/gift-card/gift-card.types';
 import { ProfileProvider } from '../../../providers/profile/profile';
-import { BitPayCardTopUpPage } from '../../integrations/bitpay-card/bitpay-card-topup/bitpay-card-topup';
-import { BuyCoinbasePage } from '../../integrations/coinbase/buy-coinbase/buy-coinbase';
-import { SellCoinbasePage } from '../../integrations/coinbase/sell-coinbase/sell-coinbase';
-import { ConfirmCardPurchasePage } from '../../integrations/gift-cards/confirm-card-purchase/confirm-card-purchase';
-import { ShapeshiftConfirmPage } from '../../integrations/shapeshift/shapeshift-confirm/shapeshift-confirm';
-import { CustomAmountPage } from '../../receive/custom-amount/custom-amount';
-import { ConfirmPage } from '../confirm/confirm';
+@IonicPage()
 @Component({
   selector: 'page-amount',
   templateUrl: 'amount.html'
@@ -155,8 +150,8 @@ export class AmountPage {
     const { unitToSatoshi, unitDecimals } = this.availableUnits[this.unitIndex]
       .isFiat
       ? this.currencyProvider.getPrecision(
-          this.availableUnits[this.altUnitIndex].id
-        )
+        this.availableUnits[this.altUnitIndex].id
+      )
       : this.currencyProvider.getPrecision(this.unit.toLowerCase() as Coin);
     this.unitToSatoshi = unitToSatoshi;
     this.satToUnit = 1 / this.unitToSatoshi;
@@ -287,33 +282,12 @@ export class AmountPage {
   }
 
   private getNextView() {
-    let nextPage;
-    switch (this.navParams.data.nextPage) {
-      case 'BitPayCardTopUpPage':
-        this.showSendMax = true;
-        nextPage = BitPayCardTopUpPage;
-        break;
-      case 'ConfirmCardPurchasePage':
-        nextPage = ConfirmCardPurchasePage;
-        break;
-      case 'BuyCoinbasePage':
-        nextPage = BuyCoinbasePage;
-        break;
-      case 'SellCoinbasePage':
-        nextPage = SellCoinbasePage;
-        break;
-      case 'CustomAmountPage':
-        nextPage = CustomAmountPage;
-        break;
-      case 'ShapeshiftConfirmPage':
-        this.showSendMax = true;
-        nextPage = ShapeshiftConfirmPage;
-        break;
-      default:
-        this.showSendMax = true;
-        nextPage = ConfirmPage;
+    if (this.navParams.data.nextPage) {
+      return this.navParams.data.nextPage;
+    } else {
+      this.showSendMax = true;
+      return 'ConfirmPage'
     }
-    return nextPage;
   }
 
   public processClipboard(): void {
@@ -628,9 +602,9 @@ export class AmountPage {
     this.processAmount();
     this.logger.debug(
       'Update unit coin @amount unit:' +
-        this.unit +
-        ' alternativeUnit:' +
-        this.alternativeUnit
+      this.unit +
+      ' alternativeUnit:' +
+      this.alternativeUnit
     );
   }
 

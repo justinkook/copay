@@ -1,13 +1,13 @@
 import { Component } from '@angular/core';
 import { TranslateService } from '@ngx-translate/core';
-import { NavController } from 'ionic-angular';
+import { IonicPage, NavController } from 'ionic-angular';
 
 // providers
 import { ExternalLinkProvider } from '../../../providers/external-link/external-link';
 import { LanguageProvider } from '../../../providers/language/language';
 import { ProfileProvider } from '../../../providers/profile/profile';
 import { WalletProvider } from '../../../providers/wallet/wallet';
-
+@IonicPage()
 @Component({
   selector: 'page-language',
   templateUrl: 'language.html'

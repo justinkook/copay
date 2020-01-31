@@ -1,6 +1,6 @@
 import { Component } from '@angular/core';
 import { TranslateService } from '@ngx-translate/core';
-import { Events, NavController, NavParams } from 'ionic-angular';
+import { Events, IonicPage, NavController, NavParams } from 'ionic-angular';
 import { Logger } from '../../../providers/logger/logger';
 
 // providers
@@ -12,16 +12,7 @@ import { ProfileProvider } from '../../../providers/profile/profile';
 import { TouchIdProvider } from '../../../providers/touchid/touchid';
 import { WalletProvider } from '../../../providers/wallet/wallet';
 
-// pages
-import { WalletDeletePage } from './wallet-delete/wallet-delete';
-import { WalletNamePage } from './wallet-name/wallet-name';
-import { WalletAddressesPage } from './wallet-settings-advanced/wallet-addresses/wallet-addresses';
-import { WalletDuplicatePage } from './wallet-settings-advanced/wallet-duplicate/wallet-duplicate';
-import { WalletExportPage } from './wallet-settings-advanced/wallet-export/wallet-export';
-import { WalletInformationPage } from './wallet-settings-advanced/wallet-information/wallet-information';
-import { WalletServiceUrlPage } from './wallet-settings-advanced/wallet-service-url/wallet-service-url';
-import { WalletTransactionHistoryPage } from './wallet-settings-advanced/wallet-transaction-history/wallet-transaction-history';
-
+@IonicPage()
 @Component({
   selector: 'page-wallet-settings',
   templateUrl: 'wallet-settings.html'
@@ -192,38 +183,38 @@ export class WalletSettingsPage {
   }
 
   public openWalletName(): void {
-    this.navCtrl.push(WalletNamePage, {
+    this.navCtrl.push('WalletNamePage', {
       walletId: this.wallet.credentials.walletId
     });
   }
 
   public openWalletInformation(): void {
-    this.navCtrl.push(WalletInformationPage, {
+    this.navCtrl.push('WalletInformationPage', {
       walletId: this.wallet.credentials.walletId
     });
   }
   public openWalletAddresses(): void {
-    this.navCtrl.push(WalletAddressesPage, {
+    this.navCtrl.push('WalletAddressesPage', {
       walletId: this.wallet.credentials.walletId
     });
   }
   public openExportWallet(): void {
-    this.navCtrl.push(WalletExportPage, {
+    this.navCtrl.push('WalletExportPage', {
       walletId: this.wallet.credentials.walletId
     });
   }
   public openWalletServiceUrl(): void {
-    this.navCtrl.push(WalletServiceUrlPage, {
+    this.navCtrl.push('WalletServiceUrlPage', {
       walletId: this.wallet.credentials.walletId
     });
   }
   public openTransactionHistory(): void {
-    this.navCtrl.push(WalletTransactionHistoryPage, {
+    this.navCtrl.push('WalletTransactionHistoryPage', {
       walletId: this.wallet.credentials.walletId
     });
   }
   public openDuplicateWallet(): void {
-    this.navCtrl.push(WalletDuplicatePage, {
+    this.navCtrl.push('WalletDuplicatePage', {
       walletId: this.wallet.credentials.walletId
     });
   }
@@ -235,7 +226,7 @@ export class WalletSettingsPage {
   }
 
   public openWalletGroupDelete(): void {
-    this.navCtrl.push(WalletDeletePage, {
+    this.navCtrl.push('WalletDeletePage', {
       keyId: this.wallet.keyId,
       walletId: this.wallet.id
     });

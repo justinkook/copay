@@ -1,15 +1,9 @@
 import { Component } from '@angular/core';
-import { NavController, NavParams } from 'ionic-angular';
-
-// pages
-import { AddWalletPage } from '../add-wallet/add-wallet';
-import { ImportWalletPage } from '../add/import-wallet/import-wallet';
-import { JoinWalletPage } from '../add/join-wallet/join-wallet';
-import { SelectCurrencyPage } from '../add/select-currency/select-currency';
+import { IonicPage, NavController, NavParams } from 'ionic-angular';
 
 // providers
 import { Logger } from '../../providers';
-
+@IonicPage()
 @Component({
   selector: 'page-add',
   templateUrl: 'add.html'
@@ -23,7 +17,7 @@ export class AddPage {
     private navCtrl: NavController,
     private logger: Logger,
     private navParams: NavParams
-  ) {}
+  ) { }
 
   ionViewDidLoad() {
     this.logger.info('Loaded: AddPage');
@@ -39,14 +33,14 @@ export class AddPage {
   ): void {
     if (isCreate) {
       if (this.navParams.data.isMultipleSeed) {
-        this.navCtrl.push(AddWalletPage, {
+        this.navCtrl.push('AddWalletPage', {
           isCreate,
           isMultipleSeed: true,
           isShared,
           url: this.navParams.data.url
         });
       } else {
-        this.navCtrl.push(SelectCurrencyPage, {
+        this.navCtrl.push('SelectCurrencyPage', {
           isShared,
           isOnboardingFlow: this.isOnboardingFlow,
           isZeroState: this.isZeroState && !isShared,
@@ -54,7 +48,7 @@ export class AddPage {
         });
       }
     } else if (isJoin) {
-      this.navCtrl.push(JoinWalletPage, {
+      this.navCtrl.push('JoinWalletPage', {
         keyId: this.keyId,
         url: this.navParams.data.url
       });
@@ -62,7 +56,7 @@ export class AddPage {
   }
 
   public goToImportWallet(): void {
-    this.navCtrl.push(ImportWalletPage);
+    this.navCtrl.push('ImportWalletPage');
   }
 
   public goBack(): void {

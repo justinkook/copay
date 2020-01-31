@@ -33,25 +33,9 @@ import { SimplexProvider } from '../providers/simplex/simplex';
 import { TouchIdProvider } from '../providers/touchid/touchid';
 
 // Pages
-import { AddWalletPage } from '../pages/add-wallet/add-wallet';
 import { CopayersPage } from '../pages/add/copayers/copayers';
-import { ImportWalletPage } from '../pages/add/import-wallet/import-wallet';
-import { JoinWalletPage } from '../pages/add/join-wallet/join-wallet';
 import { FingerprintModalPage } from '../pages/fingerprint/fingerprint';
-import { BitPayCardIntroPage } from '../pages/integrations/bitpay-card/bitpay-card-intro/bitpay-card-intro';
-import { CoinbasePage } from '../pages/integrations/coinbase/coinbase';
-import { SelectInvoicePage } from '../pages/integrations/invoice/select-invoice/select-invoice';
-import { ShapeshiftPage } from '../pages/integrations/shapeshift/shapeshift';
-import { SimplexPage } from '../pages/integrations/simplex/simplex';
-import { DisclaimerPage } from '../pages/onboarding/disclaimer/disclaimer';
-import { OnboardingPage } from '../pages/onboarding/onboarding';
-import { PaperWalletPage } from '../pages/paper-wallet/paper-wallet';
 import { PinModalPage } from '../pages/pin/pin-modal/pin-modal';
-import { AmountPage } from '../pages/send/amount/amount';
-import { ConfirmPage } from '../pages/send/confirm/confirm';
-import { AddressbookAddPage } from '../pages/settings/addressbook/add/add';
-import { TabsPage } from '../pages/tabs/tabs';
-import { WalletDetailsPage } from '../pages/wallet-details/wallet-details';
 // As the handleOpenURL handler kicks in before the App is started,
 // declare the handler function at the top of app.component.ts (outside the class definition)
 // to track the passed Url
@@ -68,30 +52,13 @@ export class CopayApp {
   nav: NavController;
 
   public rootPage:
-    | typeof AmountPage
-    | typeof DisclaimerPage
-    | typeof TabsPage
-    | typeof OnboardingPage;
+    | 'AmountPage'
+    | 'DisclaimerPage'
+    | 'TabsPage'
+    | 'OnboardingPage';
   private onResumeSubscription: Subscription;
   private isCopayerModalOpen: boolean;
   private copayerModal: any;
-
-  private pageMap = {
-    AddressbookAddPage,
-    AmountPage,
-    BitPayCardIntroPage,
-    CoinbasePage,
-    ConfirmPage,
-    CopayersPage,
-    ImportWalletPage,
-    JoinWalletPage,
-    AddWalletPage,
-    PaperWalletPage,
-    ShapeshiftPage,
-    SimplexPage,
-    SelectInvoicePage,
-    WalletDetailsPage
-  };
 
   constructor(
     private config: Config,
@@ -166,14 +133,14 @@ export class CopayApp {
 
     this.logger.info(
       'Platform ready (' +
-        readySource +
-        '): ' +
-        this.appProvider.info.nameCase +
-        ' - v' +
-        this.appProvider.info.version +
-        ' #' +
-        this.appProvider.info.commitHash +
-        deviceInfo
+      readySource +
+      '): ' +
+      this.appProvider.info.nameCase +
+      ' - v' +
+      this.appProvider.info.version +
+      ' #' +
+      this.appProvider.info.commitHash +
+      deviceInfo
     );
 
     if (this.platform.is('cordova')) {
@@ -182,15 +149,15 @@ export class CopayApp {
       // Set User-Agent
       this.userAgent.set(
         this.appProvider.info.name +
-          ' ' +
-          this.appProvider.info.version +
-          ' (' +
-          this.device.platform +
-          ' ' +
-          this.device.version +
-          ' - ' +
-          this.device.model +
-          ')'
+        ' ' +
+        this.appProvider.info.version +
+        ' (' +
+        this.device.platform +
+        ' ' +
+        this.device.version +
+        ' - ' +
+        this.device.model +
+        ')'
       );
 
       // Set to portrait
@@ -236,7 +203,7 @@ export class CopayApp {
             switch (err.message) {
               case 'NONAGREEDDISCLAIMER':
                 this.logger.warn('Non agreed disclaimer');
-                this.rootPage = DisclaimerPage;
+                this.rootPage = 'DisclaimerPage';
                 break;
               default:
                 this.popupProvider.ionicAlert(
@@ -259,7 +226,7 @@ export class CopayApp {
     if (profile) {
       this.logger.info('Profile exists.');
 
-      this.rootPage = TabsPage;
+      this.rootPage = 'TabsPage';
 
       if (this.platform.is('cordova')) {
         this.handleDeepLinks();
@@ -271,7 +238,7 @@ export class CopayApp {
     } else {
       this.logger.info('No profile exists.');
       this.profile.createProfile();
-      this.rootPage = OnboardingPage;
+      this.rootPage = 'OnboardingPage';
     }
   }
 
@@ -354,7 +321,7 @@ export class CopayApp {
       // wait for wallets status
       setTimeout(() => {
         const globalNav = this.getGlobalTabs().getSelected();
-        globalNav.push(this.pageMap[nextView.name], nextView.params);
+        globalNav.push(nextView.name, nextView.params);
       }, 300);
     });
   }
@@ -362,7 +329,7 @@ export class CopayApp {
   private openWallet(wallet, params) {
     if (wallet.isComplete()) {
       this.getGlobalTabs().select(1);
-      this.nav.push(WalletDetailsPage, {
+      this.nav.push('WalletDetailsPage', {
         ...params,
         walletId: wallet.credentials.walletId
       });

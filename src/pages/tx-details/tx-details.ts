@@ -3,6 +3,7 @@ import { StatusBar } from '@ionic-native/status-bar';
 import { TranslateService } from '@ngx-translate/core';
 import {
   Events,
+  IonicPage,
   NavController,
   NavParams,
   ViewController
@@ -25,6 +26,7 @@ import { TxConfirmNotificationProvider } from '../../providers/tx-confirm-notifi
 import { TxFormatProvider } from '../../providers/tx-format/tx-format';
 import { WalletProvider } from '../../providers/wallet/wallet';
 
+@IonicPage()
 @Component({
   selector: 'page-tx-details',
   templateUrl: 'tx-details.html'

@@ -1,5 +1,5 @@
 import { Component } from '@angular/core';
-import { NavParams, ViewController } from 'ionic-angular';
+import { IonicPage, NavParams, ViewController } from 'ionic-angular';
 import * as _ from 'lodash';
 
 // Providers
@@ -8,6 +8,7 @@ import { CardConfigMap } from '../../../providers/gift-card/gift-card.types';
 import { PlatformProvider } from '../../../providers/platform/platform';
 import { TimeProvider } from '../../../providers/time/time';
 
+@IonicPage()
 @Component({
   selector: 'page-search-tx-modal',
   templateUrl: 'search-tx-modal.html'

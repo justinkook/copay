@@ -2,6 +2,7 @@ import { Component, NgZone, ViewChild } from '@angular/core';
 import { TranslateService } from '@ngx-translate/core';
 import {
   Events,
+  IonicPage,
   ModalController,
   NavController,
   NavParams,
@@ -24,6 +25,7 @@ import { WalletProvider } from '../../../providers/wallet/wallet';
 // pages
 import { FinishModalPage } from '../../finish/finish';
 
+@IonicPage()
 @Component({
   selector: 'page-proposals-notifications',
   templateUrl: 'proposals-notifications.html'

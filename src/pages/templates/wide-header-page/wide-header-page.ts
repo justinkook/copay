@@ -1,7 +1,7 @@
 import { Component, Input, ViewChild } from '@angular/core';
-import { Content, Navbar } from 'ionic-angular';
+import { Content, IonicPage, Navbar } from 'ionic-angular';
 import { PlatformProvider } from '../../../providers/platform/platform';
-
+@IonicPage()
 @Component({
   selector: 'wide-header-page',
   templateUrl: 'wide-header-page.html'

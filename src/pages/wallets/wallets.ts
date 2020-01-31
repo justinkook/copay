@@ -3,6 +3,7 @@ import { StatusBar } from '@ionic-native/status-bar';
 import { TranslateService } from '@ngx-translate/core';
 import {
   Events,
+  IonicPage,
   ModalController,
   NavController,
   Platform
@@ -11,17 +12,7 @@ import * as _ from 'lodash';
 import { Observable, Subscription } from 'rxjs';
 
 // Pages
-import { AddPage } from '../add/add';
 import { CopayersPage } from '../add/copayers/copayers';
-import { BackupKeyPage } from '../backup/backup-key/backup-key';
-import { CoinbasePage } from '../integrations/coinbase/coinbase';
-import { ShapeshiftPage } from '../integrations/shapeshift/shapeshift';
-import { SimplexPage } from '../integrations/simplex/simplex';
-import { SimplexBuyPage } from '../integrations/simplex/simplex-buy/simplex-buy';
-import { ScanPage } from '../scan/scan';
-import { SettingsPage } from '../settings/settings';
-import { WalletDetailsPage } from '../wallet-details/wallet-details';
-import { ProposalsNotificationsPage } from './proposals-notifications/proposals-notifications';
 
 // Providers
 import { AppProvider } from '../../providers/app/app';
@@ -44,7 +35,7 @@ interface UpdateWalletOptsI {
   force?: boolean;
   alsoUpdateHistory?: boolean;
 }
-
+@IonicPage()
 @Component({
   selector: 'page-wallets',
   templateUrl: 'wallets.html'
@@ -507,9 +498,9 @@ export class WalletsPage {
 
     this.logger.debug(
       'fetching status for: ' +
-        opts.walletId +
-        ' alsohistory:' +
-        opts.alsoUpdateHistory
+      opts.walletId +
+      ' alsohistory:' +
+      opts.alsoUpdateHistory
     );
     const wallet = this.profileProvider.getWallet(opts.walletId);
     if (!wallet) return;
@@ -637,7 +628,7 @@ export class WalletsPage {
 
   public goToWalletDetails(wallet): void {
     if (wallet.isComplete()) {
-      this.navCtrl.push(WalletDetailsPage, {
+      this.navCtrl.push('WalletDetailsPage', {
         walletId: wallet.credentials.walletId
       });
     } else {
@@ -655,24 +646,20 @@ export class WalletsPage {
   }
 
   public openProposalsNotificationsPage(): void {
-    this.navCtrl.push(ProposalsNotificationsPage);
+    this.navCtrl.push('ProposalsNotificationsPage');
   }
 
   public goTo(page: string): void {
-    const pageMap = {
-      CoinbasePage,
-      ShapeshiftPage
-    };
     if (page === 'SimplexPage') {
       this.simplexProvider.getSimplex().then(simplexData => {
         if (simplexData && !_.isEmpty(simplexData)) {
-          this.navCtrl.push(SimplexPage);
+          this.navCtrl.push('SimplexPage');
         } else {
-          this.navCtrl.push(SimplexBuyPage);
+          this.navCtrl.push('SimplexBuyPage');
         }
       });
     } else {
-      this.navCtrl.push(pageMap[page]);
+      this.navCtrl.push(page);
     }
   }
 
@@ -684,11 +671,11 @@ export class WalletsPage {
   }
 
   public scan(): void {
-    this.navCtrl.push(ScanPage);
+    this.navCtrl.push('ScanPage');
   }
 
   public settings(): void {
-    this.navCtrl.push(SettingsPage);
+    this.navCtrl.push('SettingsPage');
   }
 
   public collapseGroup(keyId: string) {
@@ -700,13 +687,13 @@ export class WalletsPage {
   }
 
   public addWallet(keyId): void {
-    this.navCtrl.push(AddPage, {
+    this.navCtrl.push('AddPage', {
       keyId
     });
   }
 
   public openBackupPage(keyId) {
-    this.navCtrl.push(BackupKeyPage, {
+    this.navCtrl.push('BackupKeyPage', {
       keyId
     });
   }

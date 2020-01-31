@@ -1,7 +1,5 @@
 import { Component } from '@angular/core';
-import { NavController, NavParams } from 'ionic-angular';
-import { CoinbasePage } from '../integrations/coinbase/coinbase';
-import { ShapeshiftPage } from '../integrations/shapeshift/shapeshift';
+import { IonicPage, NavController, NavParams } from 'ionic-angular';
 
 export function setPrice(isFiat: boolean, amount: number) {
   return {
@@ -14,7 +12,7 @@ export interface Price {
   qty?: number;
   amount?: number;
 }
-
+@IonicPage()
 @Component({
   selector: 'page-integrations',
   templateUrl: 'integrations.html'
@@ -27,10 +25,6 @@ export class IntegrationsPage {
   }
 
   public goTo(page: string): void {
-    const pageMap = {
-      CoinbasePage,
-      ShapeshiftPage
-    };
-    this.navCtrl.push(pageMap[page]);
+    this.navCtrl.push(page);
   }
 }

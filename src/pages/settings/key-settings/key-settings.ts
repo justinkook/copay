@@ -1,6 +1,6 @@
 import { Component } from '@angular/core';
 import { TranslateService } from '@ngx-translate/core';
-import { ModalController, NavController, NavParams } from 'ionic-angular';
+import { IonicPage, ModalController, NavController, NavParams } from 'ionic-angular';
 import * as _ from 'lodash';
 
 // providers
@@ -13,16 +13,9 @@ import { ProfileProvider } from '../../../providers/profile/profile';
 import { WalletProvider } from '../../../providers/wallet/wallet';
 
 // pages
-import { AddPage } from '../../add/add';
-import { BackupKeyPage } from '../../backup/backup-key/backup-key';
-import { KeyNamePage } from '../key-settings/key-name/key-name';
 import { KeyOnboardingPage } from '../key-settings/key-onboarding/key-onboarding';
-import { WalletSettingsPage } from '../wallet-settings/wallet-settings';
-import { WalletExportPage } from '../wallet-settings/wallet-settings-advanced/wallet-export/wallet-export';
-import { ExtendedPrivateKeyPage } from './extended-private-key/extended-private-key';
-import { KeyDeletePage } from './key-delete/key-delete';
-import { KeyQrExportPage } from './key-qr-export/key-qr-export';
 
+@IonicPage()
 @Component({
   selector: 'page-key-settings',
   templateUrl: 'key-settings.html'
@@ -150,30 +143,30 @@ export class KeySettingsPage {
     );
 
     if (derivationStrategy == 'BIP45') {
-      this.navCtrl.push(WalletExportPage, {
+      this.navCtrl.push('WalletExportPage', {
         walletId: this.wallets[0].credentials.walletId
       });
     } else {
-      this.navCtrl.push(BackupKeyPage, {
+      this.navCtrl.push('BackupKeyPage', {
         keyId: this.keyId
       });
     }
   }
 
   public openWalletGroupDelete(): void {
-    this.navCtrl.push(KeyDeletePage, {
+    this.navCtrl.push('KeyDeletePage', {
       keyId: this.keyId
     });
   }
 
   public openQrExport(): void {
-    this.navCtrl.push(KeyQrExportPage, {
+    this.navCtrl.push('KeyQrExportPage', {
       keyId: this.keyId
     });
   }
 
   public openWalletGroupExtendedPrivateKey(): void {
-    this.navCtrl.push(ExtendedPrivateKeyPage, {
+    this.navCtrl.push('ExtendedPrivateKeyPage', {
       keyId: this.keyId
     });
   }
@@ -197,7 +190,7 @@ export class KeySettingsPage {
   }
 
   openWalletSettings(id) {
-    this.navCtrl.push(WalletSettingsPage, { walletId: id });
+    this.navCtrl.push('WalletSettingsPage', { walletId: id });
   }
 
   public reorder(): void {
@@ -214,11 +207,11 @@ export class KeySettingsPage {
   }
 
   public goToAddPage() {
-    this.navCtrl.push(AddPage, { keyId: this.keyId });
+    this.navCtrl.push('AddPage', { keyId: this.keyId });
   }
 
   public openWalletGroupName(): void {
-    this.navCtrl.push(KeyNamePage, {
+    this.navCtrl.push('KeyNamePage', {
       keyId: this.keyId
     });
   }

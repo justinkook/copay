@@ -6,7 +6,7 @@ import {
   ValidationErrors,
   Validators
 } from '@angular/forms';
-import { Events, NavController, NavParams } from 'ionic-angular';
+import { Events, IonicPage, NavController, NavParams } from 'ionic-angular';
 
 // providers
 import { AddressBookProvider } from '../../../../providers/address-book/address-book';
@@ -17,8 +17,8 @@ import { PopupProvider } from '../../../../providers/popup/popup';
 
 // validators
 import { AddressValidator } from '../../../../validators/address';
-import { ScanPage } from '../../../scan/scan';
 
+@IonicPage()
 @Component({
   selector: 'page-addressbook-add',
   templateUrl: 'add.html'
@@ -101,7 +101,7 @@ export class AddressbookAddPage {
   }
 
   public openScanner(): void {
-    this.navCtrl.push(ScanPage, { fromAddressbook: true });
+    this.navCtrl.push('ScanPage', { fromAddressbook: true });
   }
 
   public getCoinAndNetwork(): { coin: string; network: string } {

@@ -1,4 +1,5 @@
 import { Component } from '@angular/core';
+import { IonicPage } from 'ionic-angular';
 import * as _ from 'lodash';
 import { Logger } from '../../../providers/logger/logger';
 
@@ -8,7 +9,7 @@ import { FeeProvider } from '../../../providers/fee/fee';
 
 const COIN = 'btc';
 const NETWORK = 'livenet';
-
+@IonicPage()
 @Component({
   selector: 'page-fee-policy',
   templateUrl: 'fee-policy.html'

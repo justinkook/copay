@@ -20,20 +20,7 @@ import { PayproProvider } from '../../providers/paypro/paypro';
 import { ProfileProvider } from '../../providers/profile/profile';
 
 // Pages
-import { CopayersPage } from '../add/copayers/copayers';
-import { ImportWalletPage } from '../add/import-wallet/import-wallet';
-import { JoinWalletPage } from '../add/join-wallet/join-wallet';
-import { BitPayCardIntroPage } from '../integrations/bitpay-card/bitpay-card-intro/bitpay-card-intro';
-import { CoinbasePage } from '../integrations/coinbase/coinbase';
-import { SelectInvoicePage } from '../integrations/invoice/select-invoice/select-invoice';
-import { ShapeshiftPage } from '../integrations/shapeshift/shapeshift';
-import { SimplexPage } from '../integrations/simplex/simplex';
-import { PaperWalletPage } from '../paper-wallet/paper-wallet';
 import { ScanPage } from '../scan/scan';
-import { AmountPage } from '../send/amount/amount';
-import { ConfirmPage } from '../send/confirm/confirm';
-import { AddressbookAddPage } from '../settings/addressbook/add/add';
-import { WalletDetailsPage } from '../wallet-details/wallet-details';
 import { MultiSendPage } from './multi-send/multi-send';
 
 @Component({
@@ -57,21 +44,6 @@ export class SendPage {
     'BitcoinCashUri',
     'BitPayUri'
   ];
-  private pageMap = {
-    AddressbookAddPage,
-    AmountPage,
-    BitPayCardIntroPage,
-    CoinbasePage,
-    ConfirmPage,
-    CopayersPage,
-    ImportWalletPage,
-    JoinWalletPage,
-    PaperWalletPage,
-    ShapeshiftPage,
-    SimplexPage,
-    SelectInvoicePage,
-    WalletDetailsPage
-  };
 
   constructor(
     private currencyProvider: CurrencyProvider,
@@ -115,7 +87,7 @@ export class SendPage {
   private SendPageRedirEventHandler: any = nextView => {
     nextView.params.fromWalletDetails = true;
     nextView.params.walletId = this.wallet.credentials.walletId;
-    this.navCtrl.push(this.pageMap[nextView.name], nextView.params);
+    this.navCtrl.push(nextView.name, nextView.params);
   };
 
   private updateAddressHandler: any = data => {
@@ -152,7 +124,7 @@ export class SendPage {
       );
       isValid =
         this.currencyProvider.getChain(this.wallet.coin).toLowerCase() ==
-          addrData.coin && addrData.network == this.wallet.network;
+        addrData.coin && addrData.network == this.wallet.network;
     }
 
     if (isValid) {

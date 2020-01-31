@@ -9,6 +9,7 @@ $roboto-font-path: $font-path !default;
   font-family: 'Roboto';
   font-style: normal;
   font-weight: 300;
+  font-display: swap;
   src: local('Roboto Light'), local('Roboto-Light'),
     url('#{$roboto-font-path}/roboto-light.woff2') format('woff2'),
     url('#{$roboto-font-path}/roboto-light.woff') format('woff'),
@@ -19,6 +20,7 @@ $roboto-font-path: $font-path !default;
   font-family: 'Roboto';
   font-style: normal;
   font-weight: 400;
+  font-display: swap;
   src: local('Roboto'), local('Roboto-Regular'),
     url('#{$roboto-font-path}/roboto-regular.woff2') format('woff2'),
     url('#{$roboto-font-path}/roboto-regular.woff') format('woff'),
@@ -29,6 +31,7 @@ $roboto-font-path: $font-path !default;
   font-family: 'Roboto';
   font-style: normal;
   font-weight: 500;
+  font-display: swap;
   src: local('Roboto Medium'), local('Roboto-Medium'),
     url('#{$roboto-font-path}/roboto-medium.woff2') format('woff2'),
     url('#{$roboto-font-path}/roboto-medium.woff') format('woff'),
@@ -39,6 +42,7 @@ $roboto-font-path: $font-path !default;
   font-family: 'Roboto';
   font-style: normal;
   font-weight: 700;
+  font-display: swap;
   src: local('Roboto Bold'), local('Roboto-Bold'),
     url('#{$roboto-font-path}/roboto-bold.woff2') format('woff2'),
     url('#{$roboto-font-path}/roboto-bold.woff') format('woff'),

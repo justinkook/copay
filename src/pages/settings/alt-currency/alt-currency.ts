@@ -1,5 +1,5 @@
 import { Component } from '@angular/core';
-import { NavController } from 'ionic-angular';
+import { IonicPage, NavController } from 'ionic-angular';
 import { Logger } from '../../../providers/logger/logger';
 
 // native
@@ -12,7 +12,7 @@ import { PlatformProvider } from '../../../providers/platform/platform';
 import { RateProvider } from '../../../providers/rate/rate';
 
 import * as _ from 'lodash';
-
+@IonicPage()
 @Component({
   selector: 'page-alt-currency',
   templateUrl: 'alt-currency.html'
@@ -153,7 +153,7 @@ export class AltCurrencyPage {
     this.lastUsedAltCurrencyList = this.lastUsedAltCurrencyList.slice(0, 3);
     this.persistenceProvider
       .setLastCurrencyUsed(JSON.stringify(this.lastUsedAltCurrencyList))
-      .then(() => {});
+      .then(() => { });
   }
 
   public findCurrency(searchedAltCurrency: string): void {

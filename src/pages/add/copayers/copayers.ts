@@ -2,6 +2,7 @@ import { Component } from '@angular/core';
 import { TranslateService } from '@ngx-translate/core';
 import {
   Events,
+  IonicPage,
   NavController,
   NavParams,
   Platform,
@@ -23,8 +24,7 @@ import { PopupProvider } from '../../../providers/popup/popup';
 import { ProfileProvider } from '../../../providers/profile/profile';
 import { PushNotificationsProvider } from '../../../providers/push-notifications/push-notifications';
 
-// Pages
-import { WalletDetailsPage } from '../../../pages/wallet-details/wallet-details';
+@IonicPage()
 @Component({
   selector: 'page-copayers',
   templateUrl: 'copayers.html'
@@ -128,7 +128,7 @@ export class CopayersPage {
           if (err) this.logger.error(err);
           this.viewCtrl.dismiss().then(() => {
             this.events.publish('Local/WalletListChange');
-            this.navCtrl.push(WalletDetailsPage, {
+            this.navCtrl.push('WalletDetailsPage', {
               walletId: this.wallet.credentials.walletId
             });
           });

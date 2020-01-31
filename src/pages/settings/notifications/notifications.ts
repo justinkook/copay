@@ -1,7 +1,7 @@
 import { Component } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { TranslateService } from '@ngx-translate/core';
-import { NavController } from 'ionic-angular';
+import { IonicPage, NavController } from 'ionic-angular';
 import { Logger } from '../../../providers/logger/logger';
 
 // providers
@@ -15,7 +15,7 @@ import { PushNotificationsProvider } from '../../../providers/push-notifications
 
 // validators
 import { EmailValidator } from '../../../validators/email';
-
+@IonicPage()
 @Component({
   selector: 'page-notifications',
   templateUrl: 'notifications.html'
