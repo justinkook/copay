@@ -68,7 +68,7 @@
       <ion-icon class="item-img icon-settings" name="md-eye-off" item-start></ion-icon>
       <ion-label>
         <div class="main-label">
-          {{'Hide total cash value' | translate}}
+          {{'Hide Portfolio Value' | translate}}
         </div>
       </ion-label>
       <ion-toggle [(ngModel)]="balanceHidden" (ionChange)="toggleHideBalanceFlag()"></ion-toggle>
@@ -82,7 +82,7 @@
       <ion-icon class="item-img icon-settings" item-start>
         <img src="assets/img/settings-icons/icon-address-book.svg">
       </ion-icon>
-      <span class="main-label" translate>Address book</span>
+      <span class="main-label" translate>Address Book</span>
     </button>
 
     <button ion-item (click)="openFeePolicyPage()">
@@ -104,7 +104,9 @@
         <img src="assets/img/settings-icons/icon-read-only.svg" width="26">
       </ion-icon>
       <ion-label>
-        <div class="main-label" *ngIf="walletsGroup[0].canSign">{{profileProvider.getWalletGroup(walletsGroup[0].keyId).name}}</div>
+        <div class="main-label" *ngIf="walletsGroup[0].canSign">
+          <span>{{profileProvider.getWalletGroup(walletsGroup[0].keyId).name}}</span>
+        </div>
         <div class="main-label" *ngIf="!walletsGroup[0].canSign" translate>Read Only Wallets</div>
       </ion-label>
       <ion-note *ngIf="walletsGroup.length == 1" item-end>
@@ -114,8 +116,8 @@
         <span translate>{{walletsGroup.length}} Wallets</span>
       </ion-note>
     </button>
-    <button ion-item detail-none class="create-button" *ngIf="walletsGroups && walletsGroups[0]" (click)="goToAddView()" translate>
-      Create or Import a Key
+    <button ion-item detail-none class="create-button" *ngIf="walletsGroups && walletsGroups[0]" (click)="goToAddView()">
+      {{'Create or Import a Key' | translate}}
     </button>
 
     <ion-item-divider *ngIf="cardServices && cardServices[0]">
@@ -179,7 +181,7 @@
       <ion-icon class="item-img icon-settings" item-start>
         <img src="assets/img/settings-icons/icon-help-support.svg">
       </ion-icon>
-      <span class="main-label" translate>Help &amp; support</span>
+      <span class="main-label" translate>Help &amp; Support</span>
     </button>
 
     <button ion-item *ngIf="isCordova" (click)="openSharePage()">

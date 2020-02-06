@@ -13,6 +13,7 @@ import {
   CoinsMap,
   CurrencyProvider
 } from '../../providers/currency/currency';
+import { ErrorsProvider } from '../../providers/errors/errors';
 import { ExternalLinkProvider } from '../../providers/external-link/external-link';
 import { IncomingDataProvider } from '../../providers/incoming-data/incoming-data';
 import { Logger } from '../../providers/logger/logger';
@@ -86,9 +87,12 @@ export class SendPage {
     private actionSheetProvider: ActionSheetProvider,
     private externalLinkProvider: ExternalLinkProvider,
     private appProvider: AppProvider,
-    private translate: TranslateService
+    private translate: TranslateService,
+    private errorsProvider: ErrorsProvider
   ) {
     this.wallet = this.navParams.data.wallet;
+    this.events.subscribe('Local/AddressScan', this.updateAddressHandler);
+    this.events.subscribe('SendPageRedir', this.SendPageRedirEventHandler);
   }
 
   @ViewChild('transferTo')
@@ -99,15 +103,13 @@ export class SendPage {
   }
 
   ionViewWillEnter() {
-    this.events.subscribe('Local/AddressScan', this.updateAddressHandler);
-    this.events.subscribe('SendPageRedir', this.SendPageRedirEventHandler);
     for (const coin of this.currencyProvider.getAvailableCoins()) {
       this.wallets[coin] = this.profileProvider.getWallets({ coin });
       this.hasWallets[coin] = !_.isEmpty(this.wallets[coin]);
     }
   }
 
-  ionViewWillLeave() {
+  ngOnDestroy() {
     this.events.unsubscribe('Local/AddressScan', this.updateAddressHandler);
     this.events.unsubscribe('SendPageRedir', this.SendPageRedirEventHandler);
   }
@@ -187,12 +189,7 @@ export class SendPage {
       'The wallet you are using does not match the network and/or the currency of the address provided'
     );
     const title = this.translate.instant('Error');
-    const infoSheet = this.actionSheetProvider.createInfoSheet(
-      'default-error',
-      { msg, title }
-    );
-    infoSheet.present();
-    infoSheet.onDidDismiss(() => {
+    this.errorsProvider.showDefaultError(msg, title, () => {
       this.search = '';
     });
   }
@@ -292,9 +289,17 @@ export class SendPage {
     );
   }
 
-  public goToMultiSendPage(): void {
-    this.navCtrl.push(MultiSendPage, {
-      wallet: this.wallet
+  public showMoreOptions(): void {
+    const optionsSheet = this.actionSheetProvider.createOptionsSheet(
+      'send-options'
+    );
+    optionsSheet.present();
+
+    optionsSheet.onDidDismiss(option => {
+      if (option == 'multi-send')
+        this.navCtrl.push(MultiSendPage, {
+          wallet: this.wallet
+        });
     });
   }
 }

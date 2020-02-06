@@ -1,12 +1,18 @@
 import { Component, NgZone, ViewChild } from '@angular/core';
 import { StatusBar } from '@ionic-native/status-bar';
 import { TranslateService } from '@ngx-translate/core';
-import { Events, NavController, Platform } from 'ionic-angular';
+import {
+  Events,
+  ModalController,
+  NavController,
+  Platform
+} from 'ionic-angular';
 import * as _ from 'lodash';
 import { Observable, Subscription } from 'rxjs';
 
 // Pages
 import { AddPage } from '../add/add';
+import { CopayersPage } from '../add/copayers/copayers';
 import { BackupKeyPage } from '../backup/backup-key/backup-key';
 import { CoinbasePage } from '../integrations/coinbase/coinbase';
 import { ShapeshiftPage } from '../integrations/shapeshift/shapeshift';
@@ -14,9 +20,11 @@ import { SimplexPage } from '../integrations/simplex/simplex';
 import { SimplexBuyPage } from '../integrations/simplex/simplex-buy/simplex-buy';
 import { ScanPage } from '../scan/scan';
 import { SettingsPage } from '../settings/settings';
+import { WalletDetailsPage } from '../wallet-details/wallet-details';
 import { ProposalsNotificationsPage } from './proposals-notifications/proposals-notifications';
 
 // Providers
+import { ActionSheetProvider } from '../../providers/action-sheet/action-sheet';
 import { AppProvider } from '../../providers/app/app';
 import { BwcErrorProvider } from '../../providers/bwc-error/bwc-error';
 import { ClipboardProvider } from '../../providers/clipboard/clipboard';
@@ -89,7 +97,9 @@ export class WalletsPage {
     private clipboardProvider: ClipboardProvider,
     private incomingDataProvider: IncomingDataProvider,
     private statusBar: StatusBar,
-    private simplexProvider: SimplexProvider
+    private simplexProvider: SimplexProvider,
+    private modalCtrl: ModalController,
+    private actionSheetProvider: ActionSheetProvider
   ) {
     this.slideDown = false;
     this.isBlur = false;
@@ -628,7 +638,22 @@ export class WalletsPage {
   }
 
   public goToWalletDetails(wallet): void {
-    this.events.publish('OpenWallet', wallet);
+    if (wallet.isComplete()) {
+      this.navCtrl.push(WalletDetailsPage, {
+        walletId: wallet.credentials.walletId
+      });
+    } else {
+      const copayerModal = this.modalCtrl.create(
+        CopayersPage,
+        {
+          walletId: wallet.credentials.walletId
+        },
+        {
+          cssClass: 'wallet-details-modal'
+        }
+      );
+      copayerModal.present();
+    }
   }
 
   public openProposalsNotificationsPage(): void {
@@ -685,6 +710,21 @@ export class WalletsPage {
   public openBackupPage(keyId) {
     this.navCtrl.push(BackupKeyPage, {
       keyId
+    });
+  }
+
+  public showMoreOptions(): void {
+    const walletTabOptionsAction = this.actionSheetProvider.createWalletTabOptions(
+      { walletsGroups: this.walletsGroups }
+    );
+    walletTabOptionsAction.present();
+    walletTabOptionsAction.onDidDismiss(data => {
+      if (data)
+        data.keyId
+          ? this.addWallet(data.keyId)
+          : this.navCtrl.push(AddPage, {
+              isZeroState: true
+            });
     });
   }
 }

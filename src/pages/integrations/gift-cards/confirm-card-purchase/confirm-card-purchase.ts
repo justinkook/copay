@@ -33,6 +33,7 @@ import { BwcProvider } from '../../../../providers/bwc/bwc';
 import { ClipboardProvider } from '../../../../providers/clipboard/clipboard';
 import { ConfigProvider } from '../../../../providers/config/config';
 import { CurrencyProvider } from '../../../../providers/currency/currency';
+import { ErrorsProvider } from '../../../../providers/errors/errors';
 import { ExternalLinkProvider } from '../../../../providers/external-link/external-link';
 import {
   getActivationFee,
@@ -90,6 +91,7 @@ export class ConfirmCardPurchasePage extends ConfirmPage {
     configProvider: ConfigProvider,
     currencyProvider: CurrencyProvider,
     decimalPipe: DecimalPipe,
+    errorsProvider: ErrorsProvider,
     feeProvider: FeeProvider,
     private giftCardProvider: GiftCardProvider,
     public incomingDataProvider: IncomingDataProvider,
@@ -122,6 +124,7 @@ export class ConfirmCardPurchasePage extends ConfirmPage {
       configProvider,
       currencyProvider,
       decimalPipe,
+      errorsProvider,
       externalLinkProvider,
       feeProvider,
       logger,
@@ -193,7 +196,6 @@ export class ConfirmCardPurchasePage extends ConfirmPage {
     if (!isSlideConfirmFinished) {
       this.giftCardProvider.logEvent('giftcards_purchase_start', {
         brand: this.cardConfig.name,
-        usdAmount: this.amount,
         transactionCurrency
       });
       this.giftCardProvider.logEvent('add_to_cart', {
@@ -203,7 +205,6 @@ export class ConfirmCardPurchasePage extends ConfirmPage {
     } else {
       this.giftCardProvider.logEvent('giftcards_purchase_finish', {
         brand: this.cardConfig.name,
-        usdAmount: this.amount,
         transactionCurrency
       });
 
@@ -218,8 +219,7 @@ export class ConfirmCardPurchasePage extends ConfirmPage {
           {
             name: this.cardConfig.name,
             category: 'giftCards',
-            quantity: 1,
-            price: giftData.amount.toString(10)
+            quantity: 1
           }
         ]
       });
@@ -263,13 +263,9 @@ export class ConfirmCardPurchasePage extends ConfirmPage {
 
   private async setTotalAmount(
     wallet,
-    amountSat: number,
     invoiceFeeSat: number,
     networkFeeSat: number
   ) {
-    const amount = await this.satToFiat(wallet.coin, amountSat);
-    this.amount = Number(amount);
-
     const invoiceFee = await this.satToFiat(wallet.coin, invoiceFeeSat);
     this.invoiceFee = Number(invoiceFee);
 
@@ -591,7 +587,7 @@ export class ConfirmCardPurchasePage extends ConfirmPage {
       );
     }
 
-    this.setTotalAmount(wallet, amountSat, invoiceFeeSat, ctxp.fee);
+    this.setTotalAmount(wallet, invoiceFeeSat, ctxp.fee);
 
     this.logGiftCardPurchaseEvent(false, COIN, dataSrc);
   }

@@ -14,6 +14,7 @@ import { Logger } from '../../../providers/logger/logger';
 // Pages
 import { FinishModalPage } from '../../finish/finish';
 import { TabsPage } from '../../tabs/tabs';
+import { WalletDetailsPage } from '../../wallet-details/wallet-details';
 
 // Providers
 import { ActionSheetProvider } from '../../../providers/action-sheet/action-sheet';
@@ -24,6 +25,7 @@ import { BwcProvider } from '../../../providers/bwc/bwc';
 import { ClipboardProvider } from '../../../providers/clipboard/clipboard';
 import { ConfigProvider } from '../../../providers/config/config';
 import { Coin, CurrencyProvider } from '../../../providers/currency/currency';
+import { ErrorsProvider } from '../../../providers/errors/errors';
 import { ExternalLinkProvider } from '../../../providers/external-link/external-link';
 import { FeeProvider } from '../../../providers/fee/fee';
 import { OnGoingProcessProvider } from '../../../providers/on-going-process/on-going-process';
@@ -93,6 +95,7 @@ export class ConfirmPage {
     protected configProvider: ConfigProvider,
     protected currencyProvider: CurrencyProvider,
     protected decimalPipe: DecimalPipe,
+    protected errorsProvider: ErrorsProvider,
     protected externalLinkProvider: ExternalLinkProvider,
     protected feeProvider: FeeProvider,
     protected logger: Logger,
@@ -854,6 +857,11 @@ export class ConfirmPage {
       return;
     }
 
+    if ((error as Error).message === 'WRONG_PASSWORD') {
+      this.errorsProvider.showWrongEncryptPassswordError();
+      return;
+    }
+
     // Currently the paypro error is the following string: 500 - "{}"
     if (error.toString().includes('500')) {
       msg = this.translate.instant(
@@ -863,28 +871,27 @@ export class ConfirmPage {
 
     const infoSheetTitle = title ? title : this.translate.instant('Error');
 
-    const errorInfoSheet = this.actionSheetProvider.createInfoSheet(
-      'default-error',
-      { msg: msg || this.bwcErrorProvider.msg(error), title: infoSheetTitle }
-    );
-    errorInfoSheet.present();
-    errorInfoSheet.onDidDismiss(() => {
-      if (exit) {
-        this.fromWalletDetails
-          ? this.navCtrl.popToRoot()
-          : this.navCtrl.last().name == 'ConfirmCardPurchasePage'
-          ? this.navCtrl.pop()
-          : this.app
-              .getRootNavs()[0]
-              .setRoot(TabsPage)
-              .then(() =>
-                this.app
-                  .getRootNav()
-                  .getActiveChildNav()
-                  .select(1)
-              ); // using setRoot(TabsPage) as workaround when coming from scanner
+    this.errorsProvider.showDefaultError(
+      msg || this.bwcErrorProvider.msg(error),
+      infoSheetTitle,
+      () => {
+        if (exit) {
+          this.fromWalletDetails
+            ? this.navCtrl.popToRoot()
+            : this.navCtrl.last().name == 'ConfirmCardPurchasePage'
+            ? this.navCtrl.pop()
+            : this.app
+                .getRootNavs()[0]
+                .setRoot(TabsPage)
+                .then(() =>
+                  this.app
+                    .getRootNav()
+                    .getActiveChildNav()
+                    .select(1)
+                ); // using setRoot(TabsPage) as workaround when coming from scanner
+        }
       }
-    });
+    );
   }
 
   public toggleAddress(): void {
@@ -1028,7 +1035,9 @@ export class ConfirmPage {
 
     this.navCtrl.popToRoot();
     setTimeout(() => {
-      this.events.publish('OpenWallet', this.wallet);
+      this.navCtrl.push(WalletDetailsPage, {
+        walletId: this.wallet.credentials.walletId
+      });
     }, 1000);
   }
 
@@ -1104,5 +1113,13 @@ export class ConfirmPage {
 
   public close() {
     this.navCtrl.popToRoot();
+  }
+
+  public editMemo(memo: string) {
+    const memoComponent = this.actionSheetProvider.createMemoComponent(memo);
+    memoComponent.present();
+    memoComponent.onDidDismiss(memo => {
+      if (memo) this.tx.description = memo;
+    });
   }
 }
