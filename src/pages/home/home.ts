@@ -19,6 +19,7 @@ import {
   TabProvider,
   WalletProvider
 } from '../../providers';
+import { AnalyticsProvider } from '../../providers/analytics/analytics';
 import { ConfigProvider } from '../../providers/config/config';
 import { CurrencyProvider } from '../../providers/currency/currency';
 import { ExchangeRatesProvider } from '../../providers/exchange-rates/exchange-rates';
@@ -49,8 +50,7 @@ export interface Advertisement {
 })
 export class HomePage {
   showBuyCryptoOption: boolean;
-  showServicesOption: boolean;
-  showShopOption: boolean;
+  showServicesOption: boolean = false;
   @ViewChild('showSurvey')
   showSurvey;
   @ViewChild('showCard')
@@ -111,6 +111,7 @@ export class HomePage {
   constructor(
     private persistenceProvider: PersistenceProvider,
     private logger: Logger,
+    private analyticsProvider: AnalyticsProvider,
     private appProvider: AppProvider,
     private externalLinkProvider: ExternalLinkProvider,
     private formatCurrencyPipe: FormatCurrencyPipe,
@@ -140,11 +141,15 @@ export class HomePage {
     this.showNewDesignSlides();
     this.showSurveyCard();
     this.checkFeedbackInfo();
-
     this.isBalanceShown();
     this.fetchStatus();
-    await this.setDiscountedCard();
+    this.setIntegrations();
     this.fetchAdvertisements();
+    await this.setDiscountedCard();
+    this.fetchDiscountAdvertisements();
+  }
+
+  private setIntegrations() {
     // Show integrations
     const integrations = this.homeIntegrationsProvider
       .get()
@@ -155,21 +160,16 @@ export class HomePage {
       this.showBitPayCardAdvertisement = cards ? false : true;
     });
 
-    // Hide BitPay if linked
-    setTimeout(() => {
-      this.showServicesOption = false;
-      this.showShopOption = true;
-      this.homeIntegrations = _.remove(_.clone(integrations), x => {
-        this.showBuyCryptoOption = x.name == 'simplex' && x.show == true;
-        if (x.name == 'debitcard' && x.linked) return false;
-        else {
-          if (x.name != 'simplex') {
-            this.showServicesOption = true;
-          }
-          return x;
+    this.homeIntegrations = _.remove(integrations, x => {
+      this.showBuyCryptoOption = x.name == 'simplex' && x.show == true;
+      if (x.name == 'debitcard' && x.linked) return false;
+      else {
+        if (x.name != 'simplex') {
+          this.showServicesOption = true;
         }
-      });
-    }, 200);
+        return x;
+      }
+    });
   }
 
   private async setDiscountedCard(): Promise<void> {
@@ -412,8 +412,12 @@ export class HomePage {
     });
   }
 
-  private async fetchAdvertisements(): Promise<void> {
+  private async fetchDiscountAdvertisements(): Promise<void> {
     await this.fetchGiftCardDiscount();
+    this.logPresentedWithGiftCardDiscountEvent();
+  }
+
+  private fetchAdvertisements(): void {
     this.advertisements.forEach(advertisement => {
       if (
         advertisement.app &&
@@ -437,7 +441,6 @@ export class HomePage {
         });
       this.logger.debug('fetchAdvertisements');
     });
-    this.logPresentedWithGiftCardDiscountEvent();
   }
 
   logPresentedWithGiftCardDiscountEvent() {
@@ -498,6 +501,7 @@ export class HomePage {
   }
 
   public goToBuyCrypto() {
+    this.analyticsProvider.logEvent('buy_crypto_button_clicked', {});
     this.simplexProvider.getSimplex().then(simplexData => {
       if (simplexData && !_.isEmpty(simplexData)) {
         this.navCtrl.push(SimplexPage);
