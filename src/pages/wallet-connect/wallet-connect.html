@@ -1,0 +1,30 @@
+<wide-header-page title="{{'Wallet Connect' | translate}}">
+  <div page-content>
+    <ion-list class="settings-list bp-list">
+      <div>
+        <button ion-button class="button-standard" (click)="initWalletConnect()">
+          {{'Init' | translate}}
+        </button>
+        <button ion-button class="button-standard" (click)="approveSession()">
+          {{'Approve Session' | translate}}
+        </button>
+        <button ion-button class="button-standard" (click)="closeRequest()">
+          {{'Close' | translate}}
+        </button>
+        <button ion-button class="button-standard" (click)="approveRequest()">
+          {{'Approve Request' | translate}}
+        </button>
+        <button ion-button clear class="button-standard" (click)="rejectSession()">
+          {{ 'Reject' | translate }}
+        </button>
+      </div>
+
+      <div *ngFor="let request of requests">
+        <button ion-button clear class="button-standard" (click)="openRequest(request)">
+          {{ 'Open Request' | translate }} {{ request }}
+        </button>
+    </div>
+    <span>{{ displayRequest }}</span>
+    </ion-list>
+  </div>
+</wide-header-page>

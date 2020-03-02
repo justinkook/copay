@@ -755,6 +755,14 @@ export class PersistenceProvider {
   removeBitpayIdPairingFlag() {
     return this.storage.remove('BitpayIdPairingFlag');
   }
+
+  getWalletConnect() {
+    return this.storage.get('WalletConnect');
+  }
+
+  setWalletConnect(session) {
+    return this.storage.set('WalletConnect', session);
+  }
 }
 
 function getLegacyGiftCardKey(cardName: string, network: Network) {
