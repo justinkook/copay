@@ -418,12 +418,16 @@ export class IncomingDataProvider {
     }
   }
 
-  private handleWalletConnectUri(uri: string, _redirParams): void {
-    const walletConnect = this.actionSheetProvider.createWalletConnectComponent(
+  private handleWalletConnectUri(uri: string): void {
+    let stateParams = {
       uri
-    );
-    walletConnect.present();
-    walletConnect.onDidDismiss(data => this.finishIncomingData(data));
+    };
+    let nextView = {
+      name: 'WalletConnectPage',
+      params: stateParams
+    };
+
+    this.incomingDataRedir(nextView);
   }
 
   private handleBitcoinCashUriLegacyAddress(data: string): void {
@@ -693,7 +697,7 @@ export class IncomingDataProvider {
 
       // Wallet Connect URI
     } else if (this.isValidWalletConnectUri(data)) {
-      this.handleWalletConnectUri(data, redirParams);
+      this.handleWalletConnectUri(data);
       return true;
 
       // Bitcoin Cash URI using Bitcoin Core legacy address

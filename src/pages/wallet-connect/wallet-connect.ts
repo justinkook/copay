@@ -1,18 +1,22 @@
 import { Component } from '@angular/core';
+import { TranslateService } from '@ngx-translate/core';
 import WalletConnect from '@walletconnect/browser';
 import * as ethers from 'ethers';
-import { NavParams } from 'ionic-angular';
+import { NavParams, ViewController } from 'ionic-angular';
+import * as _ from 'lodash';
+
+import { ActionSheetProvider, ProfileProvider } from '../../providers';
 import { Logger } from '../../providers/logger/logger';
 import { PersistenceProvider } from '../../providers/persistence/persistence';
 import { WalletProvider } from '../../providers/wallet/wallet';
-import { ActionSheetParent } from '../action-sheet/action-sheet-parent';
 import { IProviderData, supportedProviders } from './providers';
 
 @Component({
   selector: 'page-wallet-connect',
   templateUrl: 'wallet-connect.html'
 })
-export class WalletConnectComponent extends ActionSheetParent {
+export class WalletConnectPage {
+  isOpenSelector: boolean = false;
   loading: boolean = false;
   scanner: boolean = false;
   walletConnector: WalletConnect | null = null;
@@ -50,14 +54,42 @@ export class WalletConnectComponent extends ActionSheetParent {
   static KOVAN_CHAIN_ID = 42;
 
   constructor(
+    private actionSheetProvider: ActionSheetProvider,
     private logger: Logger,
     private navParams: NavParams,
     private persistenceProvider: PersistenceProvider,
+    private profileProvider: ProfileProvider,
+    private translate: TranslateService,
+    private viewCtrl: ViewController,
     private walletProvider: WalletProvider
-  ) {
-    super();
-    this.logger.debug('WalletConnectProvider initialized');
+  ) {}
+
+  ngOnInit(): void {
+    this.accounts = this.getAccounts();
+    this.address = this.accounts[this.activeIndex];
     this.initWallet();
+  }
+
+  close(): void {
+    this.killSession();
+    this.viewCtrl.dismiss();
+  }
+
+  ionViewWillEnter() {
+    this.wallets = this.profileProvider.getWallets({ coin: 'eth' });
+    if (_.isEmpty(this.wallets)) {
+      return;
+    } else {
+      if (this.wallets.length == 1) this.onWalletSelect(this.wallets[0]);
+      else this.showWallets();
+    }
+  }
+
+  public onWalletSelect(wallet): void {
+    this.activeIndex = this.wallets.indexOf(wallet);
+    this.activeChainId = wallet.network === 'livenet' ? 1 : 42;
+    this.updateChain(this.activeChainId);
+    this.updateAddress(this.activeIndex);
   }
 
   public async initWallet() {
@@ -105,6 +137,27 @@ export class WalletConnectComponent extends ActionSheetParent {
     }
   }
 
+  public showWallets(): void {
+    this.isOpenSelector = true;
+    const params = {
+      wallets: this.wallets,
+      selectedWalletId: null,
+      title: this.translate.instant('Select an account')
+    };
+    const walletSelector = this.actionSheetProvider.createWalletSelector(
+      params
+    );
+    walletSelector.present();
+    walletSelector.onDidDismiss(wallet => {
+      this.onSelectWalletEvent(wallet);
+    });
+  }
+
+  private onSelectWalletEvent(wallet): void {
+    if (!_.isEmpty(wallet)) this.onWalletSelect(wallet);
+    this.isOpenSelector = false;
+  }
+
   public approveSession() {
     if (this.walletConnector) {
       this.walletConnector.approveSession({
@@ -124,6 +177,7 @@ export class WalletConnectComponent extends ActionSheetParent {
     if (this.walletConnector) {
       this.walletConnector.killSession();
     }
+    this.initWallet();
   }
 
   public subscribeToEvents() {
@@ -172,6 +226,8 @@ export class WalletConnectComponent extends ActionSheetParent {
         if (error) {
           throw error;
         }
+
+        this.initWallet();
       });
 
       if (this.walletConnector.connected) {
@@ -307,6 +363,8 @@ export class WalletConnectComponent extends ActionSheetParent {
   }
 
   public updateWallet(index: number, chainId: number) {
+    this.activeIndex = index;
+    this.activeChainId = chainId;
     const rpcUrl = this.getChainData(chainId).rpc_url;
     this.wallet = this.generateWallet(index);
     const provider = new ethers.providers.JsonRpcProvider(rpcUrl);
@@ -359,5 +417,15 @@ export class WalletConnectComponent extends ActionSheetParent {
       `m/44'/60'/${account}'/0/0`
     );
     return newWallet;
+  }
+
+  public getAccounts() {
+    const accounts = [];
+    let wallet = null;
+    for (let i = 0; i < 1; i++) {
+      wallet = this.generateWallet(i);
+      accounts.push(wallet.address);
+    }
+    return accounts;
   }
 }
