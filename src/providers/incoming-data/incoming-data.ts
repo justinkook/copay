@@ -418,18 +418,12 @@ export class IncomingDataProvider {
     }
   }
 
-  private handleWalletConnectUri(
-    uri: string,
-    _redirParams
-  ): void {
-    let stateParams = {
+  private handleWalletConnectUri(uri: string, _redirParams): void {
+    const walletConnect = this.actionSheetProvider.createWalletConnectComponent(
       uri
-    };
-    let nextView = {
-      name: 'WalletConnectPage',
-      params: stateParams
-    };
-    this.incomingDataRedir(nextView);
+    );
+    walletConnect.present();
+    walletConnect.onDidDismiss(data => this.finishIncomingData(data));
   }
 
   private handleBitcoinCashUriLegacyAddress(data: string): void {

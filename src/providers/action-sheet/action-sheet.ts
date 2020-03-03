@@ -6,6 +6,7 @@ import { IncomingDataMenuComponent } from '../../components/incoming-data-menu/i
 import { InfoSheetComponent } from '../../components/info-sheet/info-sheet';
 import { MemoComponent } from '../../components/memo-component/memo-component';
 import { OptionsSheetComponent } from '../../components/options-sheet/options-sheet';
+import { WalletConnectComponent } from '../../components/wallet-connect/wallet-connect';
 import { WalletReceiveComponent } from '../../components/wallet-receive/wallet-receive';
 import { WalletSelectorComponent } from '../../components/wallet-selector/wallet-selector';
 import { WalletTabOptionsComponent } from '../../components/wallet-tab-options/wallet-tab-options';
@@ -113,6 +114,14 @@ export class ActionSheetProvider {
 
   public createEmailComponent(): EmailComponent {
     return this.setupSheet<EmailComponent>(EmailComponent).instance;
+  }
+
+  public createWalletConnectComponent(uri: string): WalletConnectComponent {
+    return this.setupSheet<WalletConnectComponent>(
+      WalletConnectComponent,
+      null,
+      { uri }
+    ).instance;
   }
 
   public createWalletSelector(

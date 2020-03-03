@@ -4,17 +4,15 @@ import * as ethers from 'ethers';
 import { NavParams } from 'ionic-angular';
 import { Logger } from '../../providers/logger/logger';
 import { PersistenceProvider } from '../../providers/persistence/persistence';
-import { ProfileProvider } from '../../providers/profile/profile';
 import { WalletProvider } from '../../providers/wallet/wallet';
-import { DEFAULT_ACTIVE_INDEX, DEFAULT_CHAIN_ID } from './constants';
-import { supportedProviders } from './providers';
-import { IProviderData } from './types';
+import { ActionSheetParent } from '../action-sheet/action-sheet-parent';
+import { IProviderData, supportedProviders } from './providers';
 
 @Component({
   selector: 'page-wallet-connect',
   templateUrl: 'wallet-connect.html'
 })
-export class WalletConnectPage {
+export class WalletConnectComponent extends ActionSheetParent {
   loading: boolean = false;
   scanner: boolean = false;
   walletConnector: WalletConnect | null = null;
@@ -26,12 +24,12 @@ export class WalletConnectPage {
     name: string;
     ssl?: boolean;
   } = {
-      description: '',
-      url: '',
-      icons: [],
-      name: '',
-      ssl: false
-    };
+    description: '',
+    url: '',
+    icons: [],
+    name: '',
+    ssl: false
+  };
   connected: boolean = false;
   chainId: number = 1;
   accounts: string[];
@@ -39,27 +37,30 @@ export class WalletConnectPage {
   requests: any[] = [];
   results: any[] = [];
   displayRequest: any = null;
-  activeIndex: number = DEFAULT_ACTIVE_INDEX;
-  activeChainId: number = DEFAULT_CHAIN_ID;
+  activeIndex: number = 0;
+  activeChainId: number = 1;
   wallets;
   wallet: ethers.Wallet | null = null;
+
+  static ETH_STANDARD_PATH = "m/44'/60'/0'/0";
+  static MAINNET_CHAIN_ID = 1;
+  static ROPSTEN_CHAIN_ID = 3;
+  static RINKEBY_CHAIN_ID = 4;
+  static GOERLI_CHAIN_ID = 5;
+  static KOVAN_CHAIN_ID = 42;
 
   constructor(
     private logger: Logger,
     private navParams: NavParams,
     private persistenceProvider: PersistenceProvider,
-    private profileProvider: ProfileProvider,
     private walletProvider: WalletProvider
   ) {
+    super();
     this.logger.debug('WalletConnectProvider initialized');
-  }
-
-  ionViewWillEnter() {
     this.initWallet();
   }
 
   public async initWallet() {
-    this.wallets = this.profileProvider.getWallets({ coin: 'eth' });
     const session = await this.persistenceProvider.getWalletConnect();
 
     if (!session) {
@@ -91,17 +92,11 @@ export class WalletConnectPage {
     try {
       this.walletConnector = new WalletConnect({ uri: this.uri });
 
-      window['walletConnector'] = this.walletConnector; // tslint:disable-line
-
       if (!this.walletConnector.connected) {
         await this.walletConnector.createSession();
       }
 
-      const { connected, accounts, peerMeta } = this.walletConnector;
-      window.console.log(accounts, peerMeta, connected);
-      this.accounts = accounts;
       this.loading = false;
-      this.uri = this.walletConnector.uri;
 
       this.subscribeToEvents();
     } catch (error) {
@@ -119,21 +114,6 @@ export class WalletConnectPage {
     }
   }
 
-  public async updateSession(sessionParams: {
-    chainId?: number;
-    activeIndex?: number;
-  }) {
-    const _chainId = sessionParams.chainId || this.chainId;
-    const _activeIndex = sessionParams.activeIndex || this.activeIndex;
-    const address = this.accounts[_activeIndex];
-    if (this.walletConnector) {
-      this.walletConnector.updateSession({
-        chainId: _chainId,
-        accounts: [address]
-      });
-    }
-  }
-
   public rejectSession() {
     if (this.walletConnector) {
       this.walletConnector.rejectSession();
@@ -144,40 +124,6 @@ export class WalletConnectPage {
     if (this.walletConnector) {
       this.walletConnector.killSession();
     }
-  }
-
-  public async updateChain(chainId: number | string) {
-    const _chainId = Number(chainId);
-    await this.updateWallet(this.activeIndex, _chainId);
-    await this.updateSession({ chainId: _chainId });
-  }
-
-  public async updateAddress(activeIndex: number) {
-    await this.updateWallet(activeIndex, this.chainId);
-    await this.updateSession({ activeIndex });
-  }
-
-  public openRequest(request: any) {
-    this.displayRequest = request;
-  }
-
-  public async closeRequest() {
-    const filteredRequests = this.requests.filter(
-      request => request.id !== this.displayRequest.id
-    );
-
-    this.requests = filteredRequests;
-    this.displayRequest = null;
-  }
-
-  public async rejectRequest() {
-    if (this.walletConnector) {
-      this.walletConnector.rejectRequest({
-        id: this.displayRequest.id,
-        error: { message: 'Failed or Rejected Request' }
-      });
-    }
-    await this.closeRequest();
   }
 
   public subscribeToEvents() {
@@ -237,6 +183,55 @@ export class WalletConnectPage {
         this.chainId = chainId;
       }
     }
+  }
+
+  public async updateSession(sessionParams: {
+    chainId?: number;
+    activeIndex?: number;
+  }) {
+    const _chainId = sessionParams.chainId || this.chainId;
+    const _activeIndex = sessionParams.activeIndex || this.activeIndex;
+    const address = this.accounts[_activeIndex];
+    if (this.walletConnector) {
+      this.walletConnector.updateSession({
+        chainId: _chainId,
+        accounts: [address]
+      });
+    }
+  }
+
+  public async updateChain(chainId: number | string) {
+    const _chainId = Number(chainId);
+    await this.updateWallet(this.activeIndex, _chainId);
+    await this.updateSession({ chainId: _chainId });
+  }
+
+  public async updateAddress(activeIndex: number) {
+    await this.updateWallet(activeIndex, this.chainId);
+    await this.updateSession({ activeIndex });
+  }
+
+  public openRequest(request: any) {
+    this.displayRequest = request;
+  }
+
+  public async closeRequest() {
+    const filteredRequests = this.requests.filter(
+      request => request.id !== this.displayRequest.id
+    );
+
+    this.requests = filteredRequests;
+    this.displayRequest = null;
+  }
+
+  public async rejectRequest() {
+    if (this.walletConnector) {
+      this.walletConnector.rejectRequest({
+        id: this.displayRequest.id,
+        error: { message: 'Failed or Rejected Request' }
+      });
+    }
+    await this.closeRequest();
   }
 
   public async approveRequest() {
@@ -312,8 +307,6 @@ export class WalletConnectPage {
   }
 
   public updateWallet(index: number, chainId: number) {
-    this.activeIndex = index;
-    this.activeChainId = chainId;
     const rpcUrl = this.getChainData(chainId).rpc_url;
     this.wallet = this.generateWallet(index);
     const provider = new ethers.providers.JsonRpcProvider(rpcUrl);
@@ -361,7 +354,10 @@ export class WalletConnectPage {
   }
 
   public generateWallet(account: number) {
-    const newWallet = ethers.Wallet.fromMnemonic('rhythm egg tube lunar father cattle breeze laugh ask witness real curtain', `m/44'/60'/${account}'/0/0`);
+    const newWallet = ethers.Wallet.fromMnemonic(
+      'rhythm egg tube lunar father cattle breeze laugh ask witness real curtain',
+      `m/44'/60'/${account}'/0/0`
+    );
     return newWallet;
   }
 }
