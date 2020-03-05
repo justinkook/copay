@@ -274,22 +274,23 @@ export class CopayApp {
         this.logger.error('Error loading keys: ', err);
       });
     // hiding this behind feature flag
-    if (experiment === 'enabled') {
-      let token;
-      try {
-        token = await this.persistenceProvider.getBitPayIdPairingToken(
-          Network['testnet']
-        );
-      } catch (err) {
-        this.logger.log(err);
-      }
+    let token;
+    try {
+      token = await this.persistenceProvider.getBitPayIdPairingToken(
+        Network[this.NETWORK]
+      );
+    } catch (err) {
+      this.logger.log(err);
+    }
+
+    if (this.platformProvider.isCordova) {
       // preloading the view
       setTimeout(() => {
         this.iab
           .createIABInstance(
             'card',
             CARD_IAB_CONFIG,
-            'https://test.bitpay.com/wallet-card?context=bpa',
+            'https://bitpay.com/wallet-card?context=bpa',
             `sessionStorage.setItem('isPaired', ${!!token})`
           )
           .then(ref => {
