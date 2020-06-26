@@ -54,7 +54,7 @@ export class IABCardProvider {
     private http: HttpClient,
     private externalLinkProvider: ExternalLinkProvider,
     private themeProvider: ThemeProvider
-  ) { }
+  ) {}
 
   public setNetwork(network: string) {
     this.NETWORK = network;
@@ -493,7 +493,7 @@ export class IABCardProvider {
           () => this.logger.log(`card - signed request -> ${name}`)
         );
       });
-    } catch (err) { }
+    } catch (err) {}
   }
 
   async purchaseAttempt(event) {
@@ -712,12 +712,16 @@ export class IABCardProvider {
   show(disableLoadingScreen?: boolean): void {
     if (this.cardIAB_Ref) {
       let message = 'iabOpening';
-      let darkMode = this.themeProvider.isDarkModeEnabled();
       if (disableLoadingScreen) {
         message = `${message}?enableLoadingScreen`;
       }
 
-      this.sendMessage({ message, payload: { theme: !!darkMode } });
+      this.sendMessage({
+        message,
+        payload: {
+          theme: !!this.themeProvider.isDarkModeEnabled()
+        }
+      });
       this.cardIAB_Ref.show();
       this._isHidden = false;
     }
