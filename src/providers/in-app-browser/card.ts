@@ -22,6 +22,7 @@ import {
   PersistenceProvider
 } from '../../providers/persistence/persistence';
 import { SimplexProvider } from '../simplex/simplex';
+import { ThemeProvider } from '../theme/theme';
 
 @Injectable()
 export class IABCardProvider {
@@ -51,8 +52,9 @@ export class IABCardProvider {
     private simplexProvider: SimplexProvider,
     private onGoingProcess: OnGoingProcessProvider,
     private http: HttpClient,
-    private externalLinkProvider: ExternalLinkProvider
-  ) {}
+    private externalLinkProvider: ExternalLinkProvider,
+    private themeProvider: ThemeProvider
+  ) { }
 
   public setNetwork(network: string) {
     this.NETWORK = network;
@@ -491,7 +493,7 @@ export class IABCardProvider {
           () => this.logger.log(`card - signed request -> ${name}`)
         );
       });
-    } catch (err) {}
+    } catch (err) { }
   }
 
   async purchaseAttempt(event) {
@@ -710,12 +712,12 @@ export class IABCardProvider {
   show(disableLoadingScreen?: boolean): void {
     if (this.cardIAB_Ref) {
       let message = 'iabOpening';
-
+      let darkMode = this.themeProvider.isDarkModeEnabled();
       if (disableLoadingScreen) {
         message = `${message}?enableLoadingScreen`;
       }
 
-      this.sendMessage({ message });
+      this.sendMessage({ message, payload: { theme: !!darkMode } });
       this.cardIAB_Ref.show();
       this._isHidden = false;
     }

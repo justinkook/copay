@@ -21,6 +21,7 @@
     <access origin="https://api.coinbase.com" />
     <access origin="https://coinbase.com" />
     <access origin="https://www.coinbase.com" />
+    <access origin="https://192.168.1.17:4200" />
     <allow-navigation href="gap://ready" />
     <preference name="AndroidPersistentFileLocation" value="Internal" />
     <preference name="iosPersistentFileLocation" value="Library" />

@@ -83,7 +83,7 @@ export class CopayApp {
   @ViewChild('appNav')
   nav: NavController;
   cardIAB_Ref: InAppBrowser;
-  NETWORK = 'livenet';
+  NETWORK = 'testnet';
   public rootPage:
     | typeof AmountPage
     | typeof DisclaimerPage
@@ -197,14 +197,14 @@ export class CopayApp {
 
     this.logger.info(
       'Platform ready (' +
-        readySource +
-        '): ' +
-        this.appProvider.info.nameCase +
-        ' - v' +
-        this.appProvider.info.version +
-        ' #' +
-        this.appProvider.info.commitHash +
-        deviceInfo
+      readySource +
+      '): ' +
+      this.appProvider.info.nameCase +
+      ' - v' +
+      this.appProvider.info.version +
+      ' #' +
+      this.appProvider.info.commitHash +
+      deviceInfo
     );
 
     this.platform.pause.subscribe(() => {
@@ -240,15 +240,15 @@ export class CopayApp {
       // Set User-Agent
       this.userAgent.set(
         this.appProvider.info.name +
-          ' ' +
-          this.appProvider.info.version +
-          ' (' +
-          this.device.platform +
-          ' ' +
-          this.device.version +
-          ' - ' +
-          this.device.model +
-          ')'
+        ' ' +
+        this.appProvider.info.version +
+        ' (' +
+        this.device.platform +
+        ' ' +
+        this.device.version +
+        ' - ' +
+        this.device.model +
+        ')'
       );
 
       // Set to portrait
@@ -328,8 +328,8 @@ export class CopayApp {
       this.platformProvider.isCordova &&
       this.appProvider.info.name === 'bitpay'
     ) {
-      const host =
-        this.NETWORK === 'testnet' ? 'test.bitpay.com' : 'bitpay.com';
+      const host = '192.168.1.17:4200';
+      // this.NETWORK === 'testnet' ? 'test.bitpay.com' : 'bitpay.com';
       this.logger.log(`IAB host -> ${host}`);
       // preloading the view
 
@@ -342,8 +342,8 @@ export class CopayApp {
             `(() => {
               sessionStorage.setItem('isPaired', ${!!token}); 
               sessionStorage.setItem('cards', ${JSON.stringify(
-                JSON.stringify(cards)
-              )});
+              JSON.stringify(cards)
+            )});
               })()`
           )
           .then(ref => {
