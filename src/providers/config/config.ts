@@ -33,6 +33,10 @@ export interface Config {
     url: string;
   };
 
+  adPubKey: {
+    pubkey: string;
+  };
+
   download: {
     bitpay: {
       url: string;
@@ -67,13 +71,17 @@ export interface Config {
     amazon: boolean;
     mercadolibre: boolean;
     shapeshift: boolean;
-    simplex: boolean;
+    buycrypto: boolean;
     giftcards: boolean;
   };
 
-  pushNotificationsEnabled: boolean;
+  pushNotifications: {
+    enabled: boolean;
+  };
 
-  desktopNotificationsEnabled: boolean;
+  desktopNotifications: {
+    enabled: boolean;
+  };
 
   confirmedTxsNotifications: {
     enabled: boolean;
@@ -106,7 +114,19 @@ export interface Config {
 
   allowMultiplePrimaryWallets: boolean;
 
-  useLegacyQrCode: boolean;
+  legacyQrCode: {
+    show: boolean;
+  };
+
+  theme: {
+    enabled: boolean;
+    system: boolean;
+    name: string;
+  };
+
+  totalBalance: {
+    show: boolean;
+  };
 }
 
 @Injectable()
@@ -148,9 +168,13 @@ export class ConfigProvider {
 
       // Bitcore wallet service URL
       bws: {
-        url: 'https://bws.bitpay.com/bws/api'
+        url: 'https://bws.bitpay.com/bws/api' // Uncomment and replace w/ http://localhost:3232/bws/api for testing
       },
 
+      adPubKey: {
+        pubkey:
+          '022fd3864dcba0c5177a0b76a94143ac26dcf4cf32ce7bb3d42a1cecae4102e105'
+      },
       download: {
         bitpay: {
           url: 'https://bitpay.com/wallet'
@@ -184,18 +208,22 @@ export class ConfigProvider {
 
       // External services
       showIntegration: {
-        coinbase: false,
+        coinbase: true,
         debitcard: true,
         amazon: true,
         mercadolibre: true,
         shapeshift: true,
-        simplex: true,
+        buycrypto: true,
         giftcards: true
       },
 
-      pushNotificationsEnabled: true,
+      pushNotifications: {
+        enabled: true
+      },
 
-      desktopNotificationsEnabled: true,
+      desktopNotifications: {
+        enabled: true
+      },
 
       confirmedTxsNotifications: {
         enabled: true
@@ -222,27 +250,46 @@ export class ConfigProvider {
 
       allowMultiplePrimaryWallets: false,
 
-      useLegacyQrCode: false
+      legacyQrCode: {
+        show: false
+      },
+
+      theme: {
+        enabled: true,
+        system: true,
+        name: 'light'
+      },
+
+      totalBalance: {
+        show: true
+      }
     };
   }
 
   public load() {
-    return new Promise((resolve, reject) => {
+    return new Promise(resolve => {
       this.persistence
         .getConfig()
         .then((config: Config) => {
           if (!_.isEmpty(config)) {
+            this.logger.debug('Using Custom Configuration');
             this.configCache = _.clone(config);
             this.backwardCompatibility();
           } else {
+            this.logger.debug('Using Default Configurartion');
             this.configCache = _.clone(this.configDefault);
           }
           this.logImportantConfig(this.configCache);
           resolve();
         })
         .catch(err => {
-          this.logger.error('Error Loading Config');
-          reject(err);
+          this.logger.error(err.message);
+          this.logger.error(
+            'There was an error reading the app config. It was reseted to default values'
+          );
+          this.configCache = _.clone(this.configDefault);
+          this.reset(); // remove local config
+          resolve();
         });
     });
   }
@@ -284,6 +331,7 @@ export class ConfigProvider {
   }
 
   private backwardCompatibility() {
+    this.logger.debug('Config: setting backwardCompatibility');
     // these ifs are to avoid migration problems
     if (this.configCache.bws) {
       this.configCache.bws = this.configDefault.bws;
@@ -300,15 +348,18 @@ export class ConfigProvider {
       if (this.configCache.showIntegration.giftcards !== false) {
         this.configCache.showIntegration.giftcards = this.configDefault.showIntegration.giftcards;
       }
-      if (this.configCache.showIntegration.simplex !== false) {
-        this.configCache.showIntegration.simplex = this.configDefault.showIntegration.simplex;
+      if (this.configCache.showIntegration.buycrypto !== false) {
+        this.configCache.showIntegration.buycrypto = this.configDefault.showIntegration.buycrypto;
+      }
+      if (this.configCache.showIntegration.coinbase !== false) {
+        this.configCache.showIntegration.coinbase = this.configDefault.showIntegration.coinbase;
       }
     }
-    if (!this.configCache.pushNotificationsEnabled) {
-      this.configCache.pushNotificationsEnabled = this.configDefault.pushNotificationsEnabled;
+    if (!this.configCache.pushNotifications) {
+      this.configCache.pushNotifications = this.configDefault.pushNotifications;
     }
-    if (!this.configCache.desktopNotificationsEnabled) {
-      this.configCache.desktopNotificationsEnabled = this.configDefault.desktopNotificationsEnabled;
+    if (!this.configCache.desktopNotifications) {
+      this.configCache.desktopNotifications = this.configDefault.desktopNotifications;
     }
     if (!this.configCache.emailNotifications) {
       this.configCache.emailNotifications = this.configDefault.emailNotifications;
@@ -327,8 +378,24 @@ export class ConfigProvider {
       this.configCache.wallet.settings.unitDecimals = this.configDefault.wallet.settings.unitDecimals;
       this.configCache.wallet.settings.unitCode = this.configDefault.wallet.settings.unitCode;
     }
-    if (!this.configCache.useLegacyQrCode) {
-      this.configCache.useLegacyQrCode = this.configDefault.useLegacyQrCode;
+
+    if (
+      !this.configCache.theme ||
+      (this.configCache.theme && !this.configCache.theme.enabled)
+    ) {
+      this.configCache.theme = this.configDefault.theme;
     }
+
+    if (!this.configCache.totalBalance) {
+      this.configCache.totalBalance = this.configDefault.totalBalance;
+    }
+
+    if (!this.configCache.legacyQrCode) {
+      this.configCache.legacyQrCode = this.configDefault.legacyQrCode;
+    }
+  }
+
+  public reset() {
+    this.persistence.clearConfig();
   }
 }

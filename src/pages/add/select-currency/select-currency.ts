@@ -1,7 +1,6 @@
 import { Component } from '@angular/core';
 import { TranslateService } from '@ngx-translate/core';
 import {
-  App,
   Events,
   ModalController,
   NavController,
@@ -12,8 +11,8 @@ import * as _ from 'lodash';
 // pages
 import { ImportWalletPage } from '../../add/import-wallet/import-wallet';
 import { KeyOnboardingPage } from '../../settings/key-settings/key-onboarding/key-onboarding';
-import { TabsPage } from '../../tabs/tabs';
 import { CreateWalletPage } from '../create-wallet/create-wallet';
+import { JoinWalletPage } from '../join-wallet/join-wallet';
 
 // providers
 import {
@@ -53,13 +52,11 @@ export class SelectCurrencyPage {
   public isZeroState: boolean;
 
   constructor(
-    private app: App,
-    private events: Events,
     private actionSheetProvider: ActionSheetProvider,
     private currencyProvider: CurrencyProvider,
     private navCtrl: NavController,
     private logger: Logger,
-    private navParam: NavParams,
+    public navParam: NavParams,
     private profileProvider: ProfileProvider,
     private onGoingProcessProvider: OnGoingProcessProvider,
     private walletProvider: WalletProvider,
@@ -68,11 +65,13 @@ export class SelectCurrencyPage {
     private translate: TranslateService,
     private modalCtrl: ModalController,
     private persistenceProvider: PersistenceProvider,
-    private errorsProvider: ErrorsProvider
+    private errorsProvider: ErrorsProvider,
+    private events: Events
   ) {
-    this.availableChains = this.navParam.data.isShared
-      ? this.currencyProvider.getMultiSigCoins()
-      : this.currencyProvider.getAvailableChains();
+    this.availableChains =
+      this.navParam.data.isShared || this.navParam.data.isJoin
+        ? this.currencyProvider.getMultiSigCoins()
+        : this.currencyProvider.getAvailableChains();
     this.availableTokens = this.currencyProvider.getAvailableTokens();
     for (const chain of this.availableChains) {
       this.coinsSelected[chain] = true;
@@ -119,12 +118,20 @@ export class SelectCurrencyPage {
   }
 
   public goToCreateWallet(coin: string): void {
-    this.navCtrl.push(CreateWalletPage, {
-      isShared: this.navParam.data.isShared,
-      coin,
-      keyId: this.navParam.data.keyId,
-      showKeyOnboarding: this.showKeyOnboarding
-    });
+    if (this.navParam.data.isJoin) {
+      this.navCtrl.push(JoinWalletPage, {
+        keyId: this.navParam.data.keyId,
+        url: this.navParam.data.url,
+        coin
+      });
+    } else {
+      this.navCtrl.push(CreateWalletPage, {
+        isShared: this.navParam.data.isShared,
+        coin,
+        keyId: this.navParam.data.keyId,
+        showKeyOnboarding: this.showKeyOnboarding
+      });
+    }
   }
 
   public getCoinName(coin: Coin): string {
@@ -142,9 +149,13 @@ export class SelectCurrencyPage {
     this.onGoingProcessProvider.set('creatingWallet');
     this.profileProvider
       .createMultipleWallets(coins, selectedTokens)
-      .then(wallets => {
+      .then(async wallets => {
         this.walletProvider.updateRemotePreferences(wallets);
         this.pushNotificationsProvider.updateSubscription(wallets);
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        this.profileProvider.setNewWalletGroupOrder(
+          wallets[0].credentials.keyId
+        );
         this.endProcess();
       })
       .catch(e => {
@@ -165,36 +176,17 @@ export class SelectCurrencyPage {
 
   private showError(err) {
     this.onGoingProcessProvider.clear();
-    if (
-      err &&
-      err.message != 'FINGERPRINT_CANCELLED' &&
-      err.message != 'PASSWORD_CANCELLED'
-    ) {
-      this.logger.error('Create: could not create wallet', err);
-      if (err.message === 'WRONG_PASSWORD') {
-        this.errorsProvider.showWrongEncryptPassswordError();
-      } else {
-        const title = this.translate.instant('Error');
-        err = this.bwcErrorProvider.msg(err);
-        this.errorsProvider.showDefaultError(err, title);
-      }
-    }
-    return;
+    this.logger.error('Create: could not create wallet', err);
+    const title = this.translate.instant('Error');
+    err = this.bwcErrorProvider.msg(err);
+    this.errorsProvider.showDefaultError(err, title);
   }
 
   private endProcess() {
     this.onGoingProcessProvider.clear();
-    // using setRoot(TabsPage) as workaround when coming from settings
-    this.app
-      .getRootNavs()[0]
-      .setRoot(TabsPage)
-      .then(() => {
-        this.app
-          .getRootNav()
-          .getActiveChildNav()
-          .select(1);
-        this.events.publish('Local/WalletListChange');
-      });
+    this.navCtrl.popToRoot().then(() => {
+      this.events.publish('Local/FetchWallets');
+    });
   }
 
   public createAndBindTokenWallet(pairedWallet, token) {
@@ -217,7 +209,7 @@ export class SelectCurrencyPage {
       : [];
 
     const walletSelector = this.actionSheetProvider.createInfoSheet(
-      'addTokenWallet',
+      'linkEthWallet',
       {
         wallets: eligibleWallets,
         token

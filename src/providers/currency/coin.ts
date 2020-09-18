@@ -36,13 +36,9 @@ export interface CoinOpts {
     maxMerchantFee: string;
   };
   theme: {
+    coinColor: string;
     backgroundColor: string;
     gradientBackgroundColor: string;
-  };
-  qrColor: {
-    moduleColor: string;
-    positionRingColor: string;
-    positionCenterColor: string;
   };
 }
 
@@ -68,7 +64,7 @@ export const availableCoins: CoinsMap<CoinOpts> = {
     paymentInfo: {
       paymentCode: 'BIP73',
       protocolPrefix: { livenet: 'bitcoin', testnet: 'bitcoin' },
-      ratesApi: 'https://bitpay.com/api/rates',
+      ratesApi: 'https://bws.bitpay.com/bws/api/v3/fiatrates/btc',
       blockExplorerUrls: 'bitpay.com/insight/#/BTC/'
     },
     feeInfo: {
@@ -78,13 +74,9 @@ export const availableCoins: CoinsMap<CoinOpts> = {
       maxMerchantFee: 'urgent'
     },
     theme: {
-      backgroundColor: 'rgba(247,146,26,1)',
-      gradientBackgroundColor: 'rgba(247,146,26, 0.2)'
-    },
-    qrColor: {
-      moduleColor: '#434D5A',
-      positionRingColor: '#F7931A',
-      positionCenterColor: '#434D5A'
+      coinColor: '#f7931a',
+      backgroundColor: '#f7921a',
+      gradientBackgroundColor: '#f7921a'
     }
   },
   bch: {
@@ -108,7 +100,7 @@ export const availableCoins: CoinsMap<CoinOpts> = {
     paymentInfo: {
       paymentCode: 'BIP73',
       protocolPrefix: { livenet: 'bitcoincash', testnet: 'bchtest' },
-      ratesApi: 'https://bitpay.com/api/rates/bch',
+      ratesApi: 'https://bws.bitpay.com/bws/api/v3/fiatrates/bch',
       blockExplorerUrls: 'bitpay.com/insight/#/BCH/'
     },
     feeInfo: {
@@ -118,13 +110,9 @@ export const availableCoins: CoinsMap<CoinOpts> = {
       maxMerchantFee: 'normal'
     },
     theme: {
-      backgroundColor: 'rgba(47,207,110,1)',
-      gradientBackgroundColor: 'rgba(47,207,110, 0.2)'
-    },
-    qrColor: {
-      moduleColor: '#434D5A',
-      positionRingColor: '#434D5A',
-      positionCenterColor: '#2FCF6E'
+      coinColor: '#2fcf6e',
+      backgroundColor: '#2fcf6e',
+      gradientBackgroundColor: '#2fcf6e'
     }
   },
   eth: {
@@ -138,7 +126,7 @@ export const availableCoins: CoinsMap<CoinOpts> = {
       unitCode: 'eth'
     },
     properties: {
-      hasMultiSig: false,
+      hasMultiSig: true,
       hasMultiSend: false,
       isUtxo: false,
       isERCToken: false,
@@ -148,7 +136,7 @@ export const availableCoins: CoinsMap<CoinOpts> = {
     paymentInfo: {
       paymentCode: 'EIP681',
       protocolPrefix: { livenet: 'ethereum', testnet: 'ethereum' },
-      ratesApi: 'https://bitpay.com/api/rates/eth',
+      ratesApi: 'https://bws.bitpay.com/bws/api/v3/fiatrates/eth',
       blockExplorerUrls: 'bitpay.com/insight/#/ETH/'
     },
     feeInfo: {
@@ -158,13 +146,9 @@ export const availableCoins: CoinsMap<CoinOpts> = {
       maxMerchantFee: 'urgent'
     },
     theme: {
-      backgroundColor: 'rgba(135,206,250,1)',
-      gradientBackgroundColor: 'rgba(30,144,255, 0.2)'
-    },
-    qrColor: {
-      moduleColor: '#434D5A',
-      positionRingColor: '#434D5A',
-      positionCenterColor: '#6B71D6'
+      coinColor: '#6b71d6',
+      backgroundColor: '#1e90ff',
+      gradientBackgroundColor: '#1e90ff'
     }
   },
   xrp: {
@@ -188,7 +172,7 @@ export const availableCoins: CoinsMap<CoinOpts> = {
     paymentInfo: {
       paymentCode: 'BIP73',
       protocolPrefix: { livenet: 'ripple', testnet: 'ripple' },
-      ratesApi: 'https://bitpay.com/api/rates/xrp',
+      ratesApi: 'https://bws.bitpay.com/bws/api/v3/fiatrates/xrp',
       blockExplorerUrls: 'xrpscan.com/'
     },
     feeInfo: {
@@ -198,13 +182,45 @@ export const availableCoins: CoinsMap<CoinOpts> = {
       maxMerchantFee: 'normal'
     },
     theme: {
-      backgroundColor: 'rgba(35,41,47,1)',
-      gradientBackgroundColor: 'rgba(68,79,91, 0.2)'
+      coinColor: '#000000',
+      backgroundColor: '#565d6d',
+      gradientBackgroundColor: '#565d6d'
+    }
+  },
+  busd: {
+    name: 'Binance USD Coin',
+    chain: 'ETH',
+    coin: 'busd',
+    unitInfo: {
+      unitName: 'BUSD',
+      unitToSatoshi: 1e18,
+      unitDecimals: 18,
+      unitCode: 'busd'
     },
-    qrColor: {
-      moduleColor: '#4E4E50',
-      positionRingColor: '#333333',
-      positionCenterColor: '#9E9E9E'
+    properties: {
+      hasMultiSig: false,
+      hasMultiSend: false,
+      isUtxo: false,
+      isERCToken: true,
+      isStableCoin: true,
+      singleAddress: true
+    },
+    paymentInfo: {
+      paymentCode: 'EIP681b',
+      protocolPrefix: { livenet: 'ethereum', testnet: 'ethereum' },
+      ratesApi: 'https://bws.bitpay.com/bws/api/v3/fiatrates/busd',
+      blockExplorerUrls: 'bitpay.com/insight/#/ETH/'
+    },
+    feeInfo: {
+      feeUnit: 'Gwei',
+      feeUnitAmount: 1e9,
+      blockTime: 0.2,
+      maxMerchantFee: 'urgent'
+    },
+    theme: {
+      coinColor: '#f3ba2d',
+      backgroundColor: 'rgba(135,206,250,1)',
+      gradientBackgroundColor: 'rgba(30,144,255, 0.2)'
     }
   },
   pax: {
@@ -228,7 +244,7 @@ export const availableCoins: CoinsMap<CoinOpts> = {
     paymentInfo: {
       paymentCode: 'EIP681b',
       protocolPrefix: { livenet: 'ethereum', testnet: 'ethereum' },
-      ratesApi: 'https://bitpay.com/api/rates/pax',
+      ratesApi: 'https://bws.bitpay.com/bws/api/v3/fiatrates/pax',
       blockExplorerUrls: 'bitpay.com/insight/#/ETH/'
     },
     feeInfo: {
@@ -238,13 +254,9 @@ export const availableCoins: CoinsMap<CoinOpts> = {
       maxMerchantFee: 'urgent'
     },
     theme: {
-      backgroundColor: 'rgba(0,132,93,1)',
-      gradientBackgroundColor: 'rgba(0,209,147, 0.2)'
-    },
-    qrColor: {
-      moduleColor: '#434D5A',
-      positionRingColor: '#51B849',
-      positionCenterColor: '#434D5A'
+      coinColor: '#e6f3f9',
+      backgroundColor: '#00845d',
+      gradientBackgroundColor: '#00845d'
     }
   },
   usdc: {
@@ -268,7 +280,7 @@ export const availableCoins: CoinsMap<CoinOpts> = {
     paymentInfo: {
       paymentCode: 'EIP681b',
       protocolPrefix: { livenet: 'ethereum', testnet: 'ethereum' },
-      ratesApi: 'https://bitpay.com/api/rates/usdc',
+      ratesApi: 'https://bws.bitpay.com/bws/api/v3/fiatrates/usdc',
       blockExplorerUrls: 'bitpay.com/insight/#/ETH/'
     },
     feeInfo: {
@@ -278,13 +290,9 @@ export const availableCoins: CoinsMap<CoinOpts> = {
       maxMerchantFee: 'urgent'
     },
     theme: {
-      backgroundColor: 'rgba(39,117,201,1)',
-      gradientBackgroundColor: 'rgba(93,156,224, 0.2)'
-    },
-    qrColor: {
-      moduleColor: '#434D5A',
-      positionRingColor: '#2775CA',
-      positionCenterColor: '#434D5A'
+      coinColor: '#2775ca',
+      backgroundColor: '#2775c9',
+      gradientBackgroundColor: '#2775c9'
     }
   },
   gusd: {
@@ -308,7 +316,7 @@ export const availableCoins: CoinsMap<CoinOpts> = {
     paymentInfo: {
       paymentCode: 'EIP681b',
       protocolPrefix: { livenet: 'ethereum', testnet: 'ethereum' },
-      ratesApi: 'https://bitpay.com/api/rates/gusd',
+      ratesApi: 'https://bws.bitpay.com/bws/api/v3/fiatrates/gusd',
       blockExplorerUrls: 'bitpay.com/insight/#/ETH/'
     },
     feeInfo: {
@@ -318,13 +326,9 @@ export const availableCoins: CoinsMap<CoinOpts> = {
       maxMerchantFee: 'urgent'
     },
     theme: {
-      backgroundColor: 'rgba(0,220,250,1)',
-      gradientBackgroundColor: 'rgba(72,233,255, 0.2)'
-    },
-    qrColor: {
-      moduleColor: '#434D5A',
-      positionRingColor: '#00DCFA',
-      positionCenterColor: '#434D5A'
+      coinColor: '#00ddfa',
+      backgroundColor: '#00dcfa',
+      gradientBackgroundColor: '#00dcfa'
     }
   }
 };

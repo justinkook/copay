@@ -8,10 +8,12 @@ import { Observable } from 'rxjs/Observable';
 import { ActionSheetProvider } from '../../providers/action-sheet/action-sheet';
 import { AddressProvider } from '../../providers/address/address';
 import { AppProvider } from '../../providers/app/app';
+import { BwcErrorProvider } from '../../providers/bwc-error/bwc-error';
 import { Coin, CurrencyProvider } from '../../providers/currency/currency';
 import { ErrorsProvider } from '../../providers/errors/errors';
 import { IncomingDataProvider } from '../../providers/incoming-data/incoming-data';
 import { Logger } from '../../providers/logger/logger';
+import { OnGoingProcessProvider } from '../../providers/on-going-process/on-going-process';
 import { PayproProvider } from '../../providers/paypro/paypro';
 import { ProfileProvider } from '../../providers/profile/profile';
 
@@ -28,6 +30,7 @@ import { PaperWalletPage } from '../paper-wallet/paper-wallet';
 import { ScanPage } from '../scan/scan';
 import { AmountPage } from '../send/amount/amount';
 import { ConfirmPage } from '../send/confirm/confirm';
+import { SelectInputsPage } from '../send/select-inputs/select-inputs';
 import { AddressbookAddPage } from '../settings/addressbook/add/add';
 import { WalletDetailsPage } from '../wallet-details/wallet-details';
 import { MultiSendPage } from './multi-send/multi-send';
@@ -81,7 +84,9 @@ export class SendPage {
     private actionSheetProvider: ActionSheetProvider,
     private appProvider: AppProvider,
     private translate: TranslateService,
-    private errorsProvider: ErrorsProvider
+    private errorsProvider: ErrorsProvider,
+    private onGoingProcessProvider: OnGoingProcessProvider,
+    private bwcErrorProvider: BwcErrorProvider
   ) {
     this.wallet = this.navParams.data.wallet;
     this.events.subscribe('Local/AddressScan', this.updateAddressHandler);
@@ -107,9 +112,16 @@ export class SendPage {
   }
 
   private SendPageRedirEventHandler: any = nextView => {
+    const currentIndex = this.navCtrl.getActive().index;
+    const currentView = this.navCtrl.getViews();
     nextView.params.fromWalletDetails = true;
     nextView.params.walletId = this.wallet.credentials.walletId;
-    this.navCtrl.push(this.pageMap[nextView.name], nextView.params);
+    this.navCtrl
+      .push(this.pageMap[nextView.name], nextView.params, { animate: false })
+      .then(() => {
+        if (currentView[currentIndex].name == 'ScanPage')
+          this.navCtrl.remove(currentIndex);
+      });
   };
 
   private updateAddressHandler: any = data => {
@@ -126,11 +138,14 @@ export class SendPage {
   }
 
   public openScanner(): void {
-    this.navCtrl.push(ScanPage, { fromSend: true });
+    this.navCtrl.push(ScanPage, { fromSend: true }, { animate: false });
   }
 
-  public isMultiSend(coin: Coin) {
-    return this.currencyProvider.isMultiSend(coin);
+  public showOptions(coin: Coin) {
+    return (
+      this.currencyProvider.isMultiSend(coin) ||
+      this.currencyProvider.isUtxoCoin(coin)
+    );
   }
 
   private checkCoinAndNetwork(data, isPayPro?): boolean {
@@ -233,20 +248,28 @@ export class SendPage {
               this.wallet.coin.toUpperCase() === option.currency
           );
           if (selected) {
+            const activePage = 'SendPage';
             const isValid = this.checkCoinAndNetwork(selected, true);
             if (isValid) {
               this.incomingDataProvider.goToPayPro(
                 payproOptions.payProUrl,
                 this.wallet.coin,
-                true
+                undefined,
+                true,
+                activePage
               );
             }
           } else {
             this.redir();
           }
         } catch (err) {
+          this.onGoingProcessProvider.clear();
           this.invalidAddress = true;
-          this.logger.warn(err);
+          this.logger.warn(this.bwcErrorProvider.msg(err));
+          this.errorsProvider.showDefaultError(
+            this.bwcErrorProvider.msg(err),
+            this.translate.instant('Error')
+          );
         }
       } else if (
         parsedData &&
@@ -287,13 +310,21 @@ export class SendPage {
 
   public showMoreOptions(): void {
     const optionsSheet = this.actionSheetProvider.createOptionsSheet(
-      'send-options'
+      'send-options',
+      {
+        isUtxoCoin: this.currencyProvider.isUtxoCoin(this.wallet.coin),
+        isMultiSend: this.currencyProvider.isMultiSend(this.wallet.coin)
+      }
     );
     optionsSheet.present();
 
     optionsSheet.onDidDismiss(option => {
       if (option == 'multi-send')
         this.navCtrl.push(MultiSendPage, {
+          wallet: this.wallet
+        });
+      if (option == 'select-inputs')
+        this.navCtrl.push(SelectInputsPage, {
           wallet: this.wallet
         });
     });

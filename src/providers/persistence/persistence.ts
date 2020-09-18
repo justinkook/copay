@@ -31,6 +31,7 @@ const Keys = {
   APP_IDENTITY: network => 'appIdentity-' + network,
   BACKUP: walletId => 'backup-' + walletId,
   BACKUP_WALLET_GROUP: keyId => 'walletGroupBackup-' + keyId,
+  TESTING_ADVERTISEMENTS: 'testingAdvertisements',
   BALANCE_CACHE: cardId => 'balanceCache-' + cardId,
   HISTORY_CACHE: cardId => 'historyCache-' + cardId,
   BITPAY_ACCOUNTS_V2: network => 'bitpayAccounts-v2-' + network,
@@ -38,10 +39,9 @@ const Keys = {
   COINBASE_REFRESH_TOKEN: network => 'coinbaseRefreshToken-' + network,
   COINBASE_TOKEN: network => 'coinbaseToken-' + network,
   COINBASE_TXS: network => 'coinbaseTxs-' + network,
+  COINBASE: env => 'coinbase-' + env,
   CONFIG: 'config',
   FEEDBACK: 'feedback',
-  SURVEY: 'survey',
-  ETH_LIVE_CARD: 'ethLiveCard',
   FOCUSED_WALLET_ID: 'focusedWalletId',
   GIFT_CARD_CONFIG_CACHE: (network: Network) => {
     const suffix = network === Network.livenet ? '' : `-${network}`;
@@ -56,25 +56,33 @@ const Keys = {
   },
   HIDE_GIFT_CARD_DISCOUNT_ITEM: 'hideGiftCardDiscountItem',
   HIDE_BALANCE: walletId => 'hideBalance-' + walletId,
-  SHOW_TOTAL_BALANCE: 'showTotalBalance',
+  TOTAL_BALANCE: 'totalBalance',
   HIDE_WALLET: walletId => 'hideWallet-' + walletId,
   KEY_ONBOARDING: 'keyOnboarding',
   KEYS: 'keys',
   LAST_ADDRESS: walletId => 'lastAddress-' + walletId,
   LAST_CURRENCY_USED: 'lastCurrencyUsed',
+  PHONE: 'phone',
+  PHONE_COUNTRY_INFO: 'phoneCountryInfo',
   PROFILE: 'profile',
   PROFILE_OLD: 'profileOld',
   REMOTE_PREF_STORED: 'remotePrefStored',
   TX_CONFIRM_NOTIF: txid => 'txConfirmNotif-' + txid,
   TX_HISTORY: walletId => 'txsHistory-' + walletId,
   ORDER_WALLET: walletId => 'order-' + walletId,
+  ORDER_WALLET_GROUP: keyId => 'order-' + keyId,
   SERVER_MESSAGE_DISMISSED: messageId => 'serverMessageDismissed-' + messageId,
+  RELEASE_MESSAGE_DISMISSED: 'releaseMessageDismissed',
   ADVERTISEMENT_DISMISSED: name => 'advertisementDismissed-' + name,
   SHAPESHIFT_TOKEN: network => 'shapeshiftToken-' + network,
   WALLET_GROUP_NAME: keyId => `Key-${keyId}`,
   BITPAY_ID_PAIRING_TOKEN: network => `bitpayIdToken-${network}`,
   BITPAY_ID_USER_INFO: network => `bitpayIdUserInfo-${network}`,
-  BITPAY_ID_SETTINGS: network => `bitpayIdSettings-${network}`
+  BITPAY_ID_SETTINGS: network => `bitpayIdSettings-${network}`,
+  APP_THEME: 'app-theme',
+  USER_LOCATION: 'user-location',
+  COUNTRIES: 'countries',
+  CARD_FAST_TRACK_ENABLED: 'cardFastTrackEnabled'
 };
 
 interface Storage {
@@ -146,22 +154,6 @@ export class PersistenceProvider {
     return this.storage.get(Keys.FEEDBACK);
   }
 
-  setSurveyFlag() {
-    return this.storage.set(Keys.SURVEY, true);
-  }
-
-  getSurveyFlag() {
-    return this.storage.get(Keys.SURVEY);
-  }
-
-  setEthLiveCardFlag() {
-    return this.storage.set(Keys.ETH_LIVE_CARD, true);
-  }
-
-  getEthLiveCardFlag() {
-    return this.storage.get(Keys.ETH_LIVE_CARD);
-  }
-
   setKeyOnboardingFlag() {
     return this.storage.set(Keys.KEY_ONBOARDING, true);
   }
@@ -202,6 +194,25 @@ export class PersistenceProvider {
     return this.storage.remove(Keys.BACKUP(walletId));
   }
 
+  getPhone() {
+    return this.storage.get(Keys.PHONE);
+  }
+
+  setPhone(phone: string) {
+    return this.storage.set(Keys.PHONE, phone);
+  }
+
+  getPhoneCountryInfo() {
+    return this.storage.get(Keys.PHONE_COUNTRY_INFO);
+  }
+
+  setPhoneCountryInfo(phoneCountryInfo: {
+    phoneCountryCode: string; // e.g. 1
+    countryIsoCode: string; // e.g. 'US'
+  }) {
+    return this.storage.set(Keys.PHONE_COUNTRY_INFO, phoneCountryInfo);
+  }
+
   setBackupGroupFlag(keyId: string, timestamp?) {
     timestamp = timestamp || Date.now();
     return this.storage.set(Keys.BACKUP_WALLET_GROUP(keyId), timestamp);
@@ -217,6 +228,21 @@ export class PersistenceProvider {
 
   setCleanAndScanAddresses(walletId: string) {
     return this.storage.set(Keys.CLEAN_AND_SCAN_ADDRESSES, walletId);
+  }
+
+  setTestingAdvertisements(isViewingTestAdvertisements: string) {
+    return this.storage.set(
+      Keys.TESTING_ADVERTISEMENTS,
+      isViewingTestAdvertisements
+    );
+  }
+
+  getTestingAdvertisments() {
+    return this.storage.get(Keys.TESTING_ADVERTISEMENTS);
+  }
+
+  removeTestingAdvertisments() {
+    return this.storage.remove(Keys.TESTING_ADVERTISEMENTS);
   }
 
   getCleanAndScanAddresses() {
@@ -247,12 +273,12 @@ export class PersistenceProvider {
     return this.storage.get(Keys.HIDE_BALANCE(walletId));
   }
 
-  setShowTotalBalanceFlag(val) {
-    return this.storage.set(Keys.SHOW_TOTAL_BALANCE, val);
+  setTotalBalance(data) {
+    return this.storage.set(Keys.TOTAL_BALANCE, data);
   }
 
-  getShowTotalBalanceFlag() {
-    return this.storage.get(Keys.SHOW_TOTAL_BALANCE);
+  getTotalBalance() {
+    return this.storage.get(Keys.TOTAL_BALANCE);
   }
 
   setHideWalletFlag(walletId: string, val) {
@@ -278,6 +304,18 @@ export class PersistenceProvider {
 
   getRemotePrefsStoredFlag() {
     return this.storage.get(Keys.REMOTE_PREF_STORED);
+  }
+
+  setCoinbase(env: string, data) {
+    return this.storage.set(Keys.COINBASE(env), data);
+  }
+
+  getCoinbase(env: string) {
+    return this.storage.get(Keys.COINBASE(env));
+  }
+
+  removeCoinbase(env: string) {
+    return this.storage.remove(Keys.COINBASE(env));
   }
 
   setCoinbaseToken(network: string, token: string) {
@@ -505,14 +543,22 @@ export class PersistenceProvider {
     });
   }
 
+  removeBitpayAccountV2(network: string) {
+    return this.storage.set(Keys.BITPAY_ACCOUNTS_V2(network), {});
+  }
+
   setBitpayDebitCards(network: string, email: string, cards) {
-    return this.getBitpayAccounts(network).then(allAccounts => {
-      allAccounts = allAccounts || {};
-      if (!allAccounts[email])
-        throw new Error('Cannot set cards for unknown account ' + email);
-      allAccounts[email].cards = cards;
-      return this.storage.set(Keys.BITPAY_ACCOUNTS_V2(network), allAccounts);
+    return this.storage.set(Keys.BITPAY_ACCOUNTS_V2(network), {
+      [email]: { cards }
     });
+  }
+
+  setCountries(countries) {
+    return this.storage.set(Keys.COUNTRIES, countries);
+  }
+
+  getCountries() {
+    return this.storage.get(Keys.COUNTRIES);
   }
 
   // cards: [
@@ -554,6 +600,10 @@ export class PersistenceProvider {
       });
   }
 
+  removeAllBitPayAccounts(network: string) {
+    return this.storage.set(Keys.BITPAY_ACCOUNTS_V2(network), {});
+  }
+
   setGiftCards(cardName: string, network: Network, gcs: string) {
     return this.storage.set(Keys.GIFT_CARDS(cardName, network), gcs);
   }
@@ -572,6 +622,14 @@ export class PersistenceProvider {
 
   removeServerMessageDismissed(id) {
     return this.storage.remove(Keys.SERVER_MESSAGE_DISMISSED(id));
+  }
+
+  setNewReleaseMessageDismissed(version) {
+    return this.storage.set(Keys.RELEASE_MESSAGE_DISMISSED, version);
+  }
+
+  getNewReleaseMessageDismissed() {
+    return this.storage.get(Keys.RELEASE_MESSAGE_DISMISSED);
   }
 
   setAdvertisementDismissed(name) {
@@ -622,6 +680,18 @@ export class PersistenceProvider {
     return this.storage.remove('simplex-' + env);
   }
 
+  setWyre(env: string, paymentRequests) {
+    return this.storage.set('wyre-' + env, paymentRequests);
+  }
+
+  getWyre(env: string) {
+    return this.storage.get('wyre-' + env);
+  }
+
+  removeWyre(env: string) {
+    return this.storage.remove('wyre-' + env);
+  }
+
   setWalletOrder(walletId: string, order: number) {
     return this.storage.set(Keys.ORDER_WALLET(walletId), order);
   }
@@ -632,6 +702,18 @@ export class PersistenceProvider {
 
   removeWalletOrder(walletId: string) {
     return this.storage.remove(Keys.ORDER_WALLET(walletId));
+  }
+
+  setWalletGroupOrder(keyId: string, order: number) {
+    return this.storage.set(Keys.ORDER_WALLET_GROUP(keyId), order);
+  }
+
+  getWalletGroupOrder(keyId: string) {
+    return this.storage.get(Keys.ORDER_WALLET_GROUP(keyId));
+  }
+
+  removeWalletGroupOrder(keyId: string) {
+    return this.storage.remove(Keys.ORDER_WALLET_GROUP(keyId));
   }
 
   setLockStatus(isLocked: string) {
@@ -658,18 +740,6 @@ export class PersistenceProvider {
     return this.storage.remove('emailLawCompliance');
   }
 
-  setNewDesignSlidesFlag(value: string) {
-    return this.storage.set('newDesignSlides', value);
-  }
-
-  getNewDesignSlidesFlag() {
-    return this.storage.get('newDesignSlides');
-  }
-
-  removeNewDesignSlidesFlag() {
-    return this.storage.remove('newDesignSlides');
-  }
-
   setHiddenFeaturesFlag(value: string) {
     this.logger.debug('Hidden features: ', value);
     return this.storage.set('hiddenFeatures', value);
@@ -684,7 +754,6 @@ export class PersistenceProvider {
   }
 
   setCardExperimentFlag(value: string) {
-    this.logger.debug('card experiment enabled: ', value);
     return this.storage.set('cardExperimentEnabled', value);
   }
 
@@ -694,6 +763,14 @@ export class PersistenceProvider {
 
   removeCardExperimentFlag() {
     return this.storage.remove('cardExperimentEnabled');
+  }
+
+  getCardExperimentNetwork() {
+    return this.storage.get('cardExperimentNetwork');
+  }
+
+  setCardExperimentNetwork(network: Network) {
+    return this.storage.set('cardExperimentNetwork', network);
   }
 
   setWalletGroupName(keyId: string, name: string) {
@@ -740,6 +817,14 @@ export class PersistenceProvider {
     return this.storage.get(Keys.BITPAY_ID_SETTINGS(network));
   }
 
+  setCardNotificationBadge(value) {
+    return this.storage.set('cardNotificationBadge', value);
+  }
+
+  getCardNotificationBadge() {
+    return this.storage.get('cardNotificationBadge');
+  }
+
   removeBitPayIdSettings(network: Network) {
     return this.storage.remove(Keys.BITPAY_ID_SETTINGS(network));
   }
@@ -759,11 +844,44 @@ export class PersistenceProvider {
   setWaitingListStatus(onList: string) {
     return this.storage.set('waitingListStatus', onList);
   }
+
   getWaitingListStatus() {
     return this.storage.get('waitingListStatus');
   }
+
   removeWaitingListStatus() {
     return this.storage.remove('waitingListStatus');
+  }
+
+  setReachedCardLimit(reachedCardLimit: boolean) {
+    return this.storage.set('reachedCardLimit', reachedCardLimit);
+  }
+  getReachedCardLimit() {
+    return this.storage.get('reachedCardLimit');
+  }
+
+  setAppTheme(value: string) {
+    return this.storage.set(Keys.APP_THEME, value);
+  }
+
+  getAppTheme() {
+    return this.storage.get(Keys.APP_THEME);
+  }
+
+  setUserLocation(location: string) {
+    return this.storage.set(Keys.USER_LOCATION, location);
+  }
+
+  getUserLocation() {
+    return this.storage.get(Keys.USER_LOCATION);
+  }
+
+  setCardFastTrackEnabled(value: string) {
+    return this.storage.set(Keys.CARD_FAST_TRACK_ENABLED, value);
+  }
+
+  getCardFastTrackEnabled() {
+    return this.storage.get(Keys.CARD_FAST_TRACK_ENABLED);
   }
 }
 

@@ -1,42 +1,42 @@
 import { Component } from '@angular/core';
+import { Events, NavController } from 'ionic-angular';
 import * as _ from 'lodash';
-import * as moment from 'moment';
-import {
-  ConfigProvider,
-  CurrencyProvider,
-  ExchangeRatesProvider,
-  Logger
-} from '../../providers';
+import { PricePage } from '../../pages/home/price-page/price-page';
+import { ConfigProvider, CurrencyProvider, Logger } from '../../providers';
 import { Coin } from '../../providers/currency/currency';
+import {
+  DateRanges,
+  ExchangeRate,
+  RateProvider
+} from '../../providers/rate/rate';
+
+export interface Card {
+  unitCode: string;
+  historicalRates: any;
+  currentPrice: number;
+  totalBalanceChange: number;
+  totalBalanceChangeAmount: number;
+  backgroundColor: string;
+  gradientBackgroundColor: string;
+  name: string;
+}
 
 @Component({
   selector: 'exchange-rates',
   templateUrl: 'exchange-rates.html'
 })
 export class ExchangeRates {
-  public isIsoCodeSupported: boolean;
-  public lineChart: any;
-  public isoCode: string;
-  public lastDates = 6;
+  public isFiatIsoCodeSupported: boolean;
+  public fiatIsoCode: string;
   public coins = [];
-  public fiatCodes = [
-    'USD',
-    'INR',
-    'GBP',
-    'EUR',
-    'CAD',
-    'COP',
-    'NGN',
-    'BRL',
-    'ARS',
-    'AUD'
-  ];
 
   constructor(
+    private navCtrl: NavController,
     private currencyProvider: CurrencyProvider,
-    private exchangeRatesProvider: ExchangeRatesProvider,
+    private rateProvider: RateProvider,
     private configProvider: ConfigProvider,
-    private logger: Logger
+    private logger: Logger,
+    private events: Events
   ) {
     const availableChains = this.currencyProvider.getAvailableChains();
     for (const coin of availableChains) {
@@ -48,7 +48,8 @@ export class ExchangeRates {
         unitCode: coin,
         historicalRates: [],
         currentPrice: 0,
-        averagePrice: 0,
+        totalBalanceChange: 0,
+        totalBalanceChangeAmount: 0,
         backgroundColor,
         gradientBackgroundColor,
         name: this.currencyProvider.getCoinName(coin as Coin)
@@ -56,63 +57,53 @@ export class ExchangeRates {
       this.coins.push(card);
     }
     this.getPrices();
+    this.events.subscribe('Local/PriceUpdate', () => {
+      this.getPrices();
+    });
+  }
+
+  public goToPricePage(card) {
+    this.navCtrl.push(PricePage, { card });
   }
 
   public getPrices() {
     this.setIsoCode();
-    this.exchangeRatesProvider.getHistoricalRates(this.isoCode).subscribe(
-      response => {
+
+    // TODO: Add a new endpoint in BWS that
+    // provides JUST  the current prices and the delta.
+    this.rateProvider
+      .fetchHistoricalRates(this.fiatIsoCode, DateRanges.Day)
+      .then(response => {
         _.forEach(this.coins, (coin, index) => {
-          this.coins[index].historicalRates = response[coin.unitCode].reverse();
-          this.updateValues(index);
+          if (response[coin.unitCode])
+            this.update(index, response[coin.unitCode]);
         });
-      },
-      err => {
-        this.logger.error('Error getting rates:', err);
-      }
-    );
+        err => {
+          this.logger.error('Error getting rates:', err);
+        };
+      });
   }
 
-  public updateCurrentPrice() {
-    const lastRequest = this.coins[0].historicalRates[
-      this.coins[0].historicalRates.length - 1
-    ].ts;
-    if (moment(lastRequest).isBefore(moment(), 'days')) {
-      this.getPrices();
+  private update(i: number, values: ExchangeRate[]) {
+    if (!values[0] || !_.last(values)) {
+      this.logger.warn('No exchange rate data');
       return;
     }
-    _.forEach(this.coins, (coin, i) => {
-      this.exchangeRatesProvider
-        .getCurrentRate(this.isoCode, coin.unitCode)
-        .subscribe(
-          response => {
-            this.coins[i].historicalRates[
-              this.coins[i].historicalRates.length - 1
-            ] = response;
-            this.updateValues(i);
-          },
-          err => {
-            this.logger.error('Error getting current rate:', err);
-          }
-        );
-    });
-  }
-
-  private updateValues(i: number) {
-    this.coins[i].currentPrice = this.coins[i].historicalRates[
-      this.coins[i].historicalRates.length - 1
-    ].rate;
-    this.coins[i].averagePrice =
-      ((this.coins[i].currentPrice - this.coins[i].historicalRates[0].rate) *
-        100) /
-      this.coins[i].historicalRates[0].rate;
+    const lastRate = _.last(values).rate;
+    this.coins[i].currentPrice = values[0].rate;
+    this.coins[i].totalBalanceChangeAmount =
+      this.coins[i].currentPrice - lastRate;
+    this.coins[i].totalBalanceChange =
+      (this.coins[i].totalBalanceChangeAmount * 100) / lastRate;
   }
 
   private setIsoCode() {
     const alternativeIsoCode = this.configProvider.get().wallet.settings
       .alternativeIsoCode;
-    this.isIsoCodeSupported = _.includes(this.fiatCodes, alternativeIsoCode);
-    this.isoCode = this.isIsoCodeSupported ? alternativeIsoCode : 'USD';
+    this.isFiatIsoCodeSupported = this.rateProvider.isAltCurrencyAvailable(
+      alternativeIsoCode
+    );
+    this.fiatIsoCode = this.isFiatIsoCodeSupported ? alternativeIsoCode : 'USD';
   }
 
   public getDigitsInfo(coin: string) {

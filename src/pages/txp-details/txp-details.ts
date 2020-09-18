@@ -6,7 +6,6 @@ import {
   NavParams,
   ViewController
 } from 'ionic-angular';
-import { DecimalPipe } from '../../../node_modules/@angular/common';
 import { Logger } from '../../providers/logger/logger';
 
 // providers
@@ -27,7 +26,6 @@ import { WalletProvider } from '../../providers/wallet/wallet';
 import { FinishModalPage } from '../finish/finish';
 
 import * as _ from 'lodash';
-
 @Component({
   selector: 'page-txp-details',
   templateUrl: 'txp-details.html'
@@ -55,6 +53,7 @@ export class TxpDetailsPage {
   public isCordova: boolean;
 
   private countDown;
+  private executionPending: boolean;
 
   constructor(
     private navParams: NavParams,
@@ -72,7 +71,6 @@ export class TxpDetailsPage {
     private txFormatProvider: TxFormatProvider,
     private translate: TranslateService,
     private modalCtrl: ModalController,
-    private decimalPipe: DecimalPipe,
     private payproProvider: PayproProvider,
     private bwcErrorProvider: BwcErrorProvider,
     private errorsProvider: ErrorsProvider
@@ -120,10 +118,9 @@ export class TxpDetailsPage {
     this.checkPaypro();
     this.applyButtonText();
 
-    this.amount = this.decimalPipe.transform(
-      this.tx.amount /
-        this.currencyProvider.getPrecision(this.wallet.coin).unitToSatoshi,
-      '1.2-6'
+    this.amount = this.txFormatProvider.formatAmount(
+      this.wallet.coin,
+      this.tx.amount
     );
   }
 
@@ -176,7 +173,9 @@ export class TxpDetailsPage {
       }).length ==
       this.tx.requiredSignatures - 1;
 
-    if (lastSigner) {
+    if (this.isShared && this.tx.coin === 'eth') {
+      this.buttonText = this.translate.instant('Continue');
+    } else if (lastSigner) {
       this.buttonText = this.isCordova
         ? this.translate.instant('Slide to send')
         : this.translate.instant('Click to send');
@@ -196,6 +195,7 @@ export class TxpDetailsPage {
 
     var actionDescriptions = {
       created: this.translate.instant('Proposal Created'),
+      failed: this.translate.instant('Execution Failed'),
       accept: this.translate.instant('Accepted'),
       reject: this.translate.instant('Rejected'),
       broadcasted: this.translate.instant('Broadcasted')
@@ -232,10 +232,13 @@ export class TxpDetailsPage {
           this.paymentTimeControl(this.tx.paypro.expires);
         })
         .catch(err => {
-          this.logger.warn('Error in Payment Protocol: ', err);
+          this.logger.warn(
+            'Error fetching this invoice: ',
+            this.bwcErrorProvider.msg(err)
+          );
           this.paymentExpired = true;
           this.showErrorInfoSheet(
-            err,
+            this.bwcErrorProvider.msg(err),
             this.translate.instant('Error fetching this invoice')
           );
         });
@@ -278,7 +281,7 @@ export class TxpDetailsPage {
     }
 
     if ((error as Error).message === 'WRONG_PASSWORD') {
-      this.errorsProvider.showWrongEncryptPassswordError();
+      this.errorsProvider.showWrongEncryptPasswordError();
       return;
     }
 
@@ -389,14 +392,17 @@ export class TxpDetailsPage {
     this.walletProvider
       .getTxp(this.wallet, this.tx.id)
       .then(tx => {
-        let action = _.find(tx.actions, {
+        let action: any = _.find(tx.actions, {
           copayerId: this.wallet.credentials.copayerId
         });
 
         this.tx = this.txFormatProvider.processTx(this.wallet.coin, tx);
-
-        if (!action && tx.status == 'pending') this.tx.pendingForUs = true;
-
+        if ((!action || action.type === 'failed') && tx.status == 'pending') {
+          this.tx.pendingForUs = true;
+          if (action.type === 'failed') {
+            this.executionPending = true;
+          }
+        }
         this.updateCopayerList();
         this.initActionList();
       })
@@ -425,7 +431,28 @@ export class TxpDetailsPage {
   }
 
   public onConfirm(): void {
-    this.sign();
+    if (this.tx.multisigContractAddress) {
+      this.goToConfirm();
+    } else {
+      this.sign();
+    }
+  }
+
+  public goToConfirm(): void {
+    let amount = 0;
+    this.viewCtrl.dismiss({
+      walletId: this.wallet.credentials.walletId,
+      amount,
+      coin: this.wallet.coin,
+      network: this.wallet.network,
+      multisigContractAddress: this.wallet.credentials.multisigEthInfo
+        .multisigContractAddress, // address eth multisig contract
+      toAddress: this.wallet.credentials.multisigEthInfo
+        .multisigContractAddress, // address eth multisig contract
+      isEthMultisigConfirm: !this.executionPending ? true : false,
+      isEthMultisigExecute: this.executionPending ? true : false,
+      transactionId: this.tx.multisigTxId
+    });
   }
 
   public close(): void {

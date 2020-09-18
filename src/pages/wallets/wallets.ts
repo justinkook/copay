@@ -1,5 +1,4 @@
 import { Component, NgZone, ViewChild } from '@angular/core';
-import { StatusBar } from '@ionic-native/status-bar';
 import { TranslateService } from '@ngx-translate/core';
 import {
   Events,
@@ -8,26 +7,22 @@ import {
   Platform
 } from 'ionic-angular';
 import * as _ from 'lodash';
-import { Observable, Subscription } from 'rxjs';
+import { Subscription } from 'rxjs';
 
 // Pages
 import { AddPage } from '../add/add';
 import { CopayersPage } from '../add/copayers/copayers';
 import { BackupKeyPage } from '../backup/backup-key/backup-key';
-import { CoinbasePage } from '../integrations/coinbase/coinbase';
-import { ShapeshiftPage } from '../integrations/shapeshift/shapeshift';
-import { SimplexPage } from '../integrations/simplex/simplex';
-import { SimplexBuyPage } from '../integrations/simplex/simplex-buy/simplex-buy';
-import { ScanPage } from '../scan/scan';
+import { CoinbaseAccountPage } from '../integrations/coinbase/coinbase-account/coinbase-account';
 import { SettingsPage } from '../settings/settings';
 import { WalletDetailsPage } from '../wallet-details/wallet-details';
 import { ProposalsNotificationsPage } from './proposals-notifications/proposals-notifications';
 
 // Providers
 import { ActionSheetProvider } from '../../providers/action-sheet/action-sheet';
-import { AppProvider } from '../../providers/app/app';
 import { BwcErrorProvider } from '../../providers/bwc-error/bwc-error';
 import { ClipboardProvider } from '../../providers/clipboard/clipboard';
+import { CoinbaseProvider } from '../../providers/coinbase/coinbase';
 import { EmailNotificationsProvider } from '../../providers/email-notifications/email-notifications';
 import { HomeIntegrationsProvider } from '../../providers/home-integrations/home-integrations';
 import { IncomingDataProvider } from '../../providers/incoming-data/incoming-data';
@@ -37,7 +32,6 @@ import { PersistenceProvider } from '../../providers/persistence/persistence';
 import { PlatformProvider } from '../../providers/platform/platform';
 import { PopupProvider } from '../../providers/popup/popup';
 import { ProfileProvider } from '../../providers/profile/profile';
-import { SimplexProvider } from '../../providers/simplex/simplex';
 import { WalletProvider } from '../../providers/wallet/wallet';
 
 interface UpdateWalletOptsI {
@@ -51,32 +45,25 @@ interface UpdateWalletOptsI {
   templateUrl: 'wallets.html'
 })
 export class WalletsPage {
-  @ViewChild('showEthLiveCard')
-  showEthLiveCard;
   @ViewChild('priceCard')
   priceCard;
   public wallets;
   public walletsGroups;
-  public readOnlyWalletsGroup;
   public txpsN: number;
-  public homeIntegrations;
-  public showAnnouncement: boolean = false;
-  public validDataFromClipboard;
+  public validDataFromClipboard = null;
   public payProDetailsData;
   public remainingTimeStr: string;
-  public slideDown: boolean;
 
-  public hideHomeIntegrations: boolean;
-  public accessDenied: boolean;
-  public isBlur: boolean;
-  public isCordova: boolean;
   public collapsedGroups;
 
-  private isElectron: boolean;
   private zone;
   private countDown;
   private onResumeSubscription: Subscription;
   private onPauseSubscription: Subscription;
+
+  public showCoinbase: boolean;
+  public coinbaseLinked: boolean;
+  public coinbaseData: object = {};
 
   constructor(
     private plt: Platform,
@@ -87,7 +74,6 @@ export class WalletsPage {
     private logger: Logger,
     private events: Events,
     private popupProvider: PopupProvider,
-    private appProvider: AppProvider,
     private platformProvider: PlatformProvider,
     private homeIntegrationsProvider: HomeIntegrationsProvider,
     private payproProvider: PayproProvider,
@@ -96,60 +82,46 @@ export class WalletsPage {
     private emailProvider: EmailNotificationsProvider,
     private clipboardProvider: ClipboardProvider,
     private incomingDataProvider: IncomingDataProvider,
-    private statusBar: StatusBar,
-    private simplexProvider: SimplexProvider,
     private modalCtrl: ModalController,
-    private actionSheetProvider: ActionSheetProvider
+    private actionSheetProvider: ActionSheetProvider,
+    private coinbaseProvider: CoinbaseProvider
   ) {
-    this.slideDown = false;
-    this.isBlur = false;
-    this.isCordova = this.platformProvider.isCordova;
-    this.isElectron = this.platformProvider.isElectron;
     this.collapsedGroups = {};
     // Update Wallet on Focus
-    if (this.isElectron) {
+    if (this.platformProvider.isElectron) {
       this.updateDesktopOnFocus();
     }
     this.zone = new NgZone({ enableLongStackTrace: false });
-    this.events.subscribe('Home/reloadStatus', () => {
-      this._willEnter(true);
-      this._didEnter();
-    });
-  }
-
-  ionViewWillEnter() {
-    this._willEnter();
   }
 
   ionViewDidEnter() {
     this._didEnter();
   }
 
-  private _willEnter(shouldUpdate: boolean = false) {
-    if (this.platformProvider.isIOS) {
-      this.statusBar.styleDefault();
-    }
+  ionViewWillEnter() {
+    this.walletsGroups = this.profileProvider.orderedWalletsByGroup;
 
-    // Update list of wallets, status and TXPs
-    this.setWallets(shouldUpdate);
+    // Get Coinbase Accounts and UserInfo
+    this.setCoinbase();
+  }
+
+  private setCoinbase(force?) {
+    this.showCoinbase = this.homeIntegrationsProvider.shouldShowInHome(
+      'coinbase'
+    );
+    if (!this.showCoinbase) return;
+    this.coinbaseLinked = this.coinbaseProvider.isLinked();
+    if (this.coinbaseLinked) {
+      if (force || !this.coinbaseData) {
+        this.coinbaseProvider.updateExchangeRates();
+        this.coinbaseProvider.preFetchAllData(this.coinbaseData);
+      } else this.coinbaseData = this.coinbaseProvider.coinbaseData;
+    }
   }
 
   private _didEnter() {
     this.checkClipboard();
-
-    // Show integrations
-    const integrations = this.homeIntegrationsProvider
-      .get()
-      .filter(i => i.show)
-      .filter(i => i.name !== 'giftcards' && i.name !== 'debitcard');
-
-    // Hide BitPay if linked
-    setTimeout(() => {
-      this.homeIntegrations = _.remove(_.clone(integrations), x => {
-        if (x.name == 'debitcard' && x.linked) return false;
-        else return x;
-      });
-    }, 200);
+    this.updateTxps();
   }
 
   private walletFocusHandler = opts => {
@@ -171,7 +143,6 @@ export class WalletsPage {
 
     // Required delay to improve performance loading
     setTimeout(() => {
-      this.showEthLive();
       this.checkEmailLawCompliance();
     }, 2000);
 
@@ -180,11 +151,6 @@ export class WalletsPage {
       // NewBlock, NewCopayer, NewAddress, NewTxProposal, TxProposalAcceptedBy, TxProposalRejectedBy, txProposalFinallyRejected,
       // txProposalFinallyAccepted, TxProposalRemoved, NewIncomingTx, NewOutgoingTx
       this.events.subscribe('bwsEvent', this.bwsEventHandler);
-
-      // Create, Join, Import and Delete -> Get Wallets -> Update Status for All Wallets -> Update txps
-      this.events.subscribe('Local/WalletListChange', () =>
-        this.setWallets(true)
-      );
 
       // Reject, Remove, OnlyPublish and SignAndBroadcast -> Update Status per Wallet -> Update txps
       this.events.subscribe('Local/TxAction', this.walletActionHandler);
@@ -195,33 +161,20 @@ export class WalletsPage {
 
     subscribeEvents();
     this.onResumeSubscription = this.plt.resume.subscribe(() => {
-      this.setWallets();
       this.checkClipboard();
       subscribeEvents();
     });
 
     this.onPauseSubscription = this.plt.pause.subscribe(() => {
       this.events.unsubscribe('bwsEvent', this.bwsEventHandler);
-      this.events.unsubscribe('Local/WalletListChange', this.setWallets);
       this.events.unsubscribe('Local/TxAction', this.walletFocusHandler);
       this.events.unsubscribe('Local/WalletFocus', this.walletFocusHandler);
     });
-    this.setWallets(true);
   }
 
   ngOnDestroy() {
     this.onResumeSubscription.unsubscribe();
     this.onPauseSubscription.unsubscribe();
-  }
-
-  ionViewWillLeave() {
-    this.resetValuesForAnimationCard();
-  }
-
-  private async resetValuesForAnimationCard() {
-    await Observable.timer(50).toPromise();
-    this.validDataFromClipboard = null;
-    this.slideDown = false;
   }
 
   private debounceFetchWalletStatus = _.debounce(
@@ -265,7 +218,6 @@ export class WalletsPage {
         this.navCtrl.getActive().name == 'WalletsPage'
       ) {
         this.checkClipboard();
-        this.setWallets();
       }
     });
   }
@@ -306,7 +258,8 @@ export class WalletsPage {
 
   private debounceSetWallets = _.debounce(
     async () => {
-      this.setWallets(true);
+      this.profileProvider.setOrderedWalletsByGroup();
+      this.walletsGroups = this.profileProvider.orderedWalletsByGroup;
     },
     5000,
     {
@@ -314,100 +267,64 @@ export class WalletsPage {
     }
   );
 
-  private setWallets = (shouldUpdate: boolean = false) => {
-    // TEST
-    /* 
-    setTimeout(() => {
-      this.logger.info('##### Load BITCOIN URI TEST');
-      this.incomingDataProvider.redir('bitcoin:3KeJU7VxSKC451pPNSWjF6zK3gm2x7re7q?amount=0.0001');
-    },100);
-    */
-
-    this.wallets = this.profileProvider.getWallets();
-    this.walletsGroups = _.values(
-      _.groupBy(
-        _.filter(this.wallets, wallet => {
-          return wallet.keyId != 'read-only';
-        }),
-        'keyId'
-      )
-    );
-
-    this.readOnlyWalletsGroup = this.profileProvider.getWalletsFromGroup({
-      keyId: 'read-only'
-    });
-
-    this.profileProvider.setLastKnownBalance();
-
-    // Avoid heavy tasks that can slow down the unlocking experience
-    if (!this.appProvider.isLockModalOpen && shouldUpdate) {
-      this.fetchAllWalletsStatus();
+  private debounceSetCoinbase = _.debounce(
+    async () => {
+      this.setCoinbase(true);
+    },
+    5000,
+    {
+      leading: true
     }
-  };
+  );
 
-  private async showEthLive() {
-    const hideEthLiveCard = await this.persistenceProvider.getEthLiveCardFlag();
-    if (!hideEthLiveCard) {
-      let hasNoLegacy = false;
-      this.walletsGroups.forEach((walletsGroup: any[]) => {
-        if (walletsGroup[0].canAddNewAccount) {
-          hasNoLegacy = true;
-        }
-      });
-      this.showEthLiveCard.setShowEthLiveCard(hasNoLegacy);
-    }
-  }
-
-  public checkClipboard() {
+  private checkClipboard() {
     return this.clipboardProvider
       .getData()
-      .then(async data => {
-        this.validDataFromClipboard = this.incomingDataProvider.parseData(data);
-        if (!this.validDataFromClipboard) {
-          return;
-        }
+      .then(data => {
+        if (_.isEmpty(data)) return;
+        const dataFromClipboard = this.incomingDataProvider.parseData(data);
+        if (!dataFromClipboard) return;
         const dataToIgnore = [
           'BitcoinAddress',
           'BitcoinCashAddress',
           'EthereumAddress',
           'PlainUrl'
         ];
-        if (dataToIgnore.indexOf(this.validDataFromClipboard.type) > -1) {
-          this.validDataFromClipboard = null;
-          return;
-        }
+        if (dataToIgnore.indexOf(dataFromClipboard.type) > -1) return;
         if (
-          this.validDataFromClipboard.type === 'PayPro' ||
-          this.validDataFromClipboard.type === 'InvoiceUri'
+          dataFromClipboard.type === 'PayPro' ||
+          dataFromClipboard.type === 'InvoiceUri'
         ) {
-          try {
-            const invoiceUrl = this.incomingDataProvider.getPayProUrl(data);
-            const disableLoader = true;
-            const payproOptions = await this.payproProvider.getPayProOptions(
-              invoiceUrl,
-              disableLoader
-            );
-            const { expires, paymentOptions, payProUrl } = payproOptions;
-            let selected = paymentOptions.filter(option => option.selected);
-            if (selected.length === 0) {
-              // No Currency Selected default to BTC
-              selected.push(payproOptions.paymentOptions[0]); // BTC
-            }
-            const [{ currency, estimatedAmount }] = selected;
-            this.payProDetailsData = payproOptions;
-            this.payProDetailsData.coin = currency.toLowerCase();
-            this.payProDetailsData.amount = estimatedAmount;
-            this.payProDetailsData.host = new URL(payProUrl).host;
-            this.clearCountDownInterval();
-            this.paymentTimeControl(expires);
-          } catch (err) {
-            this.payProDetailsData = {};
-            this.payProDetailsData.error = err.message;
-            this.logger.warn('Error in Payment Protocol', err);
-          }
+          const invoiceUrl = this.incomingDataProvider.getPayProUrl(data);
+          this.payproProvider
+            .getPayProOptions(invoiceUrl, true)
+            .then(payproOptions => {
+              if (!payproOptions) return;
+              const { expires, paymentOptions, payProUrl } = payproOptions;
+              let selected = paymentOptions.filter(option => option.selected);
+              if (selected.length === 0) {
+                // No Currency Selected default to BTC
+                selected.push(payproOptions.paymentOptions[0]); // BTC
+              }
+              const [{ currency, estimatedAmount }] = selected;
+              this.payProDetailsData = payproOptions;
+              this.payProDetailsData.coin = currency.toLowerCase();
+              this.payProDetailsData.amount = estimatedAmount;
+              this.payProDetailsData.host = new URL(payProUrl).host;
+              this.validDataFromClipboard = dataFromClipboard;
+              this.clearCountDownInterval();
+              this.paymentTimeControl(expires);
+            })
+            .catch(err => {
+              this.hideClipboardCard();
+              this.payProDetailsData = {};
+              this.payProDetailsData.error = this.bwcErrorProvider.msg(err);
+              this.logger.warn(
+                'Error fetching this invoice',
+                this.bwcErrorProvider.msg(err)
+              );
+            });
         }
-        await Observable.timer(50).toPromise();
-        this.slideDown = true;
       })
       .catch(err => {
         this.logger.warn('Paste from clipboard: ', err);
@@ -417,11 +334,11 @@ export class WalletsPage {
   public hideClipboardCard() {
     this.validDataFromClipboard = null;
     this.clipboardProvider.clear();
-    this.slideDown = false;
   }
 
   public processClipboardData(data): void {
     this.clearCountDownInterval();
+    this.hideClipboardCard();
     this.incomingDataProvider.redir(data, { fromHomeCard: true });
   }
 
@@ -563,6 +480,9 @@ export class WalletsPage {
     this.profileProvider
       .getTxps({ limit: 3 })
       .then(data => {
+        this.events.publish('Local/UpdateTxps', {
+          n: data.n
+        });
         this.zone.run(() => {
           this.txpsN = data.n;
         });
@@ -570,48 +490,6 @@ export class WalletsPage {
       .catch(err => {
         this.logger.error(err);
       });
-  }
-
-  private fetchAllWalletsStatus(): void {
-    if (_.isEmpty(this.wallets)) return;
-
-    this.logger.debug('fetchAllWalletsStatus');
-    const pr = wallet => {
-      return this.walletProvider
-        .fetchStatus(wallet, {})
-        .then(async status => {
-          wallet.cachedStatus = status;
-          wallet.error = wallet.errorObj = null;
-
-          const balance =
-            wallet.coin === 'xrp'
-              ? wallet.cachedStatus.availableBalanceStr
-              : wallet.cachedStatus.totalBalanceStr;
-
-          this.persistenceProvider.setLastKnownBalance(wallet.id, balance);
-
-          this.events.publish('Local/WalletUpdate', {
-            walletId: wallet.id,
-            finished: true
-          });
-
-          return Promise.resolve();
-        })
-        .catch(err => {
-          this.processWalletError(wallet, err);
-          return Promise.resolve();
-        });
-    };
-
-    const promises = [];
-
-    _.each(this.profileProvider.wallet, wallet => {
-      promises.push(pr(wallet));
-    });
-
-    Promise.all(promises).then(() => {
-      this.updateTxps();
-    });
   }
 
   private processWalletError(wallet, err): void {
@@ -660,33 +538,12 @@ export class WalletsPage {
     this.navCtrl.push(ProposalsNotificationsPage);
   }
 
-  public goTo(page: string): void {
-    const pageMap = {
-      CoinbasePage,
-      ShapeshiftPage
-    };
-    if (page === 'SimplexPage') {
-      this.simplexProvider.getSimplex().then(simplexData => {
-        if (simplexData && !_.isEmpty(simplexData)) {
-          this.navCtrl.push(SimplexPage);
-        } else {
-          this.navCtrl.push(SimplexBuyPage);
-        }
-      });
-    } else {
-      this.navCtrl.push(pageMap[page]);
-    }
-  }
-
   public doRefresh(refresher): void {
     this.debounceSetWallets();
+    this.debounceSetCoinbase();
     setTimeout(() => {
       refresher.complete();
     }, 2000);
-  }
-
-  public scan(): void {
-    this.navCtrl.push(ScanPage);
   }
 
   public settings(): void {
@@ -725,6 +582,16 @@ export class WalletsPage {
           : this.navCtrl.push(AddPage, {
               isZeroState: true
             });
+    });
+  }
+
+  public getNativeBalance(amount, currency): string {
+    return this.coinbaseProvider.getNativeCurrencyBalance(amount, currency);
+  }
+
+  public goToCoinbaseAccount(id): void {
+    this.navCtrl.push(CoinbaseAccountPage, {
+      id
     });
   }
 }

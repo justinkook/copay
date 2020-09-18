@@ -1,22 +1,14 @@
 import { Component } from '@angular/core';
 import { TranslateService } from '@ngx-translate/core';
-import {
-  Events,
-  NavController,
-  NavParams,
-  Platform,
-  ViewController
-} from 'ionic-angular';
+import { Events, NavParams, Platform, ViewController } from 'ionic-angular';
 import { Subscription } from 'rxjs';
 
 // Native
 import { SocialSharing } from '@ionic-native/social-sharing';
 
 // Providers
-import { ActionSheetProvider } from '../../../providers/action-sheet/action-sheet';
 import { AppProvider } from '../../../providers/app/app';
 import { ConfigProvider } from '../../../providers/config/config';
-import { CurrencyProvider } from '../../../providers/currency/currency';
 import { KeyProvider } from '../../../providers/key/key';
 import { Logger } from '../../../providers/logger/logger';
 import { OnGoingProcessProvider } from '../../../providers/on-going-process/on-going-process';
@@ -25,8 +17,6 @@ import { PopupProvider } from '../../../providers/popup/popup';
 import { ProfileProvider } from '../../../providers/profile/profile';
 import { PushNotificationsProvider } from '../../../providers/push-notifications/push-notifications';
 
-// Pages
-import { WalletDetailsPage } from '../../../pages/wallet-details/wallet-details';
 @Component({
   selector: 'page-copayers',
   templateUrl: 'copayers.html'
@@ -37,6 +27,7 @@ export class CopayersPage {
   public isCordova: boolean;
 
   public wallet;
+  public canSign: boolean;
   public copayers: any[];
   public secret;
   public useLegacyQrCode: boolean;
@@ -59,10 +50,7 @@ export class CopayersPage {
     private translate: TranslateService,
     private pushNotificationsProvider: PushNotificationsProvider,
     private viewCtrl: ViewController,
-    private actionSheetProvider: ActionSheetProvider,
     private keyProvider: KeyProvider,
-    private navCtrl: NavController,
-    public currencyProvider: CurrencyProvider,
     private configProvider: ConfigProvider
   ) {
     this.secret = null;
@@ -71,37 +59,31 @@ export class CopayersPage {
     this.isCordova = this.platformProvider.isCordova;
     this.copayers = [];
     this.wallet = this.profileProvider.getWallet(this.navParams.data.walletId);
-    this.useLegacyQrCode = this.configProvider.get().useLegacyQrCode;
+    this.canSign = this.wallet.canSign;
+    this.useLegacyQrCode = this.configProvider.get().legacyQrCode.show;
   }
 
   ionViewDidLoad() {
     this.logger.info('Loaded: CopayersPage');
+  }
 
+  ngOnInit() {
+    this.subscribeEvents();
+    this.events.publish('Local/WalletFocus', {
+      walletId: this.wallet.credentials.walletId
+    });
     this.onResumeSubscription = this.plt.resume.subscribe(() => {
       this.events.publish('Local/WalletFocus', {
         walletId: this.wallet.credentials.walletId
       });
       this.subscribeEvents();
     });
-
     this.onPauseSubscription = this.plt.pause.subscribe(() => {
       this.unsubscribeEvents();
     });
   }
 
-  ionViewWillEnter() {
-    this.events.publish('Local/WalletFocus', {
-      walletId: this.wallet.credentials.walletId
-    });
-    this.subscribeEvents();
-  }
-
-  ionViewWillLeave() {
-    this.unsubscribeEvents();
-  }
-
   ngOnDestroy() {
-    this.events.publish('Local/WalletListChange');
     this.onResumeSubscription.unsubscribe();
     this.onPauseSubscription.unsubscribe();
   }
@@ -115,6 +97,7 @@ export class CopayersPage {
   }
 
   close() {
+    this.unsubscribeEvents();
     this.viewCtrl.dismiss();
   }
 
@@ -132,28 +115,34 @@ export class CopayersPage {
         // TODO?
         this.wallet.openWallet(err => {
           if (err) this.logger.error(err);
-          this.viewCtrl.dismiss().then(() => {
-            this.events.publish('Local/WalletListChange');
-            this.navCtrl.push(WalletDetailsPage, {
-              walletId: this.wallet.credentials.walletId
-            });
-          });
+          this.close();
         });
       }
     }
   }
 
   public showDeletePopup(): void {
-    let title = this.translate.instant('Confirm');
-    let msg = this.translate.instant(
-      'Are you sure you want to cancel and delete this wallet?'
-    );
+    const title = this.translate.instant('Confirm');
+    let msg;
+    if (!this.canSign) {
+      msg = this.translate.instant(
+        'Are you sure you want to delete this wallet?'
+      );
+    }
+    msg = this.translate.instant('Are you sure you want to hide this wallet?');
     this.popupProvider.ionicConfirm(title, msg).then(res => {
       if (res) this.deleteWallet();
     });
   }
 
   private deleteWallet(): void {
+    if (this.canSign) {
+      this.profileProvider.toggleHideWalletFlag(this.wallet.id);
+      setTimeout(() => {
+        this.close();
+      }, 1000);
+      return;
+    }
     this.onGoingProcessProvider.set('deletingWallet');
     this.profileProvider
       .deleteWalletClient(this.wallet)
@@ -167,32 +156,19 @@ export class CopayersPage {
 
           if (!keyInUse) {
             this.keyProvider.removeKey(keyId);
-            delete this.profileProvider.walletsGroups[keyId];
           } else {
             this.logger.warn('Key was not removed. Still in use');
           }
         }
-        this.dismiss();
+        setTimeout(() => {
+          this.close();
+        }, 1000);
       })
       .catch(err => {
         this.onGoingProcessProvider.clear();
         let errorText = this.translate.instant('Error');
         this.popupProvider.ionicAlert(errorText, err.message || err);
       });
-  }
-
-  public dismiss() {
-    this.events.publish('Local/WalletListChange');
-    setTimeout(() => {
-      this.viewCtrl.dismiss();
-    }, 1000);
-  }
-
-  public showFullInfo(): void {
-    const infoSheet = this.actionSheetProvider.createInfoSheet('copayers', {
-      secret: this.secret
-    });
-    infoSheet.present();
   }
 
   public shareAddress(): void {

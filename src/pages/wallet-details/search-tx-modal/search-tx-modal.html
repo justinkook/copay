@@ -10,11 +10,11 @@
 </ion-header>
 
 <ion-content>
-  <div>
-    <ion-searchbar placeholder="{{'Search Transactions' | translate}}" [(ngModel)]="search" (ngModelChange)="updateSearchInput(search)"></ion-searchbar>
-  </div>
+  <ion-item class="search-container" no-lines padding>
+    <ion-input class="search-wrapper" placeholder="{{'Search Transactions' | translate}}" [(ngModel)]="search" (ngModelChange)="updateSearchInput(search)"></ion-input>
+  </ion-item>
 
-  <ion-list *ngIf="txHistorySearchResults && txHistorySearchResults[0]" class="tx-history">
+  <ion-list *ngIf="txHistorySearchResults && txHistorySearchResults[0]" class="bp-list tx-history">
     <div>
       <div *ngFor="let tx of txHistorySearchResults; trackBy: trackByFn; let i = index;">
         <button ion-item (click)="close(tx.txid)">
@@ -70,7 +70,7 @@
           </div>
 
           <div class="action" *ngIf="tx.confirmations > 0 && tx.action == 'moved'">
-            <span *ngIf="(!tx.note || (tx.note && tx.note.body == ''))" translate>Moved</span>
+            <span *ngIf="(!tx.note || (tx.note && tx.note.body == ''))" translate>Sent to self</span>
             <span *ngIf="tx.note && tx.note.body != ''">{{tx.note.body}}</span>
           </div>
 

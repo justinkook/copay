@@ -8,9 +8,12 @@ import { ActionSheetProvider } from '../action-sheet/action-sheet';
 import { AppProvider } from '../app/app';
 import { BwcProvider } from '../bwc/bwc';
 import { Coin, CurrencyProvider } from '../currency/currency';
-import { InAppBrowserProvider } from '../in-app-browser/in-app-browser';
+import { ExternalLinkProvider } from '../external-link/external-link';
+import { IABCardProvider } from '../in-app-browser/card';
 import { Logger } from '../logger/logger';
+import { OnGoingProcessProvider } from '../on-going-process/on-going-process';
 import { PayproProvider } from '../paypro/paypro';
+import { PersistenceProvider } from '../persistence/persistence';
 import { ProfileProvider } from '../profile/profile';
 
 export interface RedirParams {
@@ -29,12 +32,15 @@ export class IncomingDataProvider {
     private events: Events,
     private bwcProvider: BwcProvider,
     private currencyProvider: CurrencyProvider,
+    private externalLinkProvider: ExternalLinkProvider,
     private payproProvider: PayproProvider,
     private logger: Logger,
     private appProvider: AppProvider,
     private translate: TranslateService,
     private profileProvider: ProfileProvider,
-    private iab: InAppBrowserProvider
+    private onGoingProcessProvider: OnGoingProcessProvider,
+    private iabCardProvider: IABCardProvider,
+    private persistenceProvider: PersistenceProvider
   ) {
     this.logger.debug('IncomingDataProvider initialized');
   }
@@ -46,28 +52,21 @@ export class IncomingDataProvider {
   }
 
   public finishIncomingData(data: any): void {
-    let redirTo = null;
-    let value = null;
+    let nextView = {};
     if (data) {
-      redirTo = data.redirTo;
-      value = data.value;
-    }
-    if (redirTo === 'AmountPage') {
-      let coin = data.coin ? data.coin : 'btc';
-      this.events.publish('finishIncomingDataMenuEvent', {
-        redirTo,
-        value,
-        coin
-      });
-    } else if (redirTo === 'PaperWalletPage') {
-      const nextView = {
-        name: 'PaperWalletPage',
-        params: { privateKey: value }
+      const stateParams = {
+        addressbookEntry:
+          data.redirTo == 'AddressbookAddPage' ? data.value : null,
+        toAddress: data.redirTo == 'AmountPage' ? data.value : null,
+        coin: data.coin ? data.coin : 'btc',
+        privateKey: data.redirTo == 'PaperWalletPage' ? data.value : null
       };
-      this.incomingDataRedir(nextView);
-    } else {
-      this.events.publish('finishIncomingDataMenuEvent', { redirTo, value });
+      nextView = {
+        name: data.redirTo,
+        params: stateParams
+      };
     }
+    this.incomingDataRedir(nextView);
   }
 
   private isValidPayProNonBackwardsCompatible(data: string): boolean {
@@ -183,6 +182,15 @@ export class IncomingDataProvider {
     );
   }
 
+  private isValidWyreUri(data: string): boolean {
+    data = this.sanitizeUri(data);
+    return !!(
+      data &&
+      (data.indexOf(this.appProvider.info.name + '://wyre') === 0 ||
+        data.indexOf(this.appProvider.info.name + '://wyreError') === 0)
+    );
+  }
+
   private isValidInvoiceUri(data: string): boolean {
     data = this.sanitizeUri(data);
     return !!(
@@ -193,6 +201,11 @@ export class IncomingDataProvider {
   private isValidBitPayCardUri(data: string): boolean {
     data = this.sanitizeUri(data);
     return !!(data && data.indexOf('bitpay://bitpay') === 0);
+  }
+
+  private isValidBitPayRedirLink(data: string): boolean {
+    data = this.sanitizeUri(data);
+    return !!(data && data.indexOf('bitpay://landing') === 0);
   }
 
   private isValidJoinCode(data: string): boolean {
@@ -241,9 +254,13 @@ export class IncomingDataProvider {
     this.logger.debug('Incoming-data: Handling bitpay invoice');
     try {
       const disableLoader = true;
-      const details = await this.payproProvider.getPayProOptions(invoiceUrl);
+      const payProOptions = await this.payproProvider.getPayProOptions(
+        invoiceUrl
+      );
 
-      const selected = details.paymentOptions.filter(option => option.selected);
+      const selected = payProOptions.paymentOptions.filter(
+        option => option.selected
+      );
 
       if (selected.length === 1) {
         // Confirm Page - selectedTransactionCurrency set to selected
@@ -251,13 +268,14 @@ export class IncomingDataProvider {
         return this.goToPayPro(
           invoiceUrl,
           currency.toLowerCase(),
+          payProOptions,
           disableLoader
         );
       } else {
         // Select Invoice Currency - No selectedTransactionCurrency set
         let hasWallets = {};
         let availableWallets = [];
-        for (const option of details.paymentOptions) {
+        for (const option of payProOptions.paymentOptions) {
           const fundedWallets = this.profileProvider.getWallets({
             coin: option.currency.toLowerCase(),
             network: option.network,
@@ -276,12 +294,13 @@ export class IncomingDataProvider {
           return this.goToPayPro(
             invoiceUrl,
             currency.toLowerCase(),
+            payProOptions,
             disableLoader
           );
         }
 
         const stateParams = {
-          payProOptions: details,
+          payProOptions,
           hasWallets
         };
         let nextView = {
@@ -291,6 +310,7 @@ export class IncomingDataProvider {
         this.incomingDataRedir(nextView);
       }
     } catch (err) {
+      this.onGoingProcessProvider.clear();
       this.events.publish('incomingDataError', err);
       this.logger.error(err);
     }
@@ -329,8 +349,10 @@ export class IncomingDataProvider {
     let address = parsed.address ? parsed.address.toString() : '';
     let message = parsed.message;
     let amount = parsed.amount || amountFromRedirParams;
-    if (parsed.r) this.goToPayPro(data, coin);
-    else this.goSend(address, amount, message, coin);
+    if (parsed.r) {
+      const payProUrl = this.getPayProUrl(parsed.r);
+      this.goToPayPro(payProUrl, coin);
+    } else this.goSend(address, amount, message, coin);
   }
 
   private handleBitcoinCashUri(data: string, redirParams?: RedirParams): void {
@@ -349,8 +371,10 @@ export class IncomingDataProvider {
     let message = parsed.message;
     let amount = parsed.amount || amountFromRedirParams;
 
-    if (parsed.r) this.goToPayPro(data, coin);
-    else this.goSend(address, amount, message, coin);
+    if (parsed.r) {
+      const payProUrl = this.getPayProUrl(parsed.r);
+      this.goToPayPro(payProUrl, coin);
+    } else this.goSend(address, amount, message, coin);
   }
 
   private handleEthereumUri(data: string, redirParams?: RedirParams): void {
@@ -438,17 +462,21 @@ export class IncomingDataProvider {
 
     // Translate address
     this.logger.warn('Legacy Bitcoin Address transalated to: ' + address);
-    if (parsed.r) this.goToPayPro(data, coin);
-    else this.goSend(address, amount, message, coin);
+    if (parsed.r) {
+      const payProUrl = this.getPayProUrl(parsed.r);
+      this.goToPayPro(payProUrl, coin);
+    } else this.goSend(address, amount, message, coin);
   }
 
+  // Deprecated
   private handlePlainUrl(data: string): void {
-    this.logger.debug('Incoming-data: Plain URL');
-    data = this.sanitizeUri(data);
-    this.showMenu({
-      data,
-      type: 'url'
-    });
+    this.logger.debug('Incoming-data: Plain URL', data);
+    // No process Plain URL anymore
+    // data = this.sanitizeUri(data);
+    // this.showMenu({
+    //  data,
+    //  type: 'url'
+    // });
   }
 
   private handlePlainBitcoinAddress(
@@ -570,27 +598,46 @@ export class IncomingDataProvider {
     }
   }
 
-  private goToBitPayCard(data: string): void {
-    this.logger.debug('Incoming-data (redirect): BitPay Card URL');
+  // private goToBitPayCard(data: string): void {
+  //   this.logger.debug('Incoming-data (redirect): BitPay Card URL');
+  //
+  //   // Disable BitPay Card
+  //   if (!this.appProvider.info._enabledExtensions.debitcard) {
+  //     this.logger.warn('BitPay Card has been disabled for this build');
+  //     return;
+  //   }
+  //
+  //   let secret = this.getParameterByName('secret', data);
+  //   let email = this.getParameterByName('email', data);
+  //   let otp = this.getParameterByName('otp', data);
+  //   let reason = this.getParameterByName('r', data);
+  //   switch (reason) {
+  //     default:
+  //     case '0':
+  //       /* For BitPay card binding */
+  //       let stateParams = { secret, email, otp };
+  //       let nextView = {
+  //         name: 'BitPayCardIntroPage',
+  //         params: stateParams
+  //       };
+  //       this.incomingDataRedir(nextView);
+  //       break;
+  //   }
+  // }
 
-    // Disable BitPay Card
-    if (!this.appProvider.info._enabledExtensions.debitcard) {
-      this.logger.warn('BitPay Card has been disabled for this build');
-      return;
-    }
-
-    let secret = this.getParameterByName('secret', data);
-    let email = this.getParameterByName('email', data);
-    let otp = this.getParameterByName('otp', data);
-    let reason = this.getParameterByName('r', data);
-    switch (reason) {
+  private goToBitPayRedir(data: string): void {
+    this.logger.debug('Incoming-data (redirect): BitPay Redir');
+    const redir = data.replace('bitpay://landing/', '');
+    switch (redir) {
       default:
-      case '0':
-        /* For BitPay card binding */
-        let stateParams = { secret, email, otp };
-        let nextView = {
-          name: 'BitPayCardIntroPage',
-          params: stateParams
+      case 'card':
+        // Disable BitPay Card
+        if (!this.appProvider.info._enabledExtensions.debitcard) {
+          this.logger.warn('BitPay Card has been disabled for this build');
+          return;
+        }
+        const nextView = {
+          name: 'PhaseOneCardIntro'
         };
         this.incomingDataRedir(nextView);
         break;
@@ -622,7 +669,7 @@ export class IncomingDataProvider {
   }
 
   private goToSimplex(data: string): void {
-    this.logger.debug('Incoming-data (redirect): Simplex URL');
+    this.logger.debug('Incoming-data (redirect): Simplex URL: ' + data);
 
     const res = data.replace(new RegExp('&amp;', 'g'), '&');
     const success = this.getParameterByName('success', res);
@@ -638,11 +685,66 @@ export class IncomingDataProvider {
     this.incomingDataRedir(nextView);
   }
 
+  private goToWyre(data: string): void {
+    this.logger.debug('Incoming-data (redirect): Wyre URL: ' + data);
+    if (data.indexOf(this.appProvider.info.name + '://wyreError') >= 0) {
+      const infoSheet = this.actionSheetProvider.createInfoSheet('wyre-error');
+      infoSheet.present();
+      infoSheet.onDidDismiss(option => {
+        if (option) {
+          this.openExternalLink('https://support.sendwyre.com/');
+        }
+      });
+      return;
+    }
+
+    if (data === this.appProvider.info.name + '://wyre') return;
+    const res = data.replace(new RegExp('&amp;', 'g'), '&');
+    const transferId = this.getParameterByName('transferId', res);
+    const orderId = this.getParameterByName('orderId', res);
+    const accountId = this.getParameterByName('accountId', res);
+    const dest = this.getParameterByName('dest', res);
+    const fees = this.getParameterByName('fees', res);
+    const destAmount = this.getParameterByName('destAmount', res);
+    const blockchainNetworkTx = this.getParameterByName(
+      'blockchainNetworkTx',
+      res
+    );
+
+    const stateParams = {
+      transferId,
+      orderId,
+      accountId,
+      dest,
+      fees,
+      destAmount,
+      blockchainNetworkTx
+    };
+    const nextView = {
+      name: 'WyrePage',
+      params: stateParams
+    };
+    this.incomingDataRedir(nextView);
+  }
+
+  private openExternalLink(url: string) {
+    this.externalLinkProvider.open(url);
+  }
+
   private goToInvoice(data: string): void {
     this.logger.debug('Incoming-data (redirect): Invoice URL');
 
     const invoiceUrl = this.getParameterByName('url', data);
     this.redir(invoiceUrl);
+  }
+
+  private openIAB(message): void {
+    this.iabCardProvider.hasFirstView().then(() => {
+      this.iabCardProvider.show();
+      this.iabCardProvider.sendMessage({
+        message
+      });
+    });
   }
 
   public redir(data: string, redirParams?: RedirParams): boolean {
@@ -724,14 +826,24 @@ export class IncomingDataProvider {
       this.goToSimplex(data);
       return true;
 
+      // Wyre
+    } else if (this.isValidWyreUri(data)) {
+      this.goToWyre(data);
+      return true;
+
       // Invoice Intent
     } else if (this.isValidInvoiceUri(data)) {
       this.goToInvoice(data);
       return true;
 
+      // BitPay Redir Link
+    } else if (this.isValidBitPayRedirLink(data)) {
+      this.goToBitPayRedir(data);
+      return true;
+
       // BitPayCard Authentication
     } else if (this.isValidBitPayCardUri(data)) {
-      this.goToBitPayCard(data);
+      // this.goToBitPayCard(data);
       return true;
 
       // BitPay URI
@@ -755,6 +867,8 @@ export class IncomingDataProvider {
       return true;
     } else if (data.includes('wallet-card')) {
       const event = data.split('wallet-card/')[1];
+      const [switchExp, payload] = (event || '').split('?');
+
       /*
        *
        * handler for wallet-card events
@@ -762,24 +876,49 @@ export class IncomingDataProvider {
        * leaving this as a switch in case events become complex and require wallet side and iab actions
        *
        * */
-      switch (event) {
+      switch (switchExp) {
+        case 'pairing':
+          const secret = payload.split('=')[1].split('&')[0];
+          const params = {
+            secret,
+            withNotification: true
+          };
+          if (payload.includes('&code=')) {
+            params['code'] = payload.split('&code=')[1];
+          }
+
+          this.iabCardProvider.pairing(params);
+          break;
+
+        case 'order-now':
+          this.persistenceProvider.setCardExperimentFlag('enabled');
+
+          this.events.publish('experimentUpdateStart');
+          setTimeout(() => {
+            this.events.publish('experimentUpdateComplete');
+          }, 300);
+
+          break;
+
         case 'email-verified':
-          this.iab.refs.card.show();
-          this.iab.sendMessageToIAB(this.iab.refs.card, {
-            message: 'email-verified'
-          });
+          this.openIAB('emailVerified');
           break;
 
         case 'get-started':
-          this.iab.refs.card.show();
-          this.iab.sendMessageToIAB(this.iab.refs.card, {
-            message: 'get-started'
-          });
+          this.openIAB('orderCard');
           break;
 
         case 'retry':
-          this.iab.refs.card.show();
-          this.iab.sendMessageToIAB(this.iab.refs.card, { message: 'retry' });
+          this.openIAB('retry');
+          break;
+
+        case 'debit-card-order':
+          this.openIAB('debitCardOrder');
+          this.persistenceProvider.setCardExperimentFlag('enabled');
+          this.events.publish('experimentUpdateStart');
+          setTimeout(() => {
+            this.events.publish('experimentUpdateComplete');
+          }, 300);
       }
 
       return true;
@@ -1052,19 +1191,33 @@ export class IncomingDataProvider {
     this.incomingDataRedir(nextView);
   }
 
-  public goToPayPro(url: string, coin: Coin, disableLoader?: boolean): void {
+  public goToPayPro(
+    url: string,
+    coin: Coin,
+    payProOptions?,
+    disableLoader?: boolean,
+    activePage?: string
+  ): void {
+    if (activePage) this.activePage = activePage;
     this.payproProvider
       .getPayProDetails(url, coin, disableLoader)
       .then(details => {
-        this.handlePayPro(details, url, coin);
+        this.onGoingProcessProvider.clear();
+        this.handlePayPro(details, payProOptions, url, coin);
       })
       .catch(err => {
+        this.onGoingProcessProvider.clear();
         this.events.publish('incomingDataError', err);
         this.logger.error(err);
       });
   }
 
-  private async handlePayPro(payProDetails, url, coin: Coin): Promise<void> {
+  private async handlePayPro(
+    payProDetails,
+    payProOptions,
+    url,
+    coin: Coin
+  ): Promise<void> {
     if (!payProDetails) {
       this.logger.error('No wallets available');
       const error = this.translate.instant('No wallets available');
@@ -1083,12 +1236,11 @@ export class IncomingDataProvider {
 
     try {
       const { memo, network } = payProDetails;
-      const disableLoader = true;
-      const { paymentOptions } = await this.payproProvider.getPayProOptions(
-        url,
-        disableLoader
-      );
-      const { estimatedAmount } = paymentOptions.find(
+      if (!payProOptions) {
+        payProOptions = await this.payproProvider.getPayProOptions(url);
+      }
+      const paymentOptions = payProOptions.paymentOptions;
+      const { estimatedAmount, minerFee } = paymentOptions.find(
         option => option.currency.toLowerCase() === coin
       );
       const instructions = payProDetails.instructions[0];
@@ -1106,7 +1258,8 @@ export class IncomingDataProvider {
         coin,
         network,
         payProUrl: url,
-        requiredFeeRate
+        requiredFeeRate,
+        minerFee // needed for payments with Coinbase accounts
       };
       const nextView = {
         name: 'ConfirmPage',

@@ -3,12 +3,13 @@
   "packageDescription": "Copay Bitcoin Wallet",
   "packageNameId": "com.bitpay.copay",
   "packageNameIdDesktop": "com.bitpay.copay.desktop2",
-  "themeColor": "#0c204e",
+  "themeColor": "#ffffff",
   "userVisibleName": "Copay",
   "purposeLine": "Copay Bitcoin Wallet",
   "bundleName": "copay",
   "appUri": "copay",
   "name": "copay",
+  "dynamicLink": "copay.page.link",
   "nameNoSpace": "copay",
   "nameCase": "Copay",
   "nameCaseNoSpace": "Copay",
@@ -24,15 +25,15 @@
   "WindowsApplicationId": "CopayforWindows",
   "pushSenderId": "1036948132229",
   "description": "A Secure Bitcoin Wallet",
-  "version": "9.1.0",
-  "androidVersion": "90010000",
+  "version": "11.0.3",
+  "androidVersion": "91100003",
   "_extraCSS": null,
   "_enabledExtensions": {
+    "buycrypto": false,
     "coinbase": false,
     "glidera": false,
     "debitcard": false,
     "shapeshift": false,
-    "simplex": false,
     "giftcards": false
   }
 }

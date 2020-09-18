@@ -12,11 +12,12 @@ import { debounceTime } from 'rxjs/operators';
 import {
   ActionSheetProvider,
   AppProvider,
-  PersistenceProvider
+  ExternalLinkProvider,
+  PersistenceProvider,
+  PlatformProvider
 } from '../../../../providers';
 import {
   GiftCardProvider,
-  hasVisibleDiscount,
   sortByDisplayName
 } from '../../../../providers/gift-card/gift-card';
 import {
@@ -50,13 +51,21 @@ import { GiftCardItem } from './gift-card-item/gift-card-item';
     ]),
     trigger('preventInitialChildAnimations', [
       transition(':enter', [query(':enter', [], { optional: true })])
+    ]),
+    trigger('fade', [
+      transition(':enter', [
+        style({
+          transform: 'translateY(5px)',
+          opacity: 0
+        }),
+        animate('200ms')
+      ])
     ])
   ]
 })
 export class HomeGiftCards implements OnInit {
   public activeBrands: GiftCard[][];
   public appName: string;
-  public discountedCard: CardConfig;
   public hideDiscount: boolean = false;
   public primaryCatalogCurrency: string = 'usd';
   public disableArchiveAnimation: boolean = true; // Removes flicker on iOS when returning to home tab
@@ -65,48 +74,40 @@ export class HomeGiftCards implements OnInit {
 
   @Input('scrollArea')
   scrollArea: Content;
-
+  ready: boolean;
   @ViewChild(ItemSliding)
   slidingItem: ItemSliding;
 
   constructor(
     private actionSheetProvider: ActionSheetProvider,
     private appProvider: AppProvider,
+    private externalLinkProvider: ExternalLinkProvider,
     private giftCardProvider: GiftCardProvider,
     private navCtrl: NavController,
-    private persistenceProvider: PersistenceProvider
+    private persistenceProvider: PersistenceProvider,
+    public platformProvider: PlatformProvider
   ) {}
 
   async ngOnInit() {
     this.appName = this.appProvider.info.userVisibleName;
     await this.initGiftCards();
+    setTimeout(() => {
+      this.ready = true;
+    }, 50);
     const availableCards = await this.giftCardProvider.getAvailableCards();
     this.primaryCatalogCurrency = getPrimaryCatalogCurrency(availableCards);
-    this.discountedCard = availableCards.find(cardConfig =>
-      hasVisibleDiscount(cardConfig)
-    );
     this.hideDiscount = await this.persistenceProvider.getHideGiftCardDiscountItem();
     await timer(3000).toPromise();
     this.giftCardProvider.preloadImages();
   }
 
   public buyGiftCards() {
-    this.navCtrl.push(CardCatalogPage);
+    this.navCtrl.push(CardCatalogPage, { giftCardsOnly: true });
   }
 
-  public async buyCard(cardName: string, discountContext?: string) {
+  public async buyCard(cardName: string) {
     const cardConfig = await this.giftCardProvider.getCardConfig(cardName);
     this.navCtrl.push(BuyCardPage, { cardConfig });
-    if (this.discountedCard && this.discountedCard.name === cardName) {
-      this.logDiscountClick(discountContext);
-    }
-  }
-
-  public logDiscountClick(context: string) {
-    this.giftCardProvider.logEvent(
-      'clickedGiftCardDiscount',
-      this.giftCardProvider.getDiscountEventParams(this.discountedCard, context)
-    );
   }
 
   public onGiftCardAction(event, purchasedCards: GiftCard[]) {
@@ -115,10 +116,9 @@ export class HomeGiftCards implements OnInit {
       : this.showArchiveSheet(event);
   }
 
-  public onPromoScrollIntoView(context: string) {
-    this.giftCardProvider.logEvent(
-      'presentedWithGiftCardDiscount',
-      this.giftCardProvider.getDiscountEventParams(this.discountedCard, context)
+  public launchExtension() {
+    this.externalLinkProvider.open(
+      'https://bitpay.com/extension/?launchExtension=true'
     );
   }
 

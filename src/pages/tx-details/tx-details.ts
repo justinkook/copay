@@ -1,5 +1,4 @@
 import { Component } from '@angular/core';
-import { StatusBar } from '@ionic-native/status-bar';
 import { TranslateService } from '@ngx-translate/core';
 import {
   Events,
@@ -17,7 +16,6 @@ import { CurrencyProvider } from '../../providers/currency/currency';
 import { ExternalLinkProvider } from '../../providers/external-link/external-link';
 import { FilterProvider } from '../../providers/filter/filter';
 import { OnGoingProcessProvider } from '../../providers/on-going-process/on-going-process';
-import { PlatformProvider } from '../../providers/platform/platform';
 import { PopupProvider } from '../../providers/popup/popup';
 import { ProfileProvider } from '../../providers/profile/profile';
 import { RateProvider } from '../../providers/rate/rate';
@@ -64,22 +62,8 @@ export class TxDetailsModal {
     private translate: TranslateService,
     private filter: FilterProvider,
     private rateProvider: RateProvider,
-    private platformProvider: PlatformProvider,
-    private statusBar: StatusBar,
     private viewCtrl: ViewController
   ) {}
-
-  ionViewWillEnter() {
-    if (this.platformProvider.isCordova) {
-      this.statusBar.styleDefault();
-    }
-  }
-
-  ionViewWillLeave() {
-    if (this.platformProvider.isCordova) {
-      this.statusBar.styleBlackOpaque();
-    }
-  }
 
   ionViewDidLoad() {
     this.config = this.configProvider.get();
@@ -172,6 +156,7 @@ export class TxDetailsModal {
 
     let actionDescriptions = {
       created: this.translate.instant('Proposal Created'),
+      failed: this.translate.instant('Execution Failed'),
       accept: this.translate.instant('Accepted'),
       reject: this.translate.instant('Rejected'),
       broadcasted: this.translate.instant('Broadcasted')
@@ -204,7 +189,15 @@ export class TxDetailsModal {
     }, 10);
   }
 
-  private updateTxDebounced = _.debounce(this.updateTx, 1000);
+  private updateTxDebounced = _.debounce(
+    async hideLoading => {
+      this.updateTx({ hideLoading });
+    },
+    1000,
+    {
+      leading: true
+    }
+  );
 
   private updateTx(opts?): void {
     opts = opts ? opts : {};
@@ -241,11 +234,11 @@ export class TxDetailsModal {
 
         if (this.btx.action != 'invalid') {
           if (this.btx.action == 'sent')
-            this.title = this.translate.instant('Sent Funds');
+            this.title = this.translate.instant('Sent');
           if (this.btx.action == 'received')
-            this.title = this.translate.instant('Received Funds');
+            this.title = this.translate.instant('Received');
           if (this.btx.action == 'moved')
-            this.title = this.translate.instant('Moved Funds');
+            this.title = this.translate.instant('Sent to self');
         }
 
         this.updateMemo();

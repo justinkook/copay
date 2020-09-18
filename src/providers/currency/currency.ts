@@ -10,7 +10,8 @@ export enum Coin {
   XRP = 'xrp',
   USDC = 'usdc',
   GUSD = 'gusd',
-  PAX = 'pax'
+  PAX = 'pax',
+  BUSD = 'busd'
 }
 
 export type CoinsMap<T> = { [key in Coin]: T };
@@ -51,8 +52,10 @@ export class CurrencyProvider {
     return !!this.coinOpts[coin].properties.isERCToken;
   }
 
-  getLinkedEthWallet(coin: Coin, walletId: string): string {
-    if (!this.coinOpts[coin].properties.isERCToken) return null;
+  getLinkedEthWallet(coin: Coin, walletId: string, m: number): string {
+    if (!this.coinOpts[coin].properties.isERCToken && coin !== 'eth')
+      return null;
+    if (coin === 'eth' && m === 1) return null;
     return walletId.replace(/-0x.*$/, '');
   }
 
@@ -118,17 +121,5 @@ export class CurrencyProvider {
 
   getTheme(coin: Coin) {
     return this.coinOpts[coin].theme;
-  }
-
-  getModuleColor(coin: Coin): string {
-    return this.coinOpts[coin].qrColor.moduleColor;
-  }
-
-  getPositionRingColor(coin: Coin): string {
-    return this.coinOpts[coin].qrColor.positionRingColor;
-  }
-
-  getPositionCenterColor(coin: Coin): string {
-    return this.coinOpts[coin].qrColor.positionCenterColor;
   }
 }

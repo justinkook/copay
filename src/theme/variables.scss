@@ -16,6 +16,7 @@ $app-direction: ltr;
 // To view all the possible Ionic variables, see:
 // http://ionicframework.com/docs/theming/overriding-ionic-variables/
 // Override - Homogenized ionic component styles
+
 @import 'icons';
 @import 'lists';
 @import 'overrides';
@@ -44,16 +45,17 @@ $background-colors: (
   success: #bfffeb,
   info: #eff1f8
 );
-// App background color
-$background-color: white;
-// Item list background color
-$list-background-color: #ffffff;
+
+// Wallet-details
 $feather-dark: #f8f8f9;
 $feather: #fbfbff;
+
+$slateDark: #434d5a;
+$black: #303133;
+
 // Refresh color
 $refresher-icon-color: color($colors, primary);
 $refresher-icon-font-size: 12px;
-$refresher-height: 120px;
 $refresher-border-color: none;
 // Toolbar
 $toolbar-text-color: color($colors, light);
@@ -80,9 +82,7 @@ $text-input-md-show-valid-highlight: transparent;
 // App iOS Variables
 // --------------------------------------------------
 // iOS only Sass variables can go here
-$tabs-ios-background: color($colors, blank);
 $tabs-ios-border-color: rgba(0, 0, 0, 0.1);
-$item-ios-divider-background: $background-color;
 $item-ios-divider-color: color($colors, grey);
 $item-ios-padding-top: 16px;
 $item-ios-padding-bottom: 16px;
@@ -97,10 +97,10 @@ $searchbar-ios-padding-vertical: 16px;
 $searchbar-ios-padding-horizontal: 8px;
 $note-ios-color: color($colors, light-grey);
 $toolbar-ios-title-font-weight: 400;
+$checkbox-ios-icon-border-color-off: color($colors, light-grey);
 // App Material Design Variables
 // --------------------------------------------------
 // Material Design only Sass variables can go here
-$item-md-divider-background: $background-color;
 $item-md-divider-color: color($colors, grey);
 $item-md-padding-top: 16px;
 $item-md-padding-bottom: 16px;
@@ -119,6 +119,12 @@ $alert-md-sub-title-font-size: 12.5px;
 $alert-md-message-font-size: 12.5px;
 $button-md-text-transform: none;
 $button-md-clear-background-color-hover: transparent;
+$badge-md-border-radius: 9px;
+$segment-button-md-border-color-activated: color($colors, primary);
+$segment-button-md-border-bottom-width: 0.5px;
+$segment-button-md-text-color-activated: color($colors, dark);
+$segment-button-md-height: 5rem;
+$segment-button-md-padding-top: 4px;
 // App Windows Variables
 // --------------------------------------------------
 // Windows only Sass variables can go here
@@ -129,6 +135,9 @@ $button-md-clear-background-color-hover: transparent;
 // so that the above variables are used and Ionic's
 // default are overridden.
 @import 'ionic.theme.default';
+@import 'dark';
+@import 'light';
+
 // Ionicons
 // --------------------------------------------------
 // The premium icon font for Ionic. For more info, please see:
@@ -193,13 +202,12 @@ ion-footer {
   }
 }
 
-/* Force safe-area for iPhone X -- Need testing
-.ios .tabs:not(.tabs-ios[tabsPlacement=top]) ion-footer .toolbar:last-child {
+/* Force safe-area for iPhone X with ion-footer */
+.ios .tabs:not(.tabs-ios[tabsPlacement='top']) ion-footer .toolbar:last-child {
   padding-bottom: 0 !important;
   padding-bottom: calc(env(safe-area-inset-bottom)) !important;
   padding-bottom: -webkit-calc(env(safe-area-inset-bottom)) !important;
 }
-*/
 
 .toolbar {
   // Titles centered on all headers for material design

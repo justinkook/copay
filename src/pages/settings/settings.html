@@ -21,6 +21,16 @@
     <ion-list class="bp-list">
       <ion-item-divider> {{ 'General' | translate }} </ion-item-divider>
 
+      <button ion-item (click)="openThemePage()">
+        <ion-icon class="item-img icon-settings ionic-icon" name="ios-color-palette" item-start></ion-icon>
+        <ion-label>
+          <div class="main-label">{{ 'Theme' | translate }}</div>
+        </ion-label>
+        <ion-note *ngIf="appTheme" item-end>
+          {{ appTheme }}
+        </ion-note>
+      </button>
+
       <button ion-item (click)="openAltCurrencyPage()">
         <ion-icon class="item-img icon-settings" item-start>
           <img src="assets/img/settings-icons/icon-currency.svg" />
@@ -71,17 +81,23 @@
       </button>
 
       <ion-item class="align-with-button">
-        <ion-icon class="item-img icon-settings" name="md-eye" item-start></ion-icon>
+        <ion-icon class="item-img icon-settings ionic-icon" name="md-eye" item-start></ion-icon>
         <ion-label>
           <div class="main-label">
             {{'Show Portfolio Value' | translate}}
           </div>
         </ion-label>
-        <ion-toggle [(ngModel)]="showBalance" (ionChange)="toggleShowBalanceFlag()"></ion-toggle>
+        <ion-toggle [(ngModel)]="showTotalBalance" (ionChange)="toggleShowBalanceFlag()"></ion-toggle>
       </ion-item>
 
       <ion-item-divider *ngIf="walletsGroups && walletsGroups[0]">
         {{ 'Crypto Wallets & Keys' | translate }}
+        <button class="reorder-option" ion-button item-end clear *ngIf="!showReorder && walletsGroups?.length > 1" (click)="reorder()">
+          <img src="assets/img/sort.svg">
+        </button>
+        <button class="reorder-option" ion-button item-end clear *ngIf="showReorder" (click)="reorder()">
+          {{'Done' | translate}}
+        </button>
       </ion-item-divider>
 
       <button ion-item (click)="openAddressBookPage()">
@@ -103,42 +119,54 @@
       </button>
 
       <ion-item class="align-with-button">
-        <ion-icon class="item-img icon-settings" style="opacity: 0.3;" item-start>
+        <ion-icon class="item-img icon-settings icon-qrcode" style="opacity: 0.3;" item-start>
           <img src="assets/img/settings-icons/icon-qrcode.svg">
         </ion-icon>
         <ion-label>
           <div class="main-label">
-            {{'Use Legacy QR Code' | translate}}
+            {{'Use Basic QR Code' | translate}}
           </div>
         </ion-label>
         <ion-toggle [(ngModel)]="useLegacyQrCode" (ionChange)="toggleQrCodeLegacyFlag()"></ion-toggle>
       </ion-item>
 
-      <button ion-item *ngFor="let walletsGroup of walletsGroups; let i = index"
-        (click)="openWalletGroupSettings(walletsGroup[0].keyId)">
-        <ion-icon *ngIf="walletsGroup[0].canSign" class="item-img icon-settings" item-start>
-          <img src="assets/img/settings-icons/icon-key.svg" />
-        </ion-icon>
-        <ion-icon *ngIf="!walletsGroup[0].canSign" class="item-img icon-settings" item-start>
+      <ion-list reorder="{{showReorder}}" (ionItemReorder)="reorderAccounts($event)">
+        <button ion-item [attr.detail-none]="showReorder ? true : null" *ngFor="let walletsGroup of walletsGroups; let i = index" (click)="openWalletGroupSettings(walletsGroup[0].keyId)">
+          <ion-icon class="item-img icon-settings" item-start>
+            <img src="assets/img/settings-icons/icon-key.svg" />
+          </ion-icon>
+          <ion-label>
+            <div class="main-label">
+              <span>{{profileProvider.getWalletGroup(walletsGroup[0].keyId).name}}</span>
+            </div>
+          </ion-label>
+          <ion-note *ngIf="walletsGroup.length == 1" item-end>
+            {{'{walletsGroupLength} Wallet' | translate:{walletsGroupLength: walletsGroup.length} }}
+          </ion-note>
+          <ion-note *ngIf="walletsGroup.length > 1" item-end>
+            {{'{walletsGroupLength} Wallets' | translate:{walletsGroupLength: walletsGroup.length} }}
+          </ion-note>
+        </button>
+      </ion-list>
+
+      <button ion-item (click)="openWalletGroupSettings(readOnlyWalletsGroup[0].keyId)" *ngIf="readOnlyWalletsGroup && readOnlyWalletsGroup.length > 0">
+        <ion-icon class="item-img icon-settings" item-start>
           <img src="assets/img/settings-icons/icon-read-only.svg" width="26" />
         </ion-icon>
         <ion-label>
-          <div class="main-label" *ngIf="walletsGroup[0].canSign">
-            <span>{{profileProvider.getWalletGroup(walletsGroup[0].keyId).name}}</span>
-          </div>
-          <div class="main-label" *ngIf="!walletsGroup[0].canSign" translate>
-            Read Only Wallets
+          <div class="main-label" translate>
+            Read Only
           </div>
         </ion-label>
-        <ion-note *ngIf="walletsGroup.length == 1" item-end>
-          {{'{walletsGroupLength} Wallet' | translate:{walletsGroupLength: walletsGroup.length} }}
+        <ion-note *ngIf="readOnlyWalletsGroup.length == 1" item-end>
+          {{'{walletsGroupLength} Wallet' | translate:{walletsGroupLength: readOnlyWalletsGroup.length} }}
         </ion-note>
-        <ion-note *ngIf="walletsGroup.length > 1" item-end>
-          {{'{walletsGroupLength} Wallets' | translate:{walletsGroupLength: walletsGroup.length} }}
+        <ion-note *ngIf="readOnlyWalletsGroup.length > 1" item-end>
+          {{'{walletsGroupLength} Wallets' | translate:{walletsGroupLength: readOnlyWalletsGroup.length} }}
         </ion-note>
       </button>
-      <button ion-item detail-none class="create-button" *ngIf="walletsGroups && walletsGroups[0]"
-        (click)="goToAddView()">
+
+      <button ion-item detail-none class="create-button" *ngIf="walletsGroups && walletsGroups[0]" (click)="goToAddView()">
         {{ 'Create or Import a Key' | translate }}
       </button>
 
@@ -146,22 +174,21 @@
         {{ 'Cards' | translate }}
       </ion-item-divider>
 
-      <div *ngIf="showBitPayCard && bitpayCardItems && bitpayCardItems[0]">
+      <div *ngIf="isCordova && !isCopay && showBitPayCard && bitpayCardItems?.length">
         <ion-list>
-          <button ion-item *ngFor="let card of bitpayCardItems" (click)="openCardSettings(card.id)">
+          <button ion-item *ngFor="let card of bitpayCardItems; let i = index; trackBy: trackBy" (click)="openCardSettings(card.id)" @fade>
             <ion-icon class="item-img" item-start>
               <img src="assets/img/bitpay-card/bitpay-card-icon-list.svg" />
             </ion-icon>
-            <div class="main-label">BitPay Visa&reg; Card ({{card.lastFourDigits}})</div>
-            <div class="item-subtitle">
-              {{card.balance ? (card.balance | currency:card.currencySymbol:2) : 'Add funds to get started'|translate}} {{card.updatedOn
-            ? (' &middot; ' + (card.updatedOn * 1000 | amTimeAgo)) : ''}}</div>
+            <div class="main-label">BitPay {{card.brand === 'Mastercard'? 'Mastercard&reg;' : 'Visa&reg; Card'}} ({{card.lastFourDigits}})</div>
+            <ion-note item-end *ngIf="card.cardType === 'virtual'">
+              <span translate>Virtual</span>
+            </ion-note>
           </button>
         </ion-list>
       </div>
 
-      <button ion-item *ngFor="let card of (cardServices | orderBy: ['title'])"
-        (click)="openSettingIntegration(card.name)">
+      <button ion-item *ngFor="let card of (cardServices | orderBy: ['title'])" (click)="openSettingIntegration(card.name)">
         <ion-icon class="item-img" item-start>
           <img src="{{card.icon}}" />
         </ion-icon>
@@ -174,7 +201,7 @@
         </ion-note>
       </button>
 
-      <ng-container *ngIf="bitpayIdPairingEnabled">
+      <ng-container *ngIf="isCordova && !isCopay">
         <ion-item-divider>
           {{'BitPay Account' | translate}}
         </ion-item-divider>
@@ -183,20 +210,24 @@
           <ion-icon class="item-img" item-start>
             <img src="assets/img/bitpay-card/icon-bitpay.svg" width="25">
           </ion-icon>
-          <span>{{bitPayIdUserInfo ? 'Manage my BitPay ID' : 'Connect my BitPay ID' | translate }}</span>
+          <span class="main-label">{{ bitPayIdUserInfo ? bitPayIdUserInfo.email : 'Connect your BitPay ID' | translate}}</span>
+          <ion-note item-end *ngIf="bitPayIdUserInfo">
+            <span translate>Linked</span>
+          </ion-note>
         </button>
       </ng-container>
+
 
       <ion-item-divider *ngIf="integrationServices && integrationServices[0]">
         {{ 'Exchanges' | translate }}
       </ion-item-divider>
 
-      <button ion-item *ngFor="let integration of (integrationServices | orderBy: ['title'])"
-        (click)="openSettingIntegration(integration.name)">
+      <button ion-item *ngFor="let integration of (integrationServices | orderBy: ['title'])" (click)="openSettingIntegration(integration.name)">
         <ion-icon class="item-img" item-start>
           <img src="{{integration.icon}}" />
         </ion-icon>
         <span class="main-label">{{ integration.title }}</span>
+        <div *ngIf="integration.linked && integration.email" class="secondary-label" [clamp]="14">{{ integration.email }}</div>
         <ion-note item-end *ngIf="integration.linked">
           <span *ngIf="integration.linked" translate>Linked</span>
           <span *ngIf="!integration.linked">
@@ -226,6 +257,18 @@
           <img src="assets/img/settings-icons/icon-heart.svg" />
         </ion-icon>
         <span class="main-label" translate>Share</span> {{ appName }}
+      </button>
+
+      <button ion-item (click)="openPrivacyPolicy()">
+        <ion-icon class="item-img icon-settings" item-start>
+          <img src="assets/img/settings-icons/icon-lock.svg" />
+        </ion-icon>
+        <span class="main-label" translate>Privacy Policy</span>
+      </button>
+
+      <button ion-item (click)="openTermsOfUse()">
+        <ion-icon class="item-img icon-settings ionic-icon" name="md-list-box" item-start></ion-icon>
+        <span class="main-label" translate>Terms of Use</span>
       </button>
 
       <button ion-item (click)="openAboutPage()">

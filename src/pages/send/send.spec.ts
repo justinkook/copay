@@ -124,7 +124,9 @@ describe('SendPage', () => {
         expect(redirSpy).toHaveBeenCalledWith(
           'https://bitpay.com/i/MB6kXuVY9frBW1DyoZkE5e',
           'btc',
-          true
+          undefined,
+          true,
+          'SendPage'
         );
       }));
 
@@ -327,7 +329,9 @@ describe('SendPage', () => {
         expect(redirSpy).toHaveBeenCalledWith(
           'https://test.bitpay.com/i/S5jbsUtrHVuvYQN6XHPuvJ',
           'btc',
-          true
+          undefined,
+          true,
+          'SendPage'
         );
       }));
 
@@ -536,7 +540,9 @@ describe('SendPage', () => {
         expect(redirSpy).toHaveBeenCalledWith(
           'https://bitpay.com/i/3dZDvRXdxpkL4FoWtkB6ZZ',
           'bch',
-          true
+          undefined,
+          true,
+          'SendPage'
         );
       }));
 
@@ -739,7 +745,9 @@ describe('SendPage', () => {
         expect(redirSpy).toHaveBeenCalledWith(
           'https://bitpay.com/i/3dZDvRXdxpkL4FoWtkB6ZZ',
           'bch',
-          true
+          undefined,
+          true,
+          'SendPage'
         );
       }));
 

@@ -28,7 +28,9 @@ function createWindow() {
     minHeight: 650,
     show: false,
     webPreferences: {
-      nodeIntegration: true
+      nodeIntegration: true,
+      worldSafeExecuteJavaScript: true,
+      enableRemoteModule: true
     }
   });
 
@@ -131,7 +133,7 @@ app.setAsDefaultProtocolClient('bchtest');
 app.setAsDefaultProtocolClient('ethereum');
 app.setAsDefaultProtocolClient(appConfig.name);
 app.setVersion(appConfig.version);
-app.setName(appConfig.nameCase);
+app.name = appConfig.nameCase;
 
 const getHomeDirPath = platform => {
   switch (platform) {

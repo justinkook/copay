@@ -11,7 +11,7 @@ page-bitpay-card-intro {
   ion-toolbar {
     border-top-right-radius: 25px;
     border-top-left-radius: 25px;
-    background: white;
+    background-color: white;
     animation: fadein 500ms;
 
     box-shadow: 0 -5px 40px 0 rgba(0, 0, 0, 0.1);
@@ -38,7 +38,6 @@ page-bitpay-card-intro {
 
   .bitpayCard {
     &-header {
-      background: linear-gradient(180deg, #ffffff 0%, #e2e5f2 100%);
       /*  TODO  border-radius: 0 0 65% 25%;*/
       overflow: hidden;
       text-align: center;
@@ -59,7 +58,7 @@ page-bitpay-card-intro {
       }
     }
     &-content {
-      padding: 30px 40px;
+      padding: 0 40px;
       .title {
         margin-top: 20px;
         font-size: 28px;
@@ -93,6 +92,11 @@ page-bitpay-card-intro {
       p {
         padding-left: 64px;
       }
+    }
+    &__agreement {
+      margin: 50px 0 150px 0;
+      font-size: 11px;
+      color: #626262;
     }
   }
 }

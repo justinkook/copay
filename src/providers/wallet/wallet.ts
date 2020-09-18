@@ -6,6 +6,7 @@ import encoding from 'text-encoding';
 
 // Providers
 import { AddressProvider } from '../address/address';
+import { AppProvider } from '../app/app';
 import { BwcErrorProvider } from '../bwc-error/bwc-error';
 import { BwcProvider } from '../bwc/bwc';
 import { ConfigProvider } from '../config/config';
@@ -15,8 +16,10 @@ import { FilterProvider } from '../filter/filter';
 import { KeyProvider } from '../key/key';
 import { LanguageProvider } from '../language/language';
 import { Logger } from '../logger/logger';
+import { LogsProvider } from '../logs/logs';
 import { OnGoingProcessProvider } from '../on-going-process/on-going-process';
 import { PersistenceProvider } from '../persistence/persistence';
+import { PlatformProvider } from '../platform/platform';
 import { PopupProvider } from '../popup/popup';
 import { RateProvider } from '../rate/rate';
 import { TouchIdProvider } from '../touchid/touchid';
@@ -49,6 +52,7 @@ export interface WalletOptions {
   compliantDerivation: any;
   useLegacyCoinType?: boolean;
   useLegacyPurpose?: boolean;
+  useNativeSegwit?: boolean;
 }
 
 export interface TransactionProposal {
@@ -79,6 +83,8 @@ export interface TransactionProposal {
   tokenAddress?: string;
   destinationTag?: string;
   invoiceID?: string;
+  multisigGnosisContractAddress?: string;
+  multisigContractAddress?: string;
 }
 
 @Injectable()
@@ -93,6 +99,7 @@ export class WalletProvider {
   private WALLET_STATUS_DELAY_BETWEEN_TRIES: number = 1.6 * 1000;
   private SOFT_CONFIRMATION_LIMIT: number = 12;
   private SAFE_CONFIRMATIONS: number = 6;
+  private DEFAULT_RBF_SEQNUMBER = 0xffffffff;
 
   private errors = this.bwcProvider.getErrors();
 
@@ -120,7 +127,10 @@ export class WalletProvider {
     private translate: TranslateService,
     private addressProvider: AddressProvider,
     private languageProvider: LanguageProvider,
-    private keyProvider: KeyProvider
+    private keyProvider: KeyProvider,
+    private platformProvider: PlatformProvider,
+    private logsProvider: LogsProvider,
+    private appProvider: AppProvider
   ) {
     this.logger.debug('WalletProvider initialized');
     this.isPopupOpen = false;
@@ -158,7 +168,7 @@ export class WalletProvider {
             copayerId: tx.wallet.copayerId
           });
 
-          if (!action && tx.status == 'pending') {
+          if ((!action || action.type === 'failed') && tx.status == 'pending') {
             tx.pendingForUs = true;
           }
 
@@ -360,10 +370,16 @@ export class WalletProvider {
           }
 
           tries = tries || 0;
-          const { token } = wallet.credentials;
+          const { token, multisigEthInfo } = wallet.credentials;
 
           wallet.getStatus(
-            { tokenAddress: token ? token.address : '' },
+            {
+              tokenAddress: token ? token.address : '',
+              multisigContractAddress: multisigEthInfo
+                ? multisigEthInfo.multisigContractAddress
+                : '',
+              network: wallet.network
+            },
             (err, status) => {
               if (err) {
                 if (err instanceof this.errors.NOT_AUTHORIZED) {
@@ -439,6 +455,98 @@ export class WalletProvider {
     });
   }
 
+  private getWalletTotalBalanceAlternative(
+    balanceSat: number,
+    coin: string,
+    isoCode: string
+  ): string {
+    const balance = this.rateProvider.toFiat(balanceSat, isoCode, coin);
+    return balance ? balance.toFixed(2) : '0.00';
+  }
+
+  private getWalletTotalBalanceAlternativeLastDay(
+    balanceSat: number,
+    coin: string,
+    isoCode: string,
+    lastDayRatesArray: any
+  ): string {
+    const balanceLastDay = this.rateProvider.toFiat(balanceSat, isoCode, coin, {
+      customRate: lastDayRatesArray[coin]
+    });
+    return balanceLastDay ? balanceLastDay.toFixed(2) : '0.00';
+  }
+
+  private calcTotalAmount(wallet, isoCode, lastDayRatesArray) {
+    const statusWallet = wallet.cachedStatus;
+    let walletTotalBalanceAlternative = 0;
+    let walletTotalBalanceAlternativeLastDay = 0;
+    if (
+      wallet.network === 'livenet' &&
+      !wallet.hidden &&
+      !_.isEmpty(statusWallet)
+    ) {
+      const balance =
+        wallet.coin === 'xrp'
+          ? statusWallet.availableBalanceSat
+          : statusWallet.totalBalanceSat;
+      walletTotalBalanceAlternativeLastDay = parseFloat(
+        this.getWalletTotalBalanceAlternativeLastDay(
+          balance,
+          wallet.coin,
+          isoCode,
+          lastDayRatesArray
+        )
+      );
+      walletTotalBalanceAlternative = parseFloat(
+        this.getWalletTotalBalanceAlternative(balance, wallet.coin, isoCode)
+      );
+    }
+    return {
+      walletTotalBalanceAlternative,
+      walletTotalBalanceAlternativeLastDay
+    };
+  }
+
+  public async getTotalAmount(wallets, lastDayRatesArray) {
+    const isoCode =
+      this.configProvider.get().wallet.settings.alternativeIsoCode || 'USD';
+    if (_.isEmpty(wallets))
+      return {
+        isoCode,
+        totalBalanceAlternative: '0',
+        totalBalanceChange: 0
+      };
+
+    const totalAmountArray = [];
+
+    _.each(wallets, wallet => {
+      totalAmountArray.push(
+        this.calcTotalAmount(wallet, isoCode, lastDayRatesArray)
+      );
+    });
+
+    const totalBalanceAlternative = _.sumBy(
+      _.compact(totalAmountArray),
+      b => b.walletTotalBalanceAlternative
+    ).toFixed(2);
+    const totalBalanceAlternativeLastDay = _.sumBy(
+      _.compact(totalAmountArray),
+      b => b.walletTotalBalanceAlternativeLastDay
+    ).toFixed(2);
+    const difference =
+      parseFloat(totalBalanceAlternative.replace(/,/g, '')) -
+      parseFloat(totalBalanceAlternativeLastDay.replace(/,/g, ''));
+    const totalBalanceChange =
+      (difference * 100) /
+      parseFloat(totalBalanceAlternative.replace(/,/g, ''));
+
+    return {
+      totalBalanceAlternativeIsoCode: isoCode,
+      totalBalanceAlternative,
+      totalBalanceChange
+    };
+  }
+
   // Check address
   private isAddressUsed(wallet, byAddress): Promise<any> {
     return new Promise((resolve, reject) => {
@@ -471,7 +579,10 @@ export class WalletProvider {
   public getAddress(wallet, forceNew: boolean): Promise<string> {
     return new Promise((resolve, reject) => {
       let walletId = wallet.id;
-      const { token } = wallet.credentials;
+      const { token, multisigEthInfo } = wallet.credentials;
+      if (multisigEthInfo && multisigEthInfo.multisigContractAddress) {
+        return resolve(multisigEthInfo.multisigContractAddress);
+      }
 
       if (token) {
         walletId = wallet.id.replace(`-${token.address}`, '');
@@ -597,13 +708,15 @@ export class WalletProvider {
         shouldContinue: res.length >= limit
       };
 
-      const { token } = wallet.credentials;
-
+      const { token, multisigEthInfo } = wallet.credentials;
       wallet.getTxHistory(
         {
           skip,
           limit,
-          tokenAddress: token ? token.address : ''
+          tokenAddress: token ? token.address : '',
+          multisigContractAddress: multisigEthInfo
+            ? multisigEthInfo.multisigContractAddress
+            : ''
         },
         (err: Error, txsFromServer) => {
           if (err) return reject(err);
@@ -698,15 +811,17 @@ export class WalletProvider {
           ): Promise<any> => {
             return new Promise((resolve, reject) => {
               this.fetchTxsFromServer(wallet, skip, endingTxid, requestLimit)
-                .then(result => {
+                .then(async result => {
                   const res = result.res;
                   const shouldContinue = result.shouldContinue
                     ? result.shouldContinue
                     : false;
 
-                  newTxs = newTxs.concat(
-                    this.processNewTxs(wallet, _.compact(res))
+                  const _newTxs = await this.processNewTxs(
+                    wallet,
+                    _.compact(res)
                   );
+                  newTxs = newTxs.concat(_newTxs);
                   WalletProvider.progressFn[walletId](
                     newTxs.concat(txsFromLocal),
                     newTxs.length
@@ -870,17 +985,30 @@ export class WalletProvider {
     });
   }
 
-  private processNewTxs(wallet, txs) {
+  private async processNewTxs(wallet, txs): Promise<any> {
     const now = Math.floor(Date.now() / 1000);
     const txHistoryUnique = {};
     const ret = [];
     wallet.hasUnsafeConfirmed = false;
 
-    _.each(txs, tx => {
+    for (let tx of txs) {
       tx = this.txFormatProvider.processTx(wallet.coin, tx);
 
       // no future transactions...
       if (tx.time > now) tx.time = now;
+
+      if (tx.confirmations === 0 && wallet.coin === 'btc') {
+        const coins = await this.getCoinsForTx(wallet, tx.txid);
+        tx.isRBF = _.some(coins.inputs, input => {
+          return (
+            input.sequenceNumber &&
+            input.sequenceNumber < this.DEFAULT_RBF_SEQNUMBER - 1
+          );
+        });
+        tx.hasUnconfirmedInputs = _.some(coins.inputs, input => {
+          return input.mintHeight < 0;
+        });
+      }
 
       if (tx.confirmations >= this.SAFE_CONFIRMATIONS) {
         tx.safeConfirmed = this.SAFE_CONFIRMATIONS + '+';
@@ -900,9 +1028,8 @@ export class WalletProvider {
       } else {
         this.logger.debug('Ignoring duplicate TX in history: ' + tx.txid);
       }
-    });
-
-    return ret;
+    }
+    return Promise.resolve(ret);
   }
 
   public removeAndMarkSoftConfirmedTx(txs): any[] {
@@ -959,14 +1086,18 @@ export class WalletProvider {
     }
   }
 
-  private getEstimatedTxSize(wallet, nbOutputs?: number): number {
+  public getEstimatedTxSize(
+    wallet,
+    nbOutputs?: number,
+    nbInputs?: number
+  ): number {
     // Note: found empirically based on all multisig P2SH inputs and within m & n allowed limits.
     nbOutputs = nbOutputs ? nbOutputs : 2; // Assume 2 outputs
     const safetyMargin = 0.02;
     const overhead = 4 + 4 + 9 + 9;
     const inputSize = this.getEstimatedSizeForSingleInput(wallet);
     const outputSize = 34;
-    const nbInputs = 1; // Assume 1 input
+    nbInputs = nbInputs ? nbInputs : 1; // Assume 1 input
 
     const size = overhead + inputSize * nbInputs + outputSize * nbOutputs;
     return parseInt((size * (1 + safetyMargin)).toFixed(0), 10);
@@ -1000,6 +1131,26 @@ export class WalletProvider {
       wallet.getTx(txpid, (err, txp) => {
         if (err) return reject(err);
         return resolve(txp);
+      });
+    });
+  }
+
+  public getMultisigContractInstantiationInfo(wallet, opts): Promise<any> {
+    return new Promise((resolve, reject) => {
+      opts = opts || {};
+      wallet.getMultisigContractInstantiationInfo(opts, (err, res) => {
+        if (err) return reject(err);
+        return resolve(res);
+      });
+    });
+  }
+
+  public getMultisigContractInfo(wallet, opts): Promise<any> {
+    return new Promise((resolve, reject) => {
+      opts = opts || {};
+      wallet.getMultisigContractInfo(opts, (err, res) => {
+        if (err) return reject(err);
+        return resolve(res);
       });
     });
   }
@@ -1120,12 +1271,34 @@ export class WalletProvider {
 
       const rootPath = wallet.getRootPath();
 
-      const signatures = this.keyProvider.sign(
-        wallet.credentials.keyId,
-        rootPath,
-        txp,
-        password
-      );
+      let signatures;
+
+      try {
+        signatures = this.keyProvider.sign(
+          wallet.credentials.keyId,
+          rootPath,
+          txp,
+          password
+        );
+      } catch (err) {
+        const title =
+          'Your wallet is in a corrupt state. Please contact support and share the logs provided';
+        let message;
+        try {
+          message = err instanceof Error ? err.toString() : JSON.stringify(err);
+        } catch (error) {
+          message = 'Unknown error';
+        }
+        this.popupProvider.ionicAlert(title, message).then(() => {
+          // Share logs
+          const platform = this.platformProvider.isCordova
+            ? this.platformProvider.isAndroid
+              ? 'android'
+              : 'ios'
+            : 'desktop';
+          this.logsProvider.get(this.appProvider.info.nameCase, platform);
+        });
+      }
 
       try {
         wallet.pushSignatures(txp, signatures, (err, signedTxp) => {
@@ -1187,13 +1360,14 @@ export class WalletProvider {
         return reject('MISSING_PARAMETER');
 
       wallet.removeTxProposal(txp, err => {
+        if (err) return reject(this.bwcErrorProvider.msg(err));
         this.logger.debug('Transaction removed');
 
         this.invalidateCache(wallet);
         this.events.publish('Local/TxAction', {
           walletId: wallet.id
         });
-        return resolve(err);
+        return resolve();
       });
     });
   }
@@ -1357,6 +1531,37 @@ export class WalletProvider {
             .catch(err => {
               return reject(err);
             });
+        }
+      );
+    });
+  }
+
+  public getUtxos(wallet): Promise<any> {
+    return new Promise((resolve, reject) => {
+      wallet.getUtxos(
+        {
+          coin: wallet.coin
+        },
+        (err, resp) => {
+          if (err || !resp || !resp.length)
+            return reject(err ? err : 'No UTXOs');
+          return resolve(resp);
+        }
+      );
+    });
+  }
+
+  public getCoinsForTx(wallet, txId): Promise<any> {
+    return new Promise((resolve, reject) => {
+      wallet.getCoinsForTx(
+        {
+          coin: wallet.coin,
+          network: wallet.network,
+          txId
+        },
+        (err, resp) => {
+          if (err) return reject(err);
+          return resolve(resp);
         }
       );
     });

@@ -43,8 +43,10 @@ export class ProposalsNotificationsPage {
 
   private zone;
   private onResumeSubscription: Subscription;
+  private onPauseSubscription: Subscription;
   private isElectron: boolean;
   private walletId: string;
+  private multisigContractAddress: string;
 
   constructor(
     private plt: Platform,
@@ -66,6 +68,7 @@ export class ProposalsNotificationsPage {
     this.zone = new NgZone({ enableLongStackTrace: false });
     this.isElectron = this.platformProvider.isElectron;
     this.walletId = this.navParams.data.walletId;
+    this.multisigContractAddress = this.navParams.data.multisigContractAddress;
     this.isCordova = this.platformProvider.isCordova;
     this.buttonText = this.translate.instant('Sign selected proposals');
 
@@ -80,8 +83,12 @@ export class ProposalsNotificationsPage {
     this.navCtrl.swipeBackEnabled = false;
     this.updateAddressBook();
     this.updatePendingProposals();
+    this.subscribeEvents();
     this.onResumeSubscription = this.plt.resume.subscribe(() => {
       this.subscribeEvents();
+    });
+    this.onPauseSubscription = this.plt.pause.subscribe(() => {
+      this.unsubscribeEvents();
     });
 
     // Update Wallet on Focus
@@ -94,25 +101,29 @@ export class ProposalsNotificationsPage {
     this.events.subscribe('Local/WalletUpdate', this.updatePendingProposals);
   }
 
-  // Event handling
-  ionViewWillLoad() {
-    this.subscribeEvents();
-  }
-
-  ionViewWillUnload() {
+  unsubscribeEvents() {
     this.events.unsubscribe('Local/WalletUpdate', this.updatePendingProposals);
-    this.onResumeSubscription.unsubscribe();
   }
 
   ionViewWillLeave() {
+    this.unsubscribeEvents();
     this.navCtrl.swipeBackEnabled = true;
+  }
+
+  ngOnDestroy() {
+    this.onResumeSubscription.unsubscribe();
+    this.onPauseSubscription.unsubscribe();
   }
 
   private updateDesktopOnFocus() {
     const { remote } = (window as any).require('electron');
     const win = remote.getCurrentWindow();
     win.on('focus', () => {
-      this.updatePendingProposals();
+      if (
+        this.navCtrl.getActive() &&
+        this.navCtrl.getActive().name === 'ProposalsNotificationsPage'
+      )
+        this.updatePendingProposals();
     });
   }
 
@@ -144,6 +155,12 @@ export class ProposalsNotificationsPage {
           if (this.walletId) {
             txpsData.txps = _.filter(txpsData.txps, txps => {
               return txps.walletId == this.walletId;
+            });
+          } else if (this.multisigContractAddress) {
+            txpsData.txps = _.filter(txpsData.txps, txps => {
+              return (
+                txps.multisigContractAddress == this.multisigContractAddress
+              );
             });
           }
 
@@ -189,7 +206,7 @@ export class ProposalsNotificationsPage {
         copayerId: txp.wallet.copayerId
       });
 
-      if (!action && txp.status == 'pending') {
+      if ((!action || action.type === 'failed') && txp.status == 'pending') {
         txp.pendingForUs = true;
       }
 
@@ -227,7 +244,8 @@ export class ProposalsNotificationsPage {
         walletId: txpsPerWallet[0],
         canSign: txpsPerWallet[1][0].wallet.canSign || false,
         txps: txpsPerWallet[1],
-        multipleSignAvailable: txpToBeSigned > 1
+        multipleSignAvailable:
+          txpToBeSigned > 1 && !txpsPerWallet[1][0].multisigContractAddress
       });
     });
     return txpsByWallet;
@@ -290,7 +308,7 @@ export class ProposalsNotificationsPage {
           err.message != 'PASSWORD_CANCELLED'
         ) {
           if (err.message == 'WRONG_PASSWORD') {
-            this.errorsProvider.showWrongEncryptPassswordError();
+            this.errorsProvider.showWrongEncryptPasswordError();
           } else {
             const title = this.translate.instant('Error');
             const msg = this.bwcErrorProvider.msg(err);

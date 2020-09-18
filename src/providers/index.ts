@@ -31,6 +31,7 @@ export {
 export { BitPayCardProvider } from '../providers/bitpay-card/bitpay-card';
 export { BitPayIdProvider } from '../providers/bitpay-id/bitpay-id';
 export { BitPayProvider } from '../providers/bitpay/bitpay';
+export { BuyCryptoProvider } from '../providers/buy-crypto/buy-crypto';
 export { BwcErrorProvider } from '../providers/bwc-error/bwc-error';
 export { BwcProvider } from '../providers/bwc/bwc';
 export { ClipboardProvider } from '../providers/clipboard/clipboard';
@@ -43,6 +44,7 @@ export {
 } from '../providers/derivation-path-helper/derivation-path-helper';
 export { DomProvider } from '../providers/dom/dom';
 export { DownloadProvider } from '../providers/download/download';
+export { DynamicLinksProvider } from '../providers/dynamic-links/dynamic-links';
 export {
   EmailNotificationsProvider
 } from '../providers/email-notifications/email-notifications';
@@ -66,7 +68,9 @@ export { KeyProvider } from '../providers/key/key';
 export { LanguageLoader } from '../providers/language-loader/language-loader';
 export { LanguageProvider } from '../providers/language/language';
 export { Logger } from '../providers/logger/logger';
+export { LogsProvider } from '../providers/logs/logs';
 export { ElectronProvider } from '../providers/electron/electron';
+export { MerchantProvider } from '../providers/merchant/merchant';
 export {
   OnGoingProcessProvider
 } from '../providers/on-going-process/on-going-process';
@@ -74,9 +78,6 @@ export { PayproProvider } from '../providers/paypro/paypro';
 export { PersistenceProvider } from '../providers/persistence/persistence';
 export { PlatformProvider } from '../providers/platform/platform';
 export { PopupProvider } from '../providers/popup/popup';
-export {
-  ExchangeRatesProvider
-} from '../providers/exchange-rates/exchange-rates';
 export { ProfileProvider } from '../providers/profile/profile';
 export {
   PushNotificationsProvider
@@ -89,6 +90,7 @@ export { ScanProvider } from '../providers/scan/scan';
 export { ShapeshiftProvider } from '../providers/shapeshift/shapeshift';
 export { SimplexProvider } from '../providers/simplex/simplex';
 export { TabProvider } from '../providers/tab/tab';
+export { ThemeProvider } from '../providers/theme/theme';
 export { TimeProvider } from '../providers/time/time';
 export { TouchIdProvider } from '../providers/touchid/touchid';
 export {
@@ -96,5 +98,7 @@ export {
 } from '../providers/tx-confirm-notification/tx-confirm-notification';
 export { TxFormatProvider } from '../providers/tx-format/tx-format';
 export { WalletProvider } from '../providers/wallet/wallet';
+export { WyreProvider } from '../providers/wyre/wyre';
+export { ReleaseProvider } from '../providers/release/release';
 
 export { CardPhasesProvider } from '../providers/card-phases/card-phases';

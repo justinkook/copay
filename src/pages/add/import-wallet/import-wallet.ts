@@ -2,7 +2,6 @@ import { Component } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { TranslateService } from '@ngx-translate/core';
 import {
-  App,
   Events,
   ModalController,
   NavController,
@@ -12,7 +11,6 @@ import {
 // Pages
 import { CoinSelectorPage } from '../../includes/coin-selector/coin-selector';
 import { ScanPage } from '../../scan/scan';
-import { TabsPage } from '../../tabs/tabs';
 
 // Providers
 import { ActionSheetProvider } from '../../../providers/action-sheet/action-sheet';
@@ -40,6 +38,7 @@ export class ImportWalletPage {
   private reader: FileReader;
   private defaults;
   private processedInfo;
+  private keyId: string;
   public availableCoins: string[];
   public importForm: FormGroup;
   public prettyFileName: string;
@@ -53,9 +52,9 @@ export class ImportWalletPage {
   public okText: string;
   public cancelText: string;
   public showAdvOpts: boolean;
+  public title: string;
 
   constructor(
-    private app: App,
     private navCtrl: NavController,
     private navParams: NavParams,
     private form: FormBuilder,
@@ -90,6 +89,10 @@ export class ImportWalletPage {
     this.code = this.navParams.data.code;
     this.processedInfo = this.processWalletInfo(this.code);
 
+    this.keyId = this.navParams.data.keyId; // re-import option
+    this.title = !this.keyId
+      ? this.translate.instant('Import Wallet')
+      : this.translate.instant('Re-Import Wallets');
     this.formFile = null;
 
     this.importForm = this.form.group({
@@ -218,6 +221,8 @@ export class ImportWalletPage {
     opts.compressed = null;
     opts.password = null;
 
+    opts.keyId = this.keyId;
+
     this.profileProvider
       .importFile(str2, opts)
       .then((wallet: any[]) => {
@@ -240,19 +245,13 @@ export class ImportWalletPage {
     });
     if (wallets && wallets[0]) {
       this.profileProvider.setBackupGroupFlag(wallets[0].credentials.keyId);
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      this.profileProvider.setNewWalletGroupOrder(wallets[0].credentials.keyId);
     }
 
-    // using setRoot(TabsPage) as workaround when coming from scanner
-    this.app
-      .getRootNavs()[0]
-      .setRoot(TabsPage)
-      .then(() => {
-        this.app
-          .getRootNav()
-          .getActiveChildNav()
-          .select(1);
-        this.events.publish('Local/WalletListChange');
-      });
+    this.navCtrl.popToRoot().then(() => {
+      this.events.publish('Local/FetchWallets');
+    });
   }
 
   private importExtendedPrivateKey(xPrivKey, opts) {
@@ -428,10 +427,10 @@ export class ImportWalletPage {
       this.showErrorInfoSheet(title, subtitle);
       return;
     }
-    this.createSpecifyingwords(opts);
+    this.createSpecifyingWords(opts);
   }
 
-  private createSpecifyingwords(opts): void {
+  private createSpecifyingWords(opts): void {
     this.logger.debug('Creating from import');
     this.onGoingProcessProvider.set('creatingWallet');
     this.profileProvider
@@ -442,21 +441,10 @@ export class ImportWalletPage {
       })
       .catch(err => {
         this.onGoingProcessProvider.clear();
-        if (
-          err &&
-          err.message != 'FINGERPRINT_CANCELLED' &&
-          err.message != 'PASSWORD_CANCELLED'
-        ) {
-          this.logger.error('Create: could not create wallet', err);
-          if (err.message === 'WRONG_PASSWORD') {
-            this.errorsProvider.showWrongEncryptPassswordError();
-          } else {
-            const title = this.translate.instant('Error');
-            err = this.bwcErrorProvider.msg(err);
-            this.showErrorInfoSheet(title, err);
-          }
-        }
-        return;
+        this.logger.error('Create: could not create wallet', err);
+        const title = this.translate.instant('Error');
+        err = this.bwcErrorProvider.msg(err);
+        this.showErrorInfoSheet(title, err);
       });
   }
 
@@ -582,6 +570,7 @@ export class ImportWalletPage {
     }
 
     opts.passphrase = this.importForm.value.passphrase || null;
+    opts.keyId = this.keyId;
 
     const words: string = this.importForm.value.words || null;
 
@@ -601,11 +590,14 @@ export class ImportWalletPage {
       const wordList = words.trim().split(/[\u3000\s]+/);
 
       if (wordList.length % 3 != 0) {
-        const title = this.translate.instant('Error');
-        const subtitle = this.translate.instant(
-          'Wrong number of recovery words:'
+        this.logger.warn('Incorrect words length');
+        const errorInfoSheet = this.actionSheetProvider.createInfoSheet(
+          'recovery-phrase-length',
+          {
+            wordListLength: wordList.length
+          }
         );
-        this.showErrorInfoSheet(title, subtitle + ' ' + wordList.length);
+        errorInfoSheet.present();
         return;
       }
     }

@@ -6,6 +6,7 @@ import { Logger } from '../../providers/logger/logger';
 // providers
 import { Device } from '@ionic-native/device';
 import * as bitauthService from 'bitauth';
+import { Events } from 'ionic-angular';
 import { User } from '../../models/user/user.model';
 import { AppIdentityProvider } from '../app-identity/app-identity';
 import { InAppBrowserProvider } from '../in-app-browser/in-app-browser';
@@ -14,8 +15,8 @@ import { PlatformProvider } from '../platform/platform';
 
 @Injectable()
 export class BitPayIdProvider {
-  private NETWORK = Network.livenet;
-  private BITPAY_API_URL = 'https://bitpay.com';
+  private NETWORK: string;
+  private BITPAY_API_URL: string;
   private deviceName = 'unknown device';
 
   constructor(
@@ -25,15 +26,24 @@ export class BitPayIdProvider {
     private device: Device,
     private platformProvider: PlatformProvider,
     private persistenceProvider: PersistenceProvider,
-    private iab: InAppBrowserProvider
+    private iab: InAppBrowserProvider,
+    private events: Events
   ) {
     this.logger.debug('BitPayProvider initialized');
-
     if (this.platformProvider.isElectron) {
       this.deviceName = this.platformProvider.getOS().OSName;
     } else if (this.platformProvider.isCordova) {
       this.deviceName = this.device.model;
     }
+  }
+
+  public setNetwork(network: string) {
+    this.NETWORK = network;
+    this.BITPAY_API_URL =
+      this.NETWORK == 'livenet'
+        ? 'https://bitpay.com'
+        : 'https://test.bitpay.com';
+    this.logger.log(`bitpay id provider initialized with ${this.NETWORK}`);
   }
 
   public getEnvironment() {
@@ -120,20 +130,25 @@ export class BitPayIdProvider {
 
               this.logger.debug('BitPayID: successfully paired');
               const { data } = user;
-              // const { email, familyName, givenName } = data;
+              const { email, familyName, givenName, experiments } = data;
+
+              if (experiments && experiments.includes('NADebitCard')) {
+                this.persistenceProvider.setCardExperimentFlag('enabled');
+                this.events.publish('experimentUpdateStart');
+              }
 
               await Promise.all([
                 this.persistenceProvider.setBitPayIdPairingToken(
                   network,
                   token.data
                 ),
-                this.persistenceProvider.setBitPayIdUserInfo(network, data)
-                // this.persistenceProvider.setBitpayAccount(network, {
-                //   email,
-                //   token: token.data,
-                //   familyName: familyName || '',
-                //   givenName: givenName || ''
-                // })
+                this.persistenceProvider.setBitPayIdUserInfo(network, data),
+                this.persistenceProvider.setBitpayAccount(network, {
+                  email,
+                  token: token.data,
+                  familyName: familyName || '',
+                  givenName: givenName || ''
+                })
               ]);
 
               successCallback(data);
@@ -201,9 +216,10 @@ export class BitPayIdProvider {
     try {
       await Promise.all([
         this.persistenceProvider.removeBitPayIdPairingToken(network),
-        this.persistenceProvider.removeBitPayIdUserInfo(network)
-        // this.persistenceProvider.removeBitpayAccount(network, user.email)
+        this.persistenceProvider.removeBitPayIdUserInfo(network),
+        this.persistenceProvider.removeBitpayAccountV2(network)
       ]);
+      this.events.publish('bitpayIdDisconnected');
       this.iab.refs.card.executeScript(
         {
           code: `window.postMessage(${JSON.stringify({

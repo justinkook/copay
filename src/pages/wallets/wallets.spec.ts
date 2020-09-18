@@ -21,12 +21,6 @@ describe('WalletsPage', () => {
       instance.showCard = {
         setShowRateCard: () => {}
       };
-      instance.showSurvey = {
-        setShowSurveyCard: () => {}
-      };
-      instance.showEthLiveCard = {
-        setShowEthLiveCard: () => {}
-      };
       fixture.detectChanges();
     })));
   afterEach(() => {
@@ -68,21 +62,13 @@ describe('WalletsPage', () => {
             'Local/WalletFocus',
             instance.walletFocusHandler
           );
-        }); TODO */
+        });
         it('should update wallets on platform resume', () => {
           instance.ionViewDidLoad();
           const setWalletsSpy = spyOn(instance, 'setWallets');
           instance.plt.resume.next();
           expect(setWalletsSpy).toHaveBeenCalled();
-        });
-      });
-
-      describe('ionViewWillLeave', () => {
-        it('should call resetValuesForAnimationCard', () => {
-          const spy = spyOn(instance, 'resetValuesForAnimationCard');
-          instance.ionViewWillLeave();
-          expect(spy).toHaveBeenCalled();
-        });
+        }); TODO */
       });
     });
   });
@@ -110,13 +96,6 @@ describe('WalletsPage', () => {
         });
         await instance.checkClipboard();
         expect(instance.validDataFromClipboard).toBeNull();
-      });
-      it('should parse InvoiceUri successfully', async () => {
-        spyOn(incomingDataProvider, 'parseData').and.returnValue({
-          type: 'InvoiceUri'
-        });
-        await instance.checkClipboard();
-        expect(instance.validDataFromClipboard.type).toEqual('InvoiceUri');
       });
     });
   });

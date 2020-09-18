@@ -40,6 +40,11 @@ page-about {
         &.icon-settings {
           opacity: 0.5;
         }
+        &.ionic-icon {
+          font-size: 25px;
+          color: #cdd1d7;
+          opacity: 1;
+        }
         img {
           width: 20px;
           height: 20px;
@@ -56,6 +61,11 @@ page-about {
     }
   }
 
+  .count-note {
+    min-width: 85px;
+    text-align: center;
+  }
+
   .create-button {
     background: white;
     color: color($colors, primary);
@@ -63,8 +73,10 @@ page-about {
     text-align: center;
   }
 
-  .ion-md-eye:before {
+  .ion-md-eye:before,
+  .ion-ios-color-palette:before,
+  .ion-md-list-box:before {
     width: 20px;
-    opacity: 0.55;
+    height: 20px;
   }
 }

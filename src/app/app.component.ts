@@ -16,6 +16,7 @@ import { Observable, Subscription } from 'rxjs';
 
 // Providers
 import {
+  BitPayIdProvider,
   BitPayProvider,
   GiftCardProvider,
   IABCardProvider,
@@ -24,22 +25,29 @@ import {
 } from '../providers';
 import { AppProvider } from '../providers/app/app';
 import { BitPayCardProvider } from '../providers/bitpay-card/bitpay-card';
+import { BuyCryptoProvider } from '../providers/buy-crypto/buy-crypto';
 import { CoinbaseProvider } from '../providers/coinbase/coinbase';
 import { ConfigProvider } from '../providers/config/config';
+import { DynamicLinksProvider } from '../providers/dynamic-links/dynamic-links';
 import { EmailNotificationsProvider } from '../providers/email-notifications/email-notifications';
 import { IncomingDataProvider } from '../providers/incoming-data/incoming-data';
 import { KeyProvider } from '../providers/key/key';
 import { Logger } from '../providers/logger/logger';
+import { LogsProvider } from '../providers/logs/logs';
 import { Network } from '../providers/persistence/persistence';
 import { PlatformProvider } from '../providers/platform/platform';
 import { PopupProvider } from '../providers/popup/popup';
 import { ProfileProvider } from '../providers/profile/profile';
 import { PushNotificationsProvider } from '../providers/push-notifications/push-notifications';
 import { ShapeshiftProvider } from '../providers/shapeshift/shapeshift';
-import { SimplexProvider } from '../providers/simplex/simplex';
+import { ThemeProvider } from '../providers/theme/theme';
 import { TouchIdProvider } from '../providers/touchid/touchid';
 
+// Components
+import { AdvertisingComponent } from '../components/advertising/advertising';
+
 // Pages
+import { HttpClient } from '@angular/common/http';
 import { CARD_IAB_CONFIG } from '../constants';
 import { AddWalletPage } from '../pages/add-wallet/add-wallet';
 import { CopayersPage } from '../pages/add/copayers/copayers';
@@ -47,10 +55,12 @@ import { ImportWalletPage } from '../pages/add/import-wallet/import-wallet';
 import { JoinWalletPage } from '../pages/add/join-wallet/join-wallet';
 import { FingerprintModalPage } from '../pages/fingerprint/fingerprint';
 import { BitPayCardIntroPage } from '../pages/integrations/bitpay-card/bitpay-card-intro/bitpay-card-intro';
+import { PhaseOneCardIntro } from '../pages/integrations/bitpay-card/bitpay-card-phases/phase-one/phase-one-intro-page/phase-one-intro-page';
 import { CoinbasePage } from '../pages/integrations/coinbase/coinbase';
 import { SelectInvoicePage } from '../pages/integrations/invoice/select-invoice/select-invoice';
 import { ShapeshiftPage } from '../pages/integrations/shapeshift/shapeshift';
 import { SimplexPage } from '../pages/integrations/simplex/simplex';
+import { WyrePage } from '../pages/integrations/wyre/wyre';
 import { DisclaimerPage } from '../pages/onboarding/disclaimer/disclaimer';
 import { OnboardingPage } from '../pages/onboarding/onboarding';
 import { PaperWalletPage } from '../pages/paper-wallet/paper-wallet';
@@ -89,6 +99,7 @@ export class CopayApp {
     AddressbookAddPage,
     AmountPage,
     BitPayCardIntroPage,
+    PhaseOneCardIntro,
     CoinbasePage,
     ConfirmPage,
     CopayersPage,
@@ -99,7 +110,8 @@ export class CopayApp {
     ShapeshiftPage,
     SimplexPage,
     SelectInvoicePage,
-    WalletDetailsPage
+    WalletDetailsPage,
+    WyrePage
   };
 
   constructor(
@@ -110,6 +122,7 @@ export class CopayApp {
     private splashScreen: SplashScreen,
     private events: Events,
     private logger: Logger,
+    private http: HttpClient,
     private appProvider: AppProvider,
     private profile: ProfileProvider,
     private configProvider: ConfigProvider,
@@ -119,7 +132,7 @@ export class CopayApp {
     private coinbaseProvider: CoinbaseProvider,
     private bitPayCardProvider: BitPayCardProvider,
     private shapeshiftProvider: ShapeshiftProvider,
-    private simplexProvider: SimplexProvider,
+    private buyCryptoProvider: BuyCryptoProvider,
     private emailNotificationsProvider: EmailNotificationsProvider,
     private screenOrientation: ScreenOrientation,
     private popupProvider: PopupProvider,
@@ -132,7 +145,11 @@ export class CopayApp {
     private persistenceProvider: PersistenceProvider,
     private iab: InAppBrowserProvider,
     private iabCardProvider: IABCardProvider,
-    private bitpayProvider: BitPayProvider
+    private bitpayProvider: BitPayProvider,
+    private bitpayIdProvider: BitPayIdProvider,
+    private themeProvider: ThemeProvider,
+    private logsProvider: LogsProvider,
+    private dynamicLinksProvider: DynamicLinksProvider
   ) {
     this.imageLoaderConfig.setFileNameCachedWithExtension(true);
     this.imageLoaderConfig.useImageTag(true);
@@ -175,7 +192,15 @@ export class CopayApp {
         } catch (error) {
           message = 'Unknown error';
         }
-        this.popupProvider.ionicAlert(title, message);
+        this.popupProvider.ionicAlert(title, message).then(() => {
+          // Share logs
+          const platform = this.platformProvider.isCordova
+            ? this.platformProvider.isAndroid
+              ? 'android'
+              : 'ios'
+            : 'desktop';
+          this.logsProvider.get(this.appProvider.info.nameCase, platform);
+        });
       });
   }
 
@@ -194,10 +219,41 @@ export class CopayApp {
         deviceInfo
     );
 
+    this.platform.pause.subscribe(() => {
+      const config = this.configProvider.get();
+      const lockMethod =
+        config && config.lock && config.lock.method
+          ? config.lock.method.toLowerCase()
+          : null;
+      if (!lockMethod || lockMethod === 'disabled') {
+        return;
+      }
+      this.iabCardProvider.pause();
+    });
+
+    this.logger.debug('BitPay: setting network');
+    this.bitpayProvider.setNetwork(this.NETWORK);
+    this.bitpayIdProvider.setNetwork(this.NETWORK);
+    this.iabCardProvider.setNetwork(this.NETWORK);
+
     if (this.platform.is('cordova')) {
       this.statusBar.show();
 
+      try {
+        this.logger.debug('BitPay: setting country');
+        const { country } = await this.http
+          .get<{ country: string }>('https://bitpay.com/wallet-card/location')
+          .toPromise();
+        if (country === 'US') {
+          this.logger.debug('If US: Set Card Experiment Flag Enabled');
+          await this.persistenceProvider.setCardExperimentFlag('enabled');
+        }
+      } catch (err) {
+        this.logger.error('Error setting country: ', err);
+      }
+
       // Set User-Agent
+      this.logger.debug('Setting User Agent');
       this.userAgent.set(
         this.appProvider.info.name +
           ' ' +
@@ -212,37 +268,51 @@ export class CopayApp {
       );
 
       // Set to portrait
+      this.logger.debug('Setting Screen Orientation');
       this.screenOrientation.lock(this.screenOrientation.ORIENTATIONS.PORTRAIT);
 
       // Only overlay for iOS
       if (this.platform.is('ios')) {
         this.statusBar.overlaysWebView(true);
-        this.statusBar.styleDefault();
       }
 
+      this.logger.debug('Hide Splash Screen');
       this.splashScreen.hide();
 
       // Subscribe Resume
-      this.onResumeSubscription = this.platform.resume.subscribe(() => {
+      this.logger.debug('On Resume Subscription');
+      this.onResumeSubscription = this.platform.resume.subscribe(async () => {
         // Check PIN or Fingerprint on Resume
         this.openLockModal();
+
+        // Set Theme (light or dark mode)
+        await this.themeProvider.load();
+        this.themeProvider.apply();
 
         // Clear all notifications
         this.pushNotificationsProvider.clearAllNotifications();
       });
 
       // Check PIN or Fingerprint
+      this.logger.debug('Open Lock Modal');
       this.openLockModal();
 
       // Clear all notifications
       this.pushNotificationsProvider.clearAllNotifications();
+
+      // Firebase Dynamic link
+      this.dynamicLinksProvider.onDynamicLink().then(data => {
+        this.logger.debug('Firebase Dynamic Link Data: ', JSON.stringify(data));
+      });
     }
 
-    const experiment = await this.persistenceProvider.getCardExperimentFlag();
-    this.bitpayProvider.init(experiment);
+    // Set Theme (light or dark mode)
+    this.themeProvider.apply();
+    if (this.platformProvider.isElectron) this.updateDesktopOnFocus();
 
     this.registerIntegrations();
     this.incomingDataRedirEvent();
+    this.showAdvertisingEvent();
     this.events.subscribe('OpenWallet', (wallet, params) =>
       this.openWallet(wallet, params)
     );
@@ -262,10 +332,20 @@ export class CopayApp {
                 this.rootPage = DisclaimerPage;
                 break;
               default:
-                this.popupProvider.ionicAlert(
-                  'Could not initialize the app',
-                  err.message
-                );
+                this.popupProvider
+                  .ionicAlert('Could not load the profile', err.message)
+                  .then(() => {
+                    // Share logs
+                    const platform = this.platformProvider.isCordova
+                      ? this.platformProvider.isAndroid
+                        ? 'android'
+                        : 'ios'
+                      : 'desktop';
+                    this.logsProvider.get(
+                      this.appProvider.info.nameCase,
+                      platform
+                    );
+                  });
             }
           });
       })
@@ -273,32 +353,57 @@ export class CopayApp {
         this.popupProvider.ionicAlert('Error loading keys', err.message || '');
         this.logger.error('Error loading keys: ', err);
       });
-    // hiding this behind feature flag
-    let token;
-    try {
-      token = await this.persistenceProvider.getBitPayIdPairingToken(
-        Network[this.NETWORK]
-      );
-    } catch (err) {
-      this.logger.log(err);
-    }
 
-    if (this.platformProvider.isCordova) {
+    let [token, cards]: any = await Promise.all([
+      this.persistenceProvider.getBitPayIdPairingToken(Network[this.NETWORK]),
+      this.persistenceProvider.getBitpayDebitCards(Network[this.NETWORK])
+    ]);
+
+    if (
+      this.platformProvider.isCordova &&
+      this.appProvider.info.name === 'bitpay'
+    ) {
+      const host =
+        this.NETWORK === 'testnet' ? 'test.bitpay.com' : 'bitpay.com';
+      this.logger.log(`IAB host -> ${host}`);
       // preloading the view
+
       setTimeout(() => {
+        this.logger.debug('BitPay: create IAB Instance');
         this.iab
           .createIABInstance(
             'card',
-            CARD_IAB_CONFIG,
-            'https://bitpay.com/wallet-card?context=bpa',
-            `sessionStorage.setItem('isPaired', ${!!token})`
+            `${CARD_IAB_CONFIG},OverrideUserAgent=${this.platformProvider.getUserAgent()}`,
+            `https://${host}/wallet-card?context=bpa`,
+            `(() => {
+              sessionStorage.setItem('isPaired', ${!!token}); 
+              sessionStorage.setItem('cards', ${JSON.stringify(
+                JSON.stringify(cards)
+              )});
+              })()`
           )
           .then(ref => {
             this.cardIAB_Ref = ref;
             this.iabCardProvider.init();
+          })
+          .catch(e => {
+            this.logger.debug('Error creating IAB instance: ', e.message);
           });
       });
     }
+  }
+
+  private updateDesktopOnFocus() {
+    const { remote } = (window as any).require('electron');
+    const win = remote.getCurrentWindow();
+    win.on('focus', () => {
+      if (this.themeProvider.useSystemTheme) {
+        this.themeProvider.getDetectedSystemTheme().then(theme => {
+          if (this.themeProvider.currentAppTheme == theme) return;
+          this.themeProvider.setActiveTheme('system', theme);
+        });
+      }
+    });
   }
 
   private onProfileLoad(profile) {
@@ -318,6 +423,13 @@ export class CopayApp {
         this.handleDeepLinksElectron();
       }
     } else {
+      (window as any).handleOpenURL = (url: string) => {
+        if (url.includes('wallet-card/order-now')) {
+          const context = url.includes('new') ? 'new' : 'fv';
+          this.persistenceProvider.setCardFastTrackEnabled(context);
+        }
+      };
+
       this.logger.info('No profile exists.');
       this.profile.createProfile();
       this.rootPage = OnboardingPage;
@@ -326,14 +438,22 @@ export class CopayApp {
 
   private openLockModal(): void {
     if (this.appProvider.isLockModalOpen) return;
+
     const config = this.configProvider.get();
     const lockMethod =
       config && config.lock && config.lock.method
         ? config.lock.method.toLowerCase()
         : null;
-    if (!lockMethod) return;
-    if (lockMethod == 'pin') this.openPINModal('checkPin');
-    if (lockMethod == 'fingerprint') this.openFingerprintModal();
+
+    if (!lockMethod) {
+      return;
+    }
+
+    if (lockMethod == 'pin') {
+      this.openPINModal('checkPin');
+    } else if (lockMethod == 'fingerprint') {
+      this.openFingerprintModal();
+    }
   }
 
   private openPINModal(action): void {
@@ -348,8 +468,7 @@ export class CopayApp {
     );
     modal.present({ animate: false });
     modal.onDidDismiss(() => {
-      this.appProvider.isLockModalOpen = false;
-      this.events.publish('Home/reloadStatus');
+      this.onLockDidDismiss();
     });
   }
 
@@ -365,9 +484,14 @@ export class CopayApp {
     );
     modal.present({ animate: false });
     modal.onDidDismiss(() => {
-      this.appProvider.isLockModalOpen = false;
-      this.events.publish('Home/reloadStatus');
+      this.onLockDidDismiss();
     });
+  }
+
+  private onLockDidDismiss(): void {
+    this.appProvider.isLockModalOpen = false;
+    this.events.publish('Home/reloadStatus');
+    this.iabCardProvider.resume();
   }
 
   private registerIntegrations(): void {
@@ -375,15 +499,19 @@ export class CopayApp {
     if (this.appProvider.info._enabledExtensions.giftcards)
       this.giftCardProvider.register();
 
-    // ShapeShift
-    if (this.appProvider.info._enabledExtensions.shapeshift) {
-      this.shapeshiftProvider.setCredentials();
-      this.shapeshiftProvider.register();
+    // Buy Crypto
+    if (this.appProvider.info._enabledExtensions.buycrypto) {
+      this.buyCryptoProvider.register();
     }
 
-    // Simplex
-    if (this.appProvider.info._enabledExtensions.simplex) {
-      this.simplexProvider.register();
+    // ShapeShift
+    // Disabled for macOS
+    if (
+      this.appProvider.info._enabledExtensions.shapeshift &&
+      this.platformProvider.getOS().OSName != 'MacOS'
+    ) {
+      this.shapeshiftProvider.setCredentials();
+      this.shapeshiftProvider.register();
     }
 
     // Coinbase
@@ -399,12 +527,38 @@ export class CopayApp {
 
   private incomingDataRedirEvent(): void {
     this.events.subscribe('IncomingDataRedir', nextView => {
-      this.closeScannerFromWithinWallet();
-      // wait for wallets status
-      setTimeout(() => {
-        const globalNav = this.getGlobalTabs().getSelected();
-        globalNav.push(this.pageMap[nextView.name], nextView.params);
-      }, 300);
+      if (!nextView.name) {
+        setTimeout(() => {
+          this.getGlobalTabs()
+            .goToRoot()
+            .then(_ => {
+              this.getGlobalTabs().select(2);
+            });
+        }, 300);
+      } else {
+        this.closeScannerFromWithinWallet();
+        // wait for wallets status
+        setTimeout(() => {
+          const globalNav = this.getGlobalTabs().getSelected();
+          globalNav
+            .push(this.pageMap[nextView.name], nextView.params)
+            .then(() => {
+              if (typeof nextView.callback === 'function') {
+                nextView.callback();
+              }
+            });
+        }, 300);
+      }
+    });
+  }
+
+  private showAdvertisingEvent(): void {
+    this.events.subscribe('ShowAdvertising', data => {
+      this.getGlobalTabs().select(0);
+      const modal = this.modalCtrl.create(AdvertisingComponent, {
+        advertising: data
+      });
+      modal.present();
     });
   }
 

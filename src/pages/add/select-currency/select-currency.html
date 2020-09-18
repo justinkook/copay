@@ -7,10 +7,10 @@
           <ion-icon item-start>
             <img src="assets/img/currencies/{{coin}}.svg" />
           </ion-icon>
-          <div class="item-title">{{ getCoinName(coin) }} ({{ coin.toUpperCase() }})</div>
+          <div class="item-title">{{ getCoinName(coin) }} ({{ coin.toUpperCase() }}) <span *ngIf="(navParam.data.isShared || navParam.data.isJoin) && coin === 'eth'">(Testnet ONLY)</span></div>
         </button>
       </div>
-      <div *ngIf="!navParam.data.isShared">
+      <div *ngIf="!navParam.data.isShared && !navParam.data.isJoin">
         <span class="list-subtitle">Tokens</span>
         <button *ngFor="let token of availableTokens" class="list-button" [disabled]="tokenDisabled[token.symbol]" ion-item (click)="showPairedWalletSelector(token)">
           <ion-icon item-start>
@@ -34,7 +34,7 @@
             <ion-toggle [(ngModel)]="coinsSelected[coin]" (ngModelChange)="setTokens(coin)"></ion-toggle>
           </ion-item>
         </div>
-        <div *ngIf="!navParam.data.isShared">
+        <div *ngIf="!navParam.data.isShared && !navParam.data.isJoin">
           <span class="list-subtitle">Tokens</span>
           <ion-item *ngFor="let token of availableTokens" class="list-button">
             <ion-icon item-start>
@@ -47,14 +47,14 @@
           </ion-item>
         </div>
       </ion-list>
-      <div>
-        <button ion-button class="button-standard" [disabled]="!coinsSelected.btc && !coinsSelected.bch && !coinsSelected.eth && !coinsSelected.xrp" (click)="createWallets()">
-          {{'Create' | translate}}
-        </button>
-        <button ion-button clear class="button-standard" (click)="goToImportWallet()" *ngIf="isOnboardingFlow">
-          {{ 'Import existing wallet' | translate }}
-        </button>
-      </div>
     </div>
+  </div>
+  <div footer-content *ngIf="isZeroState">
+    <button ion-button class="button-standard" [disabled]="!coinsSelected.btc && !coinsSelected.bch && !coinsSelected.eth && !coinsSelected.xrp" (click)="createWallets()">
+      {{'Create' | translate}}
+    </button>
+    <button ion-button clear class="button-standard" (click)="goToImportWallet()" *ngIf="isOnboardingFlow">
+      {{ 'Import existing wallet' | translate }}
+    </button>
   </div>
 </wide-header-page>

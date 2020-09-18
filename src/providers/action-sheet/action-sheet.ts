@@ -6,6 +6,7 @@ import { IncomingDataMenuComponent } from '../../components/incoming-data-menu/i
 import { InfoSheetComponent } from '../../components/info-sheet/info-sheet';
 import { MemoComponent } from '../../components/memo-component/memo-component';
 import { OptionsSheetComponent } from '../../components/options-sheet/options-sheet';
+import { PhoneSheet } from '../../components/phone-sheet/phone-sheet';
 import { WalletReceiveComponent } from '../../components/wallet-receive/wallet-receive';
 import { WalletSelectorComponent } from '../../components/wallet-selector/wallet-selector';
 import { WalletTabOptionsComponent } from '../../components/wallet-tab-options/wallet-tab-options';
@@ -15,7 +16,6 @@ import { DomProvider } from '../../providers/dom/dom';
 export type InfoSheetType =
   | 'activation-fee-included'
   | 'address-copied'
-  | 'addTokenWallet'
   | 'archive-all-gift-cards'
   | 'archive-gift-card'
   | 'appreciate-review'
@@ -24,11 +24,9 @@ export type InfoSheetType =
   | 'backup-ready'
   | 'backup-later-warning'
   | 'backup-safeguard-warning'
-  | 'copayers'
   | 'copy-to-clipboard'
   | 'copied-gift-card-claim-code'
   | 'copied-invoice-url'
-  | 'custom-amount'
   | 'default-error'
   | 'gift-card-archived'
   | 'gift-cards-unavailable'
@@ -38,16 +36,31 @@ export type InfoSheetType =
   | 'above-maximum-gift-card-amount'
   | 'below-minimum-gift-card-amount'
   | 'legacy-address-info'
+  | 'linkEthWallet'
   | 'miner-fee'
   | 'miner-fee-notice'
+  | 'one-phone-country'
   | 'payment-request'
+  | 'payment-method-changed'
   | 'print-required'
   | 'sensitive-info'
   | 'in-app-notification'
   | 'request-feature'
   | 'report-issue'
   | 'new-key'
-  | 'wrong-encrypt-password';
+  | 'wrong-encrypt-password'
+  | 'bch-legacy-warning-1'
+  | 'bch-legacy-warning-2'
+  | 'speed-up-tx'
+  | 'speed-up-notice'
+  | 'unconfirmed-inputs'
+  | 'rbf-tx'
+  | 'total-amount'
+  | 'subtotal-amount'
+  | 'no-wallets-available'
+  | 'recovery-phrase-length'
+  | 'no-wallets-error'
+  | 'wyre-error';
 
 export type OptionsSheetType =
   | 'wallet-options'
@@ -60,6 +73,10 @@ export interface WalletSelectorParams {
   wallets: any[];
   selectedWalletId: string;
   title: string;
+  coinbaseData?: {
+    user: any[];
+    availableAccounts: any[];
+  };
 }
 
 export interface WalletReceiveParams {
@@ -113,6 +130,10 @@ export class ActionSheetProvider {
 
   public createEmailComponent(): EmailComponent {
     return this.setupSheet<EmailComponent>(EmailComponent).instance;
+  }
+
+  public createPhoneSheet(params): PhoneSheet {
+    return this.setupSheet<PhoneSheet>(PhoneSheet, null, params).instance;
   }
 
   public createWalletSelector(

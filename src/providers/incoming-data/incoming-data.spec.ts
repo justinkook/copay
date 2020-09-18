@@ -98,24 +98,6 @@ describe('Provider: Incoming Data Provider', () => {
         });
       });
     });
-    it('Should handle Plain URL', () => {
-      let data = [
-        'http://bitpay.com/', // non-SSL URL Handling
-        'https://bitpay.com/' // SSL URL Handling
-      ];
-      data.forEach(element => {
-        expect(
-          incomingDataProvider.redir(element, { activePage: 'ScanPage' })
-        ).toBe(true);
-        expect(loggerSpy).toHaveBeenCalledWith('Incoming-data: Plain URL');
-        expect(actionSheetSpy).toHaveBeenCalledWith({
-          data: {
-            type: 'url',
-            data: element
-          }
-        });
-      });
-    });
     it('Should handle Join Wallet', () => {
       let data =
         'copay:RTpopkn5KBnkxuT7x4ummDKx3Lu1LvbntddBC4ssDgaqP7DkojT8ccxaFQEXY4f3huFyMewhHZLbtc';
@@ -300,7 +282,8 @@ describe('Provider: Incoming Data Provider', () => {
           coin: element.paymentOptions[2].currency.toLowerCase(),
           network: payProDetails.network,
           payProUrl: element.payProUrl,
-          requiredFeeRate: payProDetails.requiredFeeRate
+          requiredFeeRate: payProDetails.requiredFeeRate,
+          minerFee: element.paymentOptions[2].minerFee
         };
 
         let nextView = {
@@ -934,9 +917,10 @@ describe('Provider: Incoming Data Provider', () => {
           'Incoming-data (redirect): ShapeShift URL'
         );
         expect(eventsSpy).toHaveBeenCalledWith('IncomingDataRedir', nextView);
+        expect(eventsSpy).toHaveBeenCalledWith('IncomingDataRedir', nextView);
       });
     });
-    it('Should handle BitPay Card URI', () => {
+    xit('Should handle BitPay Card URI', () => {
       let data = 'bitpay://bitpay.com?secret=xxxxx&email=xxx@xx.com';
       let stateParams = { secret: 'xxxxx', email: 'xxx@xx.com', otp: null };
       let nextView = {
@@ -951,33 +935,75 @@ describe('Provider: Incoming Data Provider', () => {
       );
       expect(eventsSpy).toHaveBeenCalledWith('IncomingDataRedir', nextView);
     });
+    it('Should handle BitPay redir link', () => {
+      let data = ['bitpay://landing/card'];
+      data.forEach(link => {
+        expect(incomingDataProvider.redir(link)).toBe(true);
+        expect(loggerSpy).toHaveBeenCalledWith(
+          'Incoming-data (redirect): BitPay Redir'
+        );
+        const redir = link.replace('bitpay://landing/', '');
+        switch (redir) {
+          default:
+          case 'card':
+            let nextView = {
+              name: 'PhaseOneCardIntro'
+            };
+            expect(eventsSpy).toHaveBeenCalledWith(
+              'IncomingDataRedir',
+              nextView
+            );
+            break;
+        }
+      });
+    });
   });
 
   describe('Function: finishIncomingData', () => {
-    it('Should handle if there is data and redirTo is different to AmountPage', () => {
-      const data = {
-        redirTo: 'anyPage',
-        value: 123
+    it('Should handle if there is data and redirTo is PaperWalletPage', () => {
+      const stateParams = {
+        privateKey: '123',
+        toAddress: null,
+        coin: 'btc',
+        addressbookEntry: null
       };
-      const nextView = data;
+      const nextView = {
+        name: 'PaperWalletPage',
+        params: stateParams
+      };
+      const data = { redirTo: 'PaperWalletPage', value: '123' };
       incomingDataProvider.finishIncomingData(data);
-      expect(eventsSpy).toHaveBeenCalledWith(
-        'finishIncomingDataMenuEvent',
-        nextView
-      );
+      expect(eventsSpy).toHaveBeenCalledWith('IncomingDataRedir', nextView);
     });
     it('Should handle if there is data and redirTo is AmountPage', () => {
-      const data = {
-        redirTo: 'AmountPage',
-        value: 123,
-        coin: 'btc'
+      const stateParams = {
+        toAddress: 'xxx',
+        coin: 'bch',
+        privateKey: null,
+        addressbookEntry: null
       };
-      const nextView = data;
+      const nextView = {
+        name: 'AmountPage',
+        params: stateParams
+      };
+      const data = { redirTo: 'AmountPage', value: 'xxx', coin: 'bch' };
       incomingDataProvider.finishIncomingData(data);
-      expect(eventsSpy).toHaveBeenCalledWith(
-        'finishIncomingDataMenuEvent',
-        nextView
-      );
+      expect(eventsSpy).toHaveBeenCalledWith('IncomingDataRedir', nextView);
+    });
+    it('Should handle if there is data and redirTo is AddressbookAddPage', () => {
+      const stateParams = {
+        toAddress: null,
+        coin: 'bch',
+        privateKey: null,
+        addressbookEntry: 'xxx'
+      };
+      const nextView = {
+        name: 'AddressbookAddPage',
+        params: stateParams
+      };
+      const data = { redirTo: 'AddressbookAddPage', value: 'xxx', coin: 'bch' };
+      incomingDataProvider.finishIncomingData(data);
+      expect(eventsSpy).toHaveBeenCalledWith('IncomingDataRedir', nextView);
     });
   });
 

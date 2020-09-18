@@ -1,20 +1,14 @@
 import { ChangeDetectorRef, Component } from '@angular/core';
 import { TranslateService } from '@ngx-translate/core';
-import { ModalController, NavController } from 'ionic-angular';
-import { Logger } from '../../providers/logger/logger';
+import { Events, ModalController, NavController } from 'ionic-angular';
 
 import * as _ from 'lodash';
 
 // providers
 import { Observable } from 'rxjs';
 // pages
-import { InAppBrowserRef } from '../../models/in-app-browser/in-app-browser-ref.model';
 import { User } from '../../models/user/user.model';
-import {
-  BitPayIdProvider,
-  IABCardProvider,
-  InAppBrowserProvider
-} from '../../providers';
+import { BitPayIdProvider, IABCardProvider } from '../../providers';
 import { AnalyticsProvider } from '../../providers/analytics/analytics';
 import { AppProvider } from '../../providers/app/app';
 import { BitPayCardProvider } from '../../providers/bitpay-card/bitpay-card';
@@ -22,21 +16,24 @@ import { ConfigProvider } from '../../providers/config/config';
 import { ExternalLinkProvider } from '../../providers/external-link/external-link';
 import { HomeIntegrationsProvider } from '../../providers/home-integrations/home-integrations';
 import { LanguageProvider } from '../../providers/language/language';
+import { Logger } from '../../providers/logger/logger';
 import {
   Network,
   PersistenceProvider
 } from '../../providers/persistence/persistence';
 import { PlatformProvider } from '../../providers/platform/platform';
 import { ProfileProvider } from '../../providers/profile/profile';
+import { ThemeProvider } from '../../providers/theme/theme';
 import { TouchIdProvider } from '../../providers/touchid/touchid';
 
 // pages
+import { animate, style, transition, trigger } from '@angular/animations';
 import { AddPage } from '../add/add';
+import { CryptoSettingsPage } from '../buy-crypto/crypto-settings/crypto-settings';
 import { BitPaySettingsPage } from '../integrations/bitpay-card/bitpay-settings/bitpay-settings';
 import { CoinbaseSettingsPage } from '../integrations/coinbase/coinbase-settings/coinbase-settings';
 import { GiftCardsSettingsPage } from '../integrations/gift-cards/gift-cards-settings/gift-cards-settings';
-import { ShapeshiftSettingsPage } from '../integrations/shapeshift/shapeshift-settings/shapeshift-settings';
-import { SimplexSettingsPage } from '../integrations/simplex/simplex-settings/simplex-settings';
+import { ShapeshiftPage } from '../integrations/shapeshift/shapeshift';
 import { PinModalPage } from '../pin/pin-modal/pin-modal';
 import { AboutPage } from './about/about';
 import { AddressbookPage } from './addressbook/addressbook';
@@ -46,6 +43,7 @@ import { BitPayIdPage } from './bitpay-id/bitpay-id';
 import { FeePolicyPage } from './fee-policy/fee-policy';
 import { KeySettingsPage } from './key-settings/key-settings';
 import { LanguagePage } from './language/language';
+import { LocalThemePage } from './local-theme/local-theme';
 import { LockPage } from './lock/lock';
 import { NotificationsPage } from './notifications/notifications';
 import { SharePage } from './share/share';
@@ -53,7 +51,18 @@ import { WalletSettingsPage } from './wallet-settings/wallet-settings';
 
 @Component({
   selector: 'page-settings',
-  templateUrl: 'settings.html'
+  templateUrl: 'settings.html',
+  animations: [
+    trigger('fade', [
+      transition(':enter', [
+        style({
+          transform: 'translateY(5px)',
+          opacity: 0
+        }),
+        animate('200ms')
+      ])
+    ])
+  ]
 })
 export class SettingsPage {
   public appName: string;
@@ -62,6 +71,7 @@ export class SettingsPage {
   public config;
   public selectedAlternative;
   public isCordova: boolean;
+  public isCopay: boolean;
   public lockMethod: string;
   public integrationServices = [];
   public cardServices = [];
@@ -72,12 +82,14 @@ export class SettingsPage {
   public touchIdEnabled: boolean;
   public touchIdPrevValue: boolean;
   public walletsGroups: any[];
+  public readOnlyWalletsGroup: any[];
   public bitpayIdPairingEnabled: boolean;
   public bitPayIdUserInfo: any;
-  private cardIAB_Ref: InAppBrowserRef;
   private network = Network[this.bitPayIdProvider.getEnvironment().network];
   private user$: Observable<User>;
-  public showBalance: boolean;
+  public showReorder: boolean = false;
+  public showTotalBalance: boolean;
+  public appTheme: string;
   public useLegacyQrCode: boolean;
 
   constructor(
@@ -85,7 +97,7 @@ export class SettingsPage {
     private app: AppProvider,
     private language: LanguageProvider,
     private externalLinkProvider: ExternalLinkProvider,
-    private profileProvider: ProfileProvider,
+    public profileProvider: ProfileProvider,
     private configProvider: ConfigProvider,
     private logger: Logger,
     private homeIntegrationsProvider: HomeIntegrationsProvider,
@@ -95,15 +107,23 @@ export class SettingsPage {
     private modalCtrl: ModalController,
     private touchid: TouchIdProvider,
     private analyticsProvider: AnalyticsProvider,
-    private persistanceProvider: PersistenceProvider,
-    private iab: InAppBrowserProvider,
+    private persistenceProvider: PersistenceProvider,
     private bitPayIdProvider: BitPayIdProvider,
     private changeRef: ChangeDetectorRef,
-    private iabCardProvider: IABCardProvider
+    private iabCardProvider: IABCardProvider,
+    private themeProvider: ThemeProvider,
+    private events: Events
   ) {
     this.appName = this.app.info.nameCase;
     this.isCordova = this.platformProvider.isCordova;
+    this.isCopay = this.app.info.name === 'copay';
     this.user$ = this.iabCardProvider.user$;
+
+    this.events.subscribe('updateCards', cards => {
+      if (cards && cards.length > 0) {
+        this.bitpayCardItems = cards;
+      }
+    });
   }
 
   ionViewDidLoad() {
@@ -111,27 +131,21 @@ export class SettingsPage {
   }
 
   ionViewWillEnter() {
-    this.persistanceProvider
+    this.persistenceProvider
       .getBitpayIdPairingFlag()
       .then(res => (this.bitpayIdPairingEnabled = res === 'enabled'));
 
-    this.cardIAB_Ref = this.iab.refs.card;
-
-    if (this.cardIAB_Ref) {
+    if (this.iabCardProvider.ref) {
       // check for user info
-      this.persistanceProvider
+      this.persistenceProvider
         .getBitPayIdUserInfo(this.network)
         .then((user: User) => {
           this.bitPayIdUserInfo = user;
         });
 
-      this.user$.subscribe(user => {
+      this.user$.subscribe(async user => {
         if (user) {
           this.bitPayIdUserInfo = user;
-          this.bitPayCardProvider.get({ noHistory: true }).then(cards => {
-            this.showBitPayCard = !!this.app.info._enabledExtensions.debitcard;
-            this.bitpayCardItems = cards;
-          });
           this.changeRef.detectChanges();
         }
       });
@@ -141,13 +155,23 @@ export class SettingsPage {
       this.language.getCurrent()
     );
 
-    this.setShowBalanceFlag();
-
     const opts = {
       showHidden: true
     };
     const wallets = this.profileProvider.getWallets(opts);
-    this.walletsGroups = _.values(_.groupBy(wallets, 'keyId'));
+    this.walletsGroups = _.values(
+      _.groupBy(
+        _.filter(wallets, wallet => {
+          return wallet.keyId != 'read-only';
+        }),
+        'keyId'
+      )
+    );
+
+    this.readOnlyWalletsGroup = this.profileProvider.getWalletsFromGroup({
+      keyId: 'read-only'
+    });
+
     this.config = this.configProvider.get();
     this.selectedAlternative = {
       name: this.config.wallet.settings.alternativeName,
@@ -158,12 +182,17 @@ export class SettingsPage {
         ? this.config.lock.method.toLowerCase()
         : null;
 
-    this.useLegacyQrCode = this.config.useLegacyQrCode;
+    this.useLegacyQrCode = this.config.legacyQrCode.show;
+
+    this.showTotalBalance = this.config.totalBalance.show;
   }
 
   ionViewDidEnter() {
     // Show integrations
     const integrations = this.homeIntegrationsProvider.get();
+
+    // Get Theme
+    this.appTheme = this.themeProvider.getCurrentAppTheme();
 
     // Hide BitPay if linked
     setTimeout(() => {
@@ -172,7 +201,11 @@ export class SettingsPage {
         else return x;
       });
       this.cardServices = _.remove(_.clone(integrations), x => {
-        if ((x.name == 'debitcard' && x.linked) || x.type == 'exchange')
+        if (
+          x.name === 'debitcard' ||
+          x.type === 'exchange' ||
+          (x.name === 'giftcards' && this.platformProvider.isMacApp())
+        )
           return false;
         else return x;
       });
@@ -185,22 +218,24 @@ export class SettingsPage {
     });
   }
 
+  public trackBy(index) {
+    return index;
+  }
+
   public openBitPayIdPage(): void {
     if (this.bitPayIdUserInfo) {
       this.navCtrl.push(BitPayIdPage, this.bitPayIdUserInfo);
     } else {
-      this.cardIAB_Ref.executeScript(
-        {
-          code: `window.postMessage(${JSON.stringify({
+      this.logger.log('settings - pairing');
+      this.iabCardProvider.show();
+      setTimeout(() => {
+        this.iabCardProvider.sendMessage(
+          {
             message: 'pairingOnly'
-          })}, '*')`
-        },
-        () => {
-          setTimeout(() => {
-            this.cardIAB_Ref.show();
-          }, 500);
-        }
-      );
+          },
+          () => {}
+        );
+      }, 100);
     }
   }
 
@@ -218,6 +253,10 @@ export class SettingsPage {
 
   public openAboutPage(): void {
     this.navCtrl.push(AboutPage);
+  }
+
+  public openThemePage(): void {
+    this.navCtrl.push(LocalThemePage);
   }
 
   public openLockPage(): void {
@@ -260,10 +299,10 @@ export class SettingsPage {
         this.navCtrl.push(BitPaySettingsPage);
         break;
       case 'shapeshift':
-        this.navCtrl.push(ShapeshiftSettingsPage);
+        this.navCtrl.push(ShapeshiftPage);
         break;
-      case 'simplex':
-        this.navCtrl.push(SimplexSettingsPage);
+      case 'buycrypto':
+        this.navCtrl.push(CryptoSettingsPage);
         break;
       case 'giftcards':
         this.navCtrl.push(GiftCardsSettingsPage);
@@ -272,7 +311,16 @@ export class SettingsPage {
   }
 
   public openCardSettings(id): void {
-    this.navCtrl.push(BitPaySettingsPage, { id });
+    const message = `openSettings?${id}`;
+    this.iabCardProvider.show();
+    setTimeout(() => {
+      this.iabCardProvider.sendMessage(
+        {
+          message
+        },
+        () => {}
+      );
+    });
   }
 
   public openGiftCardsSettings() {
@@ -339,6 +387,7 @@ export class SettingsPage {
   }
 
   public openWalletGroupSettings(keyId: string): void {
+    if (this.showReorder) return;
     this.navCtrl.push(KeySettingsPage, { keyId });
   }
 
@@ -348,25 +397,67 @@ export class SettingsPage {
     });
   }
 
-  private setShowBalanceFlag() {
-    this.profileProvider
-      .getShowTotalBalanceFlag()
-      .then(isShown => {
-        this.showBalance = isShown;
-      })
-      .catch(err => {
-        this.logger.error(err);
-      });
+  public toggleShowBalanceFlag(): void {
+    let opts = {
+      totalBalance: { show: this.showTotalBalance }
+    };
+    this.configProvider.set(opts);
+    if (this.showTotalBalance) this.events.publish('Local/FetchWallets');
   }
 
-  public toggleShowBalanceFlag(): void {
-    this.profileProvider.setShowTotalBalanceFlag(this.showBalance);
+  public reorder(): void {
+    this.showReorder = !this.showReorder;
+  }
+
+  public async reorderAccounts(indexes) {
+    const element = this.walletsGroups[indexes.from];
+    this.walletsGroups.splice(indexes.from, 1);
+    this.walletsGroups.splice(indexes.to, 0, element);
+    _.each(this.walletsGroups, (walletGroup, index: number) => {
+      this.profileProvider.setWalletGroupOrder(walletGroup[0].keyId, index);
+    });
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    this.profileProvider.setOrderedWalletsByGroup();
   }
 
   public toggleQrCodeLegacyFlag(): void {
     let opts = {
-      useLegacyQrCode: this.useLegacyQrCode
+      legacyQrCode: { show: this.useLegacyQrCode }
     };
     this.configProvider.set(opts);
+  }
+
+  public openPrivacyPolicy() {
+    const url = 'https://bitpay.com/about/privacy';
+    const optIn = true;
+    const title = null;
+    const message = this.translate.instant('View Privacy Policy');
+    const okText = this.translate.instant('Open');
+    const cancelText = this.translate.instant('Go Back');
+    this.externalLinkProvider.open(
+      url,
+      optIn,
+      title,
+      message,
+      okText,
+      cancelText
+    );
+  }
+
+  public openTermsOfUse() {
+    const url = 'https://bitpay.com/legal/terms-of-use';
+    const optIn = true;
+    const title = null;
+    const message = this.translate.instant('View Wallet Terms of Use');
+    const okText = this.translate.instant('Open');
+    const cancelText = this.translate.instant('Go Back');
+    this.externalLinkProvider.open(
+      url,
+      optIn,
+      title,
+      message,
+      okText,
+      cancelText
+    );
   }
 }

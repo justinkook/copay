@@ -4,17 +4,12 @@ import { ZXingScannerComponent } from '@zxing/ngx-scanner';
 import { Events, NavController, NavParams, Platform } from 'ionic-angular';
 
 // providers
+import { BwcErrorProvider } from '../../providers/bwc-error/bwc-error';
 import { ErrorsProvider } from '../../providers/errors/errors';
-import { ExternalLinkProvider } from '../../providers/external-link/external-link';
 import { IncomingDataProvider } from '../../providers/incoming-data/incoming-data';
 import { Logger } from '../../providers/logger/logger';
 import { PlatformProvider } from '../../providers/platform/platform';
 import { ScanProvider } from '../../providers/scan/scan';
-
-// pages
-import { PaperWalletPage } from '../paper-wallet/paper-wallet';
-import { AmountPage } from '../send/amount/amount';
-import { AddressbookAddPage } from '../settings/addressbook/add/add';
 
 import env from '../../environments';
 
@@ -49,7 +44,6 @@ export class ScanPage {
   public scannerStates;
   public canOpenSettings: boolean;
   public currentState: string;
-  public tabBarElement;
   public isCordova: boolean;
   public isCameraSelected: boolean;
   public fromAddressbook: boolean;
@@ -57,7 +51,10 @@ export class ScanPage {
   public fromJoin: boolean;
   public fromSend: boolean;
   public fromMultiSend: boolean;
+  public fromSelectInputs: boolean;
+  public fromEthMultisig: boolean;
   public fromConfirm: boolean;
+  public canGoBack: boolean;
 
   constructor(
     private navCtrl: NavController,
@@ -65,12 +62,12 @@ export class ScanPage {
     private platformProvider: PlatformProvider,
     private incomingDataProvider: IncomingDataProvider,
     private events: Events,
-    private externalLinkProvider: ExternalLinkProvider,
     private logger: Logger,
     public translate: TranslateService,
     private navParams: NavParams,
     private platform: Platform,
-    private errorsProvider: ErrorsProvider
+    private errorsProvider: ErrorsProvider,
+    private bwcErrorProvider: BwcErrorProvider
   ) {
     this.isCameraSelected = false;
     this.browserScanEnabled = false;
@@ -89,20 +86,17 @@ export class ScanPage {
     this.scannerIsRestricted = false;
     this.canOpenSettings = false;
     this.isCordova = this.platformProvider.isCordova;
-    this.tabBarElement = document.querySelector('.tabbar.show-tabbar');
   }
 
   ionViewDidLoad() {
     this.logger.info('Loaded: ScanPage');
+    this.navCtrl.swipeBackEnabled = false;
+    this.canGoBack = this.navCtrl.canGoBack();
   }
 
   ionViewWillLeave() {
-    this.tabBarElement.style.display = 'flex';
+    this.navCtrl.swipeBackEnabled = true;
     this.events.unsubscribe('incomingDataError', this.incomingDataErrorHandler);
-    this.events.unsubscribe(
-      'finishIncomingDataMenuEvent',
-      this.finishIncomingDataMenuEventHandler
-    );
     this.events.unsubscribe(
       'scannerServiceInitialized',
       this.scannerServiceInitializedHandler
@@ -119,13 +113,14 @@ export class ScanPage {
   }
 
   ionViewWillEnter() {
-    this.tabBarElement.style.display = 'none';
     this.initializeBackButtonHandler();
     this.fromAddressbook = this.navParams.data.fromAddressbook;
     this.fromImport = this.navParams.data.fromImport;
     this.fromJoin = this.navParams.data.fromJoin;
     this.fromSend = this.navParams.data.fromSend;
     this.fromMultiSend = this.navParams.data.fromMultiSend;
+    this.fromSelectInputs = this.navParams.data.fromSelectInputs;
+    this.fromEthMultisig = this.navParams.data.fromEthMultisig;
     this.fromConfirm = this.navParams.data.fromConfirm;
 
     if (!env.activateScanner) {
@@ -136,11 +131,6 @@ export class ScanPage {
     }
 
     this.events.subscribe('incomingDataError', this.incomingDataErrorHandler);
-
-    this.events.subscribe(
-      'finishIncomingDataMenuEvent',
-      this.finishIncomingDataMenuEventHandler
-    );
 
     if (!this.isCordova) {
       if (!this.isCameraSelected) {
@@ -172,32 +162,6 @@ export class ScanPage {
     this.showErrorInfoSheet(err);
   };
 
-  private finishIncomingDataMenuEventHandler: any = data => {
-    if (!this.isCordova) {
-      this.scanner.resetScan();
-    }
-    switch (data.redirTo) {
-      case 'AmountPage':
-        this.sendPaymentToAddress(data.value, data.coin);
-        break;
-      case 'AddressBookPage':
-        this.addToAddressBook(data.value);
-        break;
-      case 'OpenExternalLink':
-        this.goToUrl(data.value);
-        break;
-      case 'PaperWalletPage':
-        this.scanPaperWallet(data.value);
-        break;
-      default:
-        if (this.isCordova) {
-          this.activate();
-        } else if (this.isCameraSelected) {
-          this.scanner.startScan(this.selectedDevice);
-        }
-    }
-  };
-
   private scannerServiceInitializedHandler: any = () => {
     this.logger.debug(
       'Scanner initialization finished, reinitializing scan view...'
@@ -207,13 +171,17 @@ export class ScanPage {
 
   private showErrorInfoSheet(error: Error | string, title?: string): void {
     let infoSheetTitle = title ? title : this.translate.instant('Error');
-    this.errorsProvider.showDefaultError(error, infoSheetTitle, () => {
-      if (this.isCordova) {
-        this.activate();
-      } else if (this.isCameraSelected) {
-        this.scanner.startScan(this.selectedDevice);
+    this.errorsProvider.showDefaultError(
+      this.bwcErrorProvider.msg(error),
+      infoSheetTitle,
+      () => {
+        if (this.isCordova) {
+          this.activate();
+        } else if (this.isCameraSelected) {
+          this.scanner.startScan(this.selectedDevice);
+        }
       }
-    });
+    );
   }
 
   private initializeBackButtonHandler(): void {
@@ -239,22 +207,6 @@ export class ScanPage {
     this.scanner.askForPermission().then((answer: boolean) => {
       this.hasPermission = answer;
     });
-  }
-
-  private goToUrl(url: string): void {
-    this.externalLinkProvider.open(url);
-  }
-
-  private sendPaymentToAddress(bitcoinAddress: string, coin: string): void {
-    this.navCtrl.push(AmountPage, { toAddress: bitcoinAddress, coin });
-  }
-
-  private addToAddressBook(bitcoinAddress: string): void {
-    this.navCtrl.push(AddressbookAddPage, { addressbookEntry: bitcoinAddress });
-  }
-
-  private scanPaperWallet(privateKey: string) {
-    this.navCtrl.push(PaperWalletPage, { privateKey });
   }
 
   private updateCapabilities(): void {
@@ -315,24 +267,24 @@ export class ScanPage {
   }
 
   private handleSuccessfulScan(contents: string): void {
+    if (this.canGoBack) this.navCtrl.pop({ animate: false });
+
     if (this.fromAddressbook) {
       this.events.publish('Local/AddressScan', { value: contents });
-      this.navCtrl.pop();
     } else if (this.fromImport) {
       this.events.publish('Local/BackupScan', { value: contents });
-      this.navCtrl.pop();
     } else if (this.fromJoin) {
-      this.events.publish('Local/InvitationScan', { value: contents });
-      this.navCtrl.pop();
+      this.events.publish('Local/JoinScan', { value: contents });
     } else if (this.fromSend) {
       this.events.publish('Local/AddressScan', { value: contents });
-      this.navCtrl.pop();
     } else if (this.fromMultiSend) {
       this.events.publish('Local/AddressScanMultiSend', { value: contents });
-      this.navCtrl.pop();
+    } else if (this.fromSelectInputs) {
+      this.events.publish('Local/AddressScanSelectInputs', { value: contents });
+    } else if (this.fromEthMultisig) {
+      this.events.publish('Local/AddressScanEthMultisig', { value: contents });
     } else if (this.fromConfirm) {
       this.events.publish('Local/TagScan', { value: contents });
-      this.navCtrl.pop();
     } else {
       const redirParms = { activePage: 'ScanPage' };
       this.incomingDataProvider.redir(contents, redirParms);
@@ -396,6 +348,6 @@ export class ScanPage {
   }
 
   public closeCam() {
-    this.navCtrl.pop();
+    this.navCtrl.pop({ animate: false });
   }
 }
