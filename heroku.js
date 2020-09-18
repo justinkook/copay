@@ -1,7 +1,6 @@
 var express = require('express');
 var app = express();
 var path = require('path');
-var morgan = require('morgan');
 var bodyParser = require('body-parser');
 var cors = require('cors');
 
@@ -14,7 +13,6 @@ app.get('*', (req, res, next) => {
   else next(); /* Continue to other routes if we're not redirecting */
 });
 
-app.use(morgan('dev'));
 app.use(bodyParser.urlencoded({ extended: 'true' }));
 app.use(bodyParser.json());
 app.use(cors());
