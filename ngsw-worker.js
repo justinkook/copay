@@ -1,47 +1,26 @@
-// This is the "Offline page" service worker
+// This is the "Offline copy of assets" service worker
 
-const CACHE = 'offline-page';
+const CACHE = "pwabuilder-offline";
+const QUEUE_NAME = "bgSyncQueue";
 
-// TODO: replace the following with the correct offline fallback page i.e.: const offlineFallbackPage = "offline.html";
-const offlineFallbackPage = 'index.html';
+importScripts('https://storage.googleapis.com/workbox-cdn/releases/5.0.0/workbox-sw.js');
 
-// Install stage sets up the offline page in the cache and opens a new cache
-self.addEventListener('install', event => {
-  event.waitUntil(
-    caches.open(CACHE).then(cache => {
-      return cache.add(offlineFallbackPage);
-    })
-  );
+self.addEventListener("message", (event) => {
+  if (event.data && event.data.type === "SKIP_WAITING") {
+    self.skipWaiting();
+  }
 });
 
-// If any fetch fails, it will show the offline page.
-self.addEventListener('fetch', event => {
-  if (event.request.method !== 'GET') return;
-
-  event.respondWith(
-    fetch(event.request).catch(error => {
-      // The following validates that the request was for a navigation to a new document
-      if (
-        event.request.destination !== 'document' ||
-        event.request.mode !== 'navigate'
-      ) {
-        return;
-      }
-
-      return caches.open(CACHE).then(cache => {
-        return cache.match(offlineFallbackPage);
-      });
-    })
-  );
+const bgSyncPlugin = new workbox.backgroundSync.Plugin(QUEUE_NAME, {
+  maxRetentionTime: 24 * 60 // Retry for max of 24 Hours (specified in minutes)
 });
 
-// This is an event that can be fired from your page to tell the SW to update the offline page
-self.addEventListener('refreshOffline', () => {
-  const offlinePageRequest = new Request(offlineFallbackPage);
-
-  return fetch(offlineFallbackPage).then(response => {
-    return caches.open(CACHE).then(cache => {
-      return cache.put(offlinePageRequest, response);
-    });
-  });
-});
+workbox.routing.registerRoute(
+  new RegExp('/*'),
+  new workbox.strategies.StaleWhileRevalidate({
+    cacheName: CACHE,
+    plugins: [
+      bgSyncPlugin
+    ]
+  })
+);
