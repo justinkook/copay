@@ -1,5 +1,6 @@
 import { HttpClientModule } from '@angular/common/http';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
+import { ServiceWorkerModule } from '@angular/service-worker';
 import { IonicImageLoader } from 'ionic-image-loader';
 import { MarkdownModule } from 'ngx-markdown';
 import { NgxTextOverflowClampModule } from 'ngx-text-overflow-clamp';
@@ -135,7 +136,11 @@ export class MyMissingTranslationHandler implements MissingTranslationHandler {
         useClass: LanguageLoader
       }
     }),
-    ZXingScannerModule.forRoot()
+    ZXingScannerModule.forRoot(),
+    /* Enable Service Workers for Production */
+    ServiceWorkerModule.register('./ngsw-worker.js', {
+      enabled: true
+    })
   ],
   bootstrap: [IonicApp],
   entryComponents: [CopayApp, ...PAGES, ...COMPONENTS],

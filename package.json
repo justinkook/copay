@@ -11,6 +11,10 @@
     "multisignature",
     "bitcore"
   ],
+  "engines": {
+    "node": "10.9.0",
+    "npm": "6.4.1"
+  },
   "main": "electron/main.js",
   "title": "Copay",
   "user-agent": "%name %ver (%osinfo)",
@@ -32,6 +36,8 @@
   },
   "scripts": {
     "postinstall": "npm run env:dev && npm run prompt",
+    "heroku-postbuild": "npm run apply:bitpay && npm run build:desktop && npm run ngsw-apply",
+    "ngsw-apply": "cp ngsw-worker.js www/",
     "electron:patch": "(! grep -q 'com.apple.security.app-sandbox' ./node_modules/app-builder-lib/templates/entitlements.mac.plist && sed -i -e \"/<dict>/ a\\ \n<key>com.apple.security.app-sandbox</key><true/>\" ./node_modules/app-builder-lib/templates/entitlements.mac.plist) | echo 'electron patched.'",
     "prompt": "\n\n\n\n\n\n#\n#  Choose a distribution with:\n#\n#     $ npm run apply:copay\n#              or\n#     $ npm run apply:bitpay\n#\n",
     "start": "npm run ionic:serve",
@@ -101,6 +107,7 @@
     "@angular/http": "5.2.10",
     "@angular/platform-browser": "5.2.10",
     "@angular/platform-browser-dynamic": "5.2.10",
+    "@angular/service-worker": "5.2.10",
     "@angular/tsc-wrapped": "4.4.6",
     "@ionic-native/android-fingerprint-auth": "4.14.0",
     "@ionic-native/clipboard": "4.14.0",
